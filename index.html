@@ -28,11 +28,6 @@
       touch-action: pan-x pan-y !important;
     }
 
-    /* DOCKING MENU TAB */
-    .page-section { display: none !important; height: 100%; }
-    .page-section.active { display: flex !important; flex-direction: column; }
-    .tab-order-btn.active { background-color: #2563eb; color: #ffffff; font-weight: 700; }
-
     /* UTILITY SCROLL AREA */
     .scroll-area, 
     #list-layanan-container, 
@@ -52,36 +47,18 @@
     /* ANIMASI SPIN REFRESH */
     .spinning { animation: spin 0.6s linear infinite; }
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-/* UTILITY SCROLL AREA */
-    .scroll-area, 
-    #list-layanan-container, 
-    #list-pelanggan-container, 
-    #list-home, 
-    #list-order-status,
-    #list-report,
-    #list-kelola-layanan-container,
-    #list-stat-modal-container {
-      overflow-y: auto !important;
-      -webkit-overflow-scrolling: touch !important;
-      touch-action: pan-y !important;
-      overscroll-behavior: contain !important;
-      overscroll-behavior-y: contain !important;
-    }
 
-    /* ANIMASI SPIN REFRESH */
-    .spinning { animation: spin 0.6s linear infinite; }
-    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
-    /* ================= TARO CSS BARU DI SINI (SEBELUM </style>) ================= */
+    /* HILANGKAN SCROLLBAR HORIZONTAL SAAT DIGESER */
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     
+    /* MODIFIKASI PAGE SECTION UNTUK SWIPE HORIZONTAL */
     .page-section {
-      display: flex !important;
-      flex-direction: column;
       width: 100vw;
-      max-width: 28rem;
+      max-width: 28rem; /* setara max-w-md */
     }
+
+    .tab-order-btn.active { background-color: #2563eb; color: #ffffff; font-weight: 700; }
   </style>
 </head>
 <body class="bg-slate-50 font-sans text-slate-800 select-none flex flex-col h-screen">
@@ -102,11 +79,11 @@
     </div>
   </header>
 
-  <!-- ======================== KONTEN UTAMA DENGAN SCROLL SNAP GESER ================= proposal -->
+  <!-- ======================== KONTEN UTAMA DENGAN SWIPE HORIZONTAL ======================== -->
   <main id="main-container" class="max-w-md mx-auto flex-1 w-full flex overflow-x-auto snap-x snap-mandatory scroll-smooth pb-16 no-scrollbar">
 
     <!-- 1. PANEL HOME -->
-    <section id="panel-home" class="page-section snap-center w-full shrink-0 h-full p-3 space-y-2.5 flex flex-col overflow-hidden">
+    <section id="panel-home" class="page-section snap-center shrink-0 h-full p-3 space-y-2.5 flex flex-col overflow-hidden">
       <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-3 rounded-2xl shadow-md space-y-0.5 shrink-0">
         <p class="text-[10px] text-blue-100 font-medium">Total Omset Hari Ini</p>
         <h2 id="stat-omset" class="text-lg font-black tracking-tight">Rp 0</h2>
@@ -156,7 +133,7 @@
     </section>
 
     <!-- 2. PANEL ORDER -->
-    <section id="panel-order" class="page-section space-y-3 overflow-hidden">
+    <section id="panel-order" class="page-section snap-center shrink-0 h-full p-3 space-y-3 flex flex-col overflow-hidden">
       <div class="bg-white p-3.5 rounded-3xl border border-slate-200/80 shadow-sm space-y-3 flex flex-col h-full overflow-hidden">
         <div class="flex justify-between items-center border-b pb-2 border-slate-100 shrink-0">
           <div>
@@ -180,7 +157,7 @@
     </section>
 
     <!-- 3. PANEL REPORT -->
-    <section id="panel-report" class="page-section space-y-3 overflow-hidden">
+    <section id="panel-report" class="page-section snap-center shrink-0 h-full p-3 space-y-3 flex flex-col overflow-hidden">
       <div class="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-sm space-y-3 flex flex-col h-full overflow-hidden">
         <h2 class="font-extrabold text-slate-900 text-sm border-b pb-2 border-slate-100 shrink-0">Laporan Transaksi Keseluruhan</h2>
         <div id="list-report" class="scroll-area space-y-2 flex-1"><p class="text-xs text-slate-400 text-center py-6">Memuat laporan...</p></div>
@@ -188,8 +165,8 @@
     </section>
 
     <!-- 4. PANEL SETTING -->
-    <section id="panel-setting" class="page-section space-y-3 scroll-area">
-      <div class="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-sm space-y-3">
+    <section id="panel-setting" class="page-section snap-center shrink-0 h-full p-3 space-y-3 flex flex-col overflow-hidden">
+      <div class="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-sm space-y-3 flex-1 scroll-area">
         <h2 class="font-extrabold text-slate-900 text-sm border-b pb-2 border-slate-100">Pengaturan Kasir</h2>
         <div class="space-y-2.5 text-xs">
           <div class="p-2.5 bg-slate-50 rounded-2xl border border-slate-100">
@@ -220,7 +197,7 @@
 
   <div id="fab-container" class="fixed bottom-20 right-4 z-50 transition-all duration-300 ease-out">
     <div class="relative flex items-center justify-center">
-      <button id="fab-main-btn" onclick="toggleFabMenu()" class="w-20 h-20 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-2xl flex items-center justify-center text-xl font-black transition-transform duration-200 active:scale-90 border-2 border-white z-10">
+      <button id="fab-main-btn" onclick="toggleFabMenu()" class="w-20 h-20 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-2xl flex items-center justify-center text-2xl font-black transition-transform duration-200 active:scale-90 border-2 border-white z-10">
         <span id="fab-icon" class="transition-transform duration-300">➕</span>
       </button>
 
@@ -546,36 +523,63 @@
     // INISIALISASI STATE NAVIGASI AWAL
     window.history.replaceState({ tab: 'home' }, "");
 
-    // HANDLER TOMBOL BACK HP (BACK BUTTON MANAGEMENT)
+    // DETEKSI GESERAN SCROLL MAIN CONTAINER UNTUK MENYESUAIKAN TOMBOL NAV BAR
+    document.addEventListener('DOMContentLoaded', function() {
+      const mainContainer = document.getElementById('main-container');
+      if(mainContainer) {
+        mainContainer.addEventListener('scroll', function() {
+          const width = mainContainer.clientWidth;
+          const scrollLeft = mainContainer.scrollLeft;
+          const pageIndex = Math.round(scrollLeft / width);
+          
+          const tabNames = ['home', 'order', 'report', 'setting'];
+          const activeTab = tabNames[pageIndex] || 'home';
+          
+          if(currentActiveTab !== activeTab) {
+            currentActiveTab = activeTab;
+            document.querySelectorAll('.nav-btn').forEach(b => { 
+              b.classList.remove('text-blue-600', 'font-bold'); 
+              b.classList.add('text-slate-400', 'font-medium'); 
+            });
+            var btn = document.getElementById('nav-' + activeTab);
+            if(btn) { 
+              btn.classList.remove('text-slate-400', 'font-medium'); 
+              btn.classList.add('text-blue-600', 'font-bold'); 
+            }
+            if (activeTab === 'order') filterOrderTab(currentOrderTab);
+            if (activeTab === 'report') loadReport();
+          }
+        });
+      }
+    });
+
+    // HANDLER TOMBOL BACK HP
     window.addEventListener('popstate', function(e) {
-      // 1. Jika menu FAB melayang lagi aktif, tutup FAB dulu
       const container = document.getElementById('fab-container');
       if (container && container.classList.contains('fab-active')) {
         toggleFabMenu();
         return;
       }
 
-      // 2. Jika ada modal yang terbuka, tutup modal yang paling atas
       if (modalStack.length > 0) {
         const topModal = modalStack.pop();
         document.getElementById(topModal).classList.add('hidden');
         return;
       }
 
-      // 3. Jika sedang tidak di Beranda, kembalikan ke Beranda dulu
       if (currentActiveTab !== 'home') {
         switchTab('home', false);
       }
     });
 
-    // FUNGSI REFRESH MANUAL UNTUK TOMBOL REFRESH HEADER
+    // FUNGSI REFRESH MANUAL HEADER
     async function triggerManualRefresh() {
       const icon = document.getElementById('refresh-icon');
       if (icon) icon.classList.add('spinning');
       
       await loadDataHome();
       await preloadLayanan();
-      if (document.getElementById('panel-order').classList.contains('active')) {
+      if (currentActiveTab === 'order') {
         filterOrderTab(currentOrderTab);
       }
       
@@ -696,7 +700,7 @@
       } else {
         container.classList.add('fab-active');
         container.style.bottom = '30%';
-        container.style.transform = 'translateY(50%)';
+        container.style.transform = 'translateY(0)';
 
         sideMenu.classList.remove('opacity-0', 'pointer-events-none', 'translate-x-4');
         sideMenu.classList.add('opacity-100', 'pointer-events-auto', 'translate-x-0');
@@ -1097,6 +1101,7 @@
       }
     }
 
+    // FUNGSI SWITCH TAB UNTUK GESER LAYAR SLIDER
     function switchTab(tabName, pushHistory = true) {
       currentActiveTab = tabName;
       
@@ -1302,7 +1307,7 @@
           .channel('public:transaksi')
           .on('postgres_changes', { event: '*', schema: 'public', table: 'transaksi' }, payload => {
             loadDataHome();
-            if (document.getElementById('panel-order').classList.contains('active')) {
+            if (currentActiveTab === 'order') {
               filterOrderTab(currentOrderTab);
             }
           })
