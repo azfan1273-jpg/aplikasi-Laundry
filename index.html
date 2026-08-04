@@ -52,6 +52,36 @@
     /* ANIMASI SPIN REFRESH */
     .spinning { animation: spin 0.6s linear infinite; }
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+/* UTILITY SCROLL AREA */
+    .scroll-area, 
+    #list-layanan-container, 
+    #list-pelanggan-container, 
+    #list-home, 
+    #list-order-status,
+    #list-report,
+    #list-kelola-layanan-container,
+    #list-stat-modal-container {
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+      touch-action: pan-y !important;
+      overscroll-behavior: contain !important;
+      overscroll-behavior-y: contain !important;
+    }
+
+    /* ANIMASI SPIN REFRESH */
+    .spinning { animation: spin 0.6s linear infinite; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+    /* ================= TARO CSS BARU DI SINI (SEBELUM </style>) ================= */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    
+    .page-section {
+      display: flex !important;
+      flex-direction: column;
+      width: 100vw;
+      max-width: 28rem;
+    }
   </style>
 </head>
 <body class="bg-slate-50 font-sans text-slate-800 select-none flex flex-col h-screen">
@@ -72,11 +102,11 @@
     </div>
   </header>
 
-  <!-- ======================== KONTEN UTAMA ======================== -->
-  <main class="max-w-md mx-auto p-3 space-y-2.5 flex-1 overflow-hidden w-full flex flex-col pb-16">
+  <!-- ======================== KONTEN UTAMA DENGAN SCROLL SNAP GESER ================= proposal -->
+  <main id="main-container" class="max-w-md mx-auto flex-1 w-full flex overflow-x-auto snap-x snap-mandatory scroll-smooth pb-16 no-scrollbar">
 
     <!-- 1. PANEL HOME -->
-    <section id="panel-home" class="page-section active space-y-2.5 flex flex-col h-full overflow-hidden">
+    <section id="panel-home" class="page-section snap-center w-full shrink-0 h-full p-3 space-y-2.5 flex flex-col overflow-hidden">
       <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-3 rounded-2xl shadow-md space-y-0.5 shrink-0">
         <p class="text-[10px] text-blue-100 font-medium">Total Omset Hari Ini</p>
         <h2 id="stat-omset" class="text-lg font-black tracking-tight">Rp 0</h2>
@@ -190,7 +220,7 @@
 
   <div id="fab-container" class="fixed bottom-20 right-4 z-50 transition-all duration-300 ease-out">
     <div class="relative flex items-center justify-center">
-      <button id="fab-main-btn" onclick="toggleFabMenu()" class="w-18 h-16 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-2xl flex items-center justify-center text-xl font-black transition-transform duration-200 active:scale-90 border-2 border-white z-10">
+      <button id="fab-main-btn" onclick="toggleFabMenu()" class="w-20 h-20 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-2xl flex items-center justify-center text-xl font-black transition-transform duration-200 active:scale-90 border-2 border-white z-10">
         <span id="fab-icon" class="transition-transform duration-300">➕</span>
       </button>
 
@@ -665,7 +695,7 @@
         icon.style.transform = 'rotate(0deg)';
       } else {
         container.classList.add('fab-active');
-        container.style.bottom = '50%';
+        container.style.bottom = '30%';
         container.style.transform = 'translateY(50%)';
 
         sideMenu.classList.remove('opacity-0', 'pointer-events-none', 'translate-x-4');
