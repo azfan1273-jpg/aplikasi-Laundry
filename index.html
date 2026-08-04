@@ -1099,13 +1099,27 @@
 
     function switchTab(tabName, pushHistory = true) {
       currentActiveTab = tabName;
-      document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
-      var target = document.getElementById('panel-' + tabName);
-      if(target) target.classList.add('active');
+      
+      const mainContainer = document.getElementById('main-container');
+      const targetPanel = document.getElementById('panel-' + tabName);
 
-      document.querySelectorAll('.nav-btn').forEach(b => { b.classList.remove('text-blue-600', 'font-bold'); b.classList.add('text-slate-400', 'font-medium'); });
+      if (mainContainer && targetPanel) {
+        mainContainer.scrollTo({
+          left: targetPanel.offsetLeft,
+          behavior: 'smooth'
+        });
+      }
+
+      document.querySelectorAll('.nav-btn').forEach(b => { 
+        b.classList.remove('text-blue-600', 'font-bold'); 
+        b.classList.add('text-slate-400', 'font-medium'); 
+      });
+      
       var btn = document.getElementById('nav-' + tabName);
-      if(btn) { btn.classList.remove('text-slate-400', 'font-medium'); btn.classList.add('text-blue-600', 'font-bold'); }
+      if(btn) { 
+        btn.classList.remove('text-slate-400', 'font-medium'); 
+        btn.classList.add('text-blue-600', 'font-bold'); 
+      }
 
       if (pushHistory && tabName !== 'home') {
         window.history.pushState({ tab: tabName }, "");
