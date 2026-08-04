@@ -197,7 +197,7 @@
 
   <div id="fab-container" class="fixed bottom-20 right-4 z-50 transition-all duration-300 ease-out">
     <div class="relative flex items-center justify-center">
-      <button id="fab-main-btn" onclick="toggleFabMenu()" class="w-20 h-20 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-2xl flex items-center justify-center text-2xl font-black transition-transform duration-200 active:scale-90 border-2 border-white z-10">
+      <button id="fab-main-btn" onclick="toggleFabMenu()" class="w-16 h-16 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-2xl flex items-center justify-center text-2xl font-black transition-transform duration-200 active:scale-90 border-2 border-white z-10">
         <span id="fab-icon" class="transition-transform duration-300">➕</span>
       </button>
 
@@ -537,6 +537,18 @@
           
           if(currentActiveTab !== activeTab) {
             currentActiveTab = activeTab;
+
+            // KONTROL TOMBOL FAB (+) : HANYA MUNCUL DI BERANDA (HOME)
+            const fabContainer = document.getElementById('fab-container');
+            if (fabContainer) {
+              if (activeTab === 'home') {
+                fabContainer.classList.remove('hidden');
+              } else {
+                fabContainer.classList.add('hidden');
+                if (fabContainer.classList.contains('fab-active')) toggleFabMenu();
+              }
+            }
+
             document.querySelectorAll('.nav-btn').forEach(b => { 
               b.classList.remove('text-blue-600', 'font-bold'); 
               b.classList.add('text-slate-400', 'font-medium'); 
