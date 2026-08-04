@@ -152,7 +152,15 @@
     <section id="panel-report" class="page-section space-y-3 overflow-hidden">
       <div class="bg-white p-3.5 rounded-3xl border border-slate-200/80 shadow-sm space-y-3 flex flex-col h-full overflow-hidden">
         
-        <!-- PANEL GRID 6 IKON UTAMA -->
+        <!-- STEP 3: JUDUL LAPORAN HARI INI -->
+        <div class="flex justify-between items-center shrink-0">
+          <h2 class="font-black text-slate-900 text-xs tracking-wider uppercase flex items-center gap-1.5">
+            <span>📅</span> LAPORAN HARI INI
+          </h2>
+          <span id="report-date-badge" class="text-[9px] bg-blue-50 text-blue-600 font-bold px-2 py-0.5 rounded-lg">Today</span>
+        </div>
+
+        <!-- STEP 4: PANEL GRID 6 IKON (DATA KHUSUS HARI INI) -->
         <div class="grid grid-cols-3 gap-2 shrink-0">
           <div class="bg-blue-50 border border-blue-100 p-2 rounded-2xl text-center">
             <p class="text-[16px]">💰</p>
@@ -171,24 +179,24 @@
           </div>
           <div class="bg-indigo-50 border border-indigo-100 p-2 rounded-2xl text-center">
             <p class="text-[16px]">📦</p>
-            <p class="text-[9px] font-bold text-slate-400 uppercase mt-0.5">Order</p>
+            <p class="text-[9px] font-bold text-slate-400 uppercase mt-0.5">Order Hari Ini</p>
             <p id="rpt-stat-order" class="text-[11px] font-black text-indigo-600 mt-0.5">0</p>
           </div>
           <div class="bg-teal-50 border border-teal-100 p-2 rounded-2xl text-center">
             <p class="text-[16px]">✅</p>
-            <p class="text-[9px] font-bold text-slate-400 uppercase mt-0.5">Selesai</p>
+            <p class="text-[9px] font-bold text-slate-400 uppercase mt-0.5">Selesai Hari Ini</p>
             <p id="rpt-stat-selesai" class="text-[11px] font-black text-teal-600 mt-0.5">0</p>
           </div>
           <div class="bg-slate-100 border border-slate-200 p-2 rounded-2xl text-center">
             <p class="text-[16px]">❌</p>
-            <p class="text-[9px] font-bold text-slate-400 uppercase mt-0.5">Batal</p>
+            <p class="text-[9px] font-bold text-slate-400 uppercase mt-0.5">Batal Hari Ini</p>
             <p id="rpt-stat-batal" class="text-[11px] font-black text-slate-600 mt-0.5">0</p>
           </div>
         </div>
 
-        <!-- JUDUL LAPORAN KEUANGAN & SUB-TAB -->
-        <div class="space-y-2 shrink-0 pt-1 border-t border-slate-100">
-          <h2 class="font-extrabold text-slate-900 text-xs tracking-wide">Laporan Keuangan</h2>
+        <!-- STEP 5: GARIS PEMBATAS TEBAL & JUDUL LAPORAN KEUANGAN DIBESARKAN -->
+        <div class="space-y-2 shrink-0 pt-2.5 border-t-4 border-slate-200/80">
+          <h2 class="font-black text-slate-900 text-sm tracking-wide">Laporan Keuangan</h2>
           
           <div class="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-2xl text-[10px]">
             <button onclick="switchReportSubTab('transaksi')" id="subtab-transaksi" class="tab-report-btn py-1.5 text-center rounded-xl text-slate-600 font-medium transition active">Transaksi</button>
@@ -251,14 +259,43 @@
           <span>👤 Customer Baru</span>
         </button>
 
-        <button onclick="toggleFabMenu(); triggerManualRefresh();" class="flex items-center gap-2 bg-white text-slate-800 text-xs font-extrabold py-2.5 px-4 rounded-2xl shadow-xl border border-slate-200 active:scale-95">
-          <span>⚡ Refresh Data</span>
+        <!-- STEP 1: REFRESH DATA DIUBAH MENJADI TAMBAH PENGELUARAN -->
+        <button onclick="toggleFabMenu(); openModalPengeluaran();" class="flex items-center gap-2 bg-white text-slate-800 text-xs font-extrabold py-2.5 px-4 rounded-2xl shadow-xl border border-slate-200 active:scale-95">
+          <span>💸 Tambah Pengeluaran</span>
         </button>
       </div>
     </div>
   </div>
 
-  <!-- MODAL MODAL LAINNYA -->
+  <!-- STEP 2: JENDELA MODAL BARU FORM PENGELUARAN -->
+  <div id="modal-pengeluaran" onclick="closeOnBackdrop(event, 'modal-pengeluaran')" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+    <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl" onclick="event.stopPropagation()">
+      <div class="flex justify-between items-center border-b pb-3">
+        <div>
+          <h3 class="font-black text-slate-900 text-base">Tambah Pengeluaran</h3>
+          <p class="text-[10px] text-slate-400">Catat biaya operasional toko/outlet</p>
+        </div>
+        <button onclick="closeModalPengeluaran()" class="w-8 h-8 bg-slate-100 rounded-full font-bold text-slate-500">✕</button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="font-bold text-slate-700">Keterangan / Keperluan</label>
+          <input id="input_keterangan_pengeluaran" type="text" placeholder="Contoh: Beli Deterjen, Listrik, Bensin, dll." class="w-full p-3 border border-slate-200 rounded-xl mt-1 outline-none font-bold focus:border-blue-500">
+        </div>
+        <div>
+          <label class="font-bold text-slate-700">Nominal Pengeluaran (Rp)</label>
+          <input id="input_nominal_pengeluaran" type="number" placeholder="Contoh: 50000" class="w-full p-3 border border-slate-200 rounded-xl mt-1 outline-none font-bold focus:border-blue-500">
+        </div>
+
+        <button onclick="simpanPengeluaranBaru()" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-black py-3.5 rounded-2xl shadow-md text-xs active:scale-[0.98] transition">
+          💾 SIMPAN PENGELUARAN
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL-MODAL LAINNYA -->
   <div id="modal-rincian-statistik" onclick="closeOnBackdrop(event, 'modal-rincian-statistik')" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
     <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 max-h-[85vh] flex flex-col shadow-2xl" onclick="event.stopPropagation()">
       <div class="flex justify-between items-center border-b pb-3 shrink-0">
@@ -516,6 +553,7 @@
     var allPelanggan = [];
     var allLayanan = [];
     var globalTxCache = [];
+    var globalPengeluaranCache = [];
     var globalItemCache = {};
 
     var selectedPelanggan = null;
@@ -706,6 +744,7 @@
         else if (modalId === 'modal-layanan') closeModalPilihLayanan();
         else if (modalId === 'modal-qty') closeModalQty();
         else if (modalId === 'modal-kelola-layanan') closeModalKelolaLayanan();
+        else if (modalId === 'modal-pengeluaran') closeModalPengeluaran();
         else closeModalWithHistory(modalId);
       }
     }
@@ -740,6 +779,39 @@
 
         icon.innerText = '✕';
         icon.style.transform = 'rotate(90deg)';
+      }
+    }
+
+    // FUNGSI MODAL PENGELUARAN
+    function openModalPengeluaran() {
+      document.getElementById('input_keterangan_pengeluaran').value = '';
+      document.getElementById('input_nominal_pengeluaran').value = '';
+      openModalWithHistory('modal-pengeluaran');
+    }
+    function closeModalPengeluaran() { closeModalWithHistory('modal-pengeluaran'); }
+
+    async function simpanPengeluaranBaru() {
+      const ket = document.getElementById('input_keterangan_pengeluaran').value;
+      const nom = parseFloat(document.getElementById('input_nominal_pengeluaran').value);
+
+      if(!ket || isNaN(nom) || nom <= 0) {
+        alert("Harap isi keterangan dan nominal pengeluaran dengan benar!");
+        return;
+      }
+
+      if(supabaseClient) {
+        const { error } = await supabaseClient.from('pengeluaran').insert([{
+          keterangan: ket,
+          nominal: nom
+        }]);
+
+        if(!error) {
+          alert("Pengeluaran berhasil dicatat! 💸");
+          closeModalPengeluaran();
+          loadDataHome();
+        } else {
+          alert("Gagal menyimpan pengeluaran: " + error.message);
+        }
       }
     }
 
@@ -1142,9 +1214,12 @@
       const resPel = await supabaseClient.from('pelanggan').select('*');
       const resLay = await supabaseClient.from('layanan').select('*');
       const resItems = await supabaseClient.from('transaksi_item').select('*');
+      const resPengeluaran = await supabaseClient.from('pengeluaran').select('*');
       
       const mapPel = {}; (resPel.data || []).forEach(p => mapPel[p.id] = p);
       const mapLay = {}; (resLay.data || []).forEach(l => mapLay[l.id] = l);
+
+      globalPengeluaranCache = resPengeluaran.data || [];
 
       globalItemCache = {};
       (resItems.data || []).forEach(it => {
@@ -1282,29 +1357,44 @@
       }).join('');
     }
 
-    // LOGIKA PANEL REPORT
+    // LOGIKA PANEL REPORT (SEKARANG KHUSUS DATA HARI INI)
     async function loadReport() {
       if(!globalTxCache) return;
 
+      var todayString = new Date().toDateString();
+
       var totalOmset = 0;
       var totalPendapatan = 0;
-      var totalPengeluaran = 0; // Dapat dikoneksikan ke tabel pengeluaran
-      var countOrder = globalTxCache.length;
+      var totalPengeluaran = 0;
+      var countOrder = 0;
       var countSelesai = 0;
       var countBatal = 0;
 
+      // KARTU METRIK 6 IKON HANYA MENGHITUNG HARI INI
       globalTxCache.forEach(t => {
-        var st = t.status_laundry || 'Diterima';
-        var harga = t.total_harga || 0;
+        var tgl = t.created_at ? new Date(t.created_at) : null;
+        if(tgl && tgl.toDateString() === todayString) {
+          countOrder++;
+          var st = t.status_laundry || 'Diterima';
+          var harga = t.total_harga || 0;
 
-        if (st !== 'Batal') {
-          totalOmset += harga;
+          if (st !== 'Batal') {
+            totalOmset += harga;
+          }
+          if (t.status_pembayaran === 'Lunas' && st !== 'Batal') {
+            totalPendapatan += harga;
+          }
+          if (st === 'Selesai') countSelesai++;
+          if (st === 'Batal') countBatal++;
         }
-        if (t.status_pembayaran === 'Lunas' && st !== 'Batal') {
-          totalPendapatan += harga;
+      });
+
+      // MENGHITUNG PENGELUARAN HARI INI
+      globalPengeluaranCache.forEach(p => {
+        var tgl = p.created_at ? new Date(p.created_at) : null;
+        if(tgl && tgl.toDateString() === todayString) {
+          totalPengeluaran += (p.nominal || 0);
         }
-        if (st === 'Selesai') countSelesai++;
-        if (st === 'Batal') countBatal++;
       });
 
       document.getElementById('rpt-stat-omset').innerText = 'Rp ' + totalOmset.toLocaleString();
@@ -1348,11 +1438,17 @@
       } else if (currentReportSubTab === 'keuangan') {
         var totalLunas = 0;
         var totalPiutang = 0;
+        var totalPengeluaranAll = 0;
+
         globalTxCache.forEach(t => {
           if((t.status_laundry||'') !== 'Batal') {
             if(t.status_pembayaran === 'Lunas') totalLunas += (t.total_harga||0);
             else totalPiutang += (t.total_harga||0);
           }
+        });
+
+        globalPengeluaranCache.forEach(p => {
+          totalPengeluaranAll += (p.nominal || 0);
         });
 
         container.innerHTML = 
@@ -1364,6 +1460,10 @@
             '<div class="p-3 bg-amber-50 rounded-2xl border border-amber-100 flex justify-between items-center">' +
               '<div><p class="font-extrabold text-amber-900">Total Belum Bayar (Piutang)</p><p class="text-[10px] text-amber-600">Tagihan berjalan</p></div>' +
               '<p class="font-black text-amber-700 text-sm">Rp ' + totalPiutang.toLocaleString() + '</p>' +
+            '</div>' +
+            '<div class="p-3 bg-rose-50 rounded-2xl border border-rose-100 flex justify-between items-center">' +
+              '<div><p class="font-extrabold text-rose-900">Total Akumulasi Pengeluaran</p><p class="text-[10px] text-rose-600">Seluruh biaya operasional</p></div>' +
+              '<p class="font-black text-rose-700 text-sm">Rp ' + totalPengeluaranAll.toLocaleString() + '</p>' +
             '</div>' +
           '</div>';
 
