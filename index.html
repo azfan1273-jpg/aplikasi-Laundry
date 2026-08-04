@@ -40,7 +40,8 @@
     #list-home, 
     #list-order-status,
     #list-report,
-    #list-kelola-layanan-container {
+    #list-kelola-layanan-container,
+    #list-stat-modal-container {
       overflow-y: auto !important;
       -webkit-overflow-scrolling: touch !important;
       touch-action: pan-y !important;
@@ -49,13 +50,8 @@
     }
 
     /* ANIMASI SPIN REFRESH */
-    .spinning {
-      animation: spin 0.6s linear infinite;
-    }
-    @keyframes spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
+    .spinning { animation: spin 0.6s linear infinite; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
   </style>
 </head>
 <body class="bg-slate-50 font-sans text-slate-800 select-none flex flex-col h-screen">
@@ -94,24 +90,24 @@
         <span class="text-[8px] bg-amber-500 text-white font-bold px-1 py-0.5 rounded shrink-0">NEW</span>
       </div>
 
-      <!-- KARTU STATISTIK KLIK-ABLE -->
+      <!-- KARTU STATISTIK DENGAN POPUP MODAL JENDELA BARU -->
       <div class="grid grid-cols-2 gap-2 shrink-0">
-        <div onclick="navigateToOrderCategory('Proses')" class="bg-white p-2 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between cursor-pointer active:scale-95 transition hover:border-blue-300">
+        <div onclick="openModalStatistik('Aktif')" class="bg-white p-2 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between cursor-pointer active:scale-95 transition hover:border-blue-300">
           <div><p class="text-[9px] font-bold text-slate-400 uppercase">Cucian Aktif</p><h3 id="stat-aktif" class="text-sm font-black text-slate-800 mt-0.5">0</h3></div>
           <span class="text-sm bg-blue-50 p-1 rounded-xl">🧺</span>
         </div>
-        <div onclick="navigateToOrderCategory('HarusSelesai')" class="bg-white p-2 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between cursor-pointer active:scale-95 transition hover:border-amber-300">
+        <div onclick="openModalStatistik('HarusSelesai')" class="bg-white p-2 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between cursor-pointer active:scale-95 transition hover:border-amber-300">
           <div><p class="text-[9px] font-bold text-slate-400 uppercase">Harus Selesai</p><h3 id="stat-harus-selesai" class="text-sm font-black text-amber-600 mt-0.5">0</h3></div>
           <span class="text-sm bg-amber-50 p-1 rounded-xl">⏰</span>
         </div>
       </div>
 
       <div class="grid grid-cols-2 gap-2 shrink-0">
-        <div onclick="navigateToOrderCategory('Terlambat')" class="bg-white p-2 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between cursor-pointer active:scale-95 transition hover:border-rose-300">
+        <div onclick="openModalStatistik('Terlambat')" class="bg-white p-2 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between cursor-pointer active:scale-95 transition hover:border-rose-300">
           <div><p class="text-[9px] font-bold text-slate-400 uppercase">Terlambat</p><h3 id="stat-terlambat" class="text-sm font-black text-rose-600 mt-0.5">0</h3></div>
           <span class="text-sm bg-rose-50 p-1 rounded-xl">⚠️</span>
         </div>
-        <div onclick="navigateToOrderCategory('Selesai')" class="bg-white p-2 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between cursor-pointer active:scale-95 transition hover:border-emerald-300">
+        <div onclick="openModalStatistik('Selesai')" class="bg-white p-2 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between cursor-pointer active:scale-95 transition hover:border-emerald-300">
           <div><p class="text-[9px] font-bold text-slate-400 uppercase">Selesai</p><h3 id="stat-selesai" class="text-sm font-black text-emerald-600 mt-0.5">0</h3></div>
           <span class="text-sm bg-emerald-50 p-1 rounded-xl">✅</span>
         </div>
@@ -210,6 +206,23 @@
         <button onclick="toggleFabMenu(); triggerManualRefresh();" class="flex items-center gap-2 bg-white text-slate-800 text-xs font-extrabold py-2.5 px-4 rounded-2xl shadow-xl border border-slate-200 active:scale-95">
           <span>⚡ Refresh Data</span>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== MODAL RINCIAN STATISTIK BERANDA ======================== -->
+  <div id="modal-rincian-statistik" onclick="closeOnBackdrop(event, 'modal-rincian-statistik')" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+    <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 max-h-[85vh] flex flex-col shadow-2xl" onclick="event.stopPropagation()">
+      <div class="flex justify-between items-center border-b pb-3 shrink-0">
+        <div>
+          <h3 id="modal-stat-title" class="font-black text-slate-900 text-base">Rincian Orderan</h3>
+          <p id="modal-stat-subtitle" class="text-[10px] text-slate-400">Daftar transaksi terkait</p>
+        </div>
+        <button onclick="closeModalWithHistory('modal-rincian-statistik')" class="w-8 h-8 bg-slate-100 rounded-full font-bold text-slate-500">✕</button>
+      </div>
+
+      <div id="list-stat-modal-container" class="scroll-area space-y-2 flex-1 pr-1" style="min-height: 0;">
+        <p class="text-xs text-slate-400 text-center py-6">Memuat rincian...</p>
       </div>
     </div>
   </div>
@@ -469,7 +482,7 @@
     var currentOrderTab = 'Antrian';
     var activeOrderDetail = null;
     var modalStack = [];
-    var currentFilterSubtype = 'ALL'; 
+    var currentActiveTab = 'home';
 
     // BLOKIR AUTO REFRESH WEBVIEW DENGAN PADDING SAFEGUARD
     let touchStartY = 0;
@@ -483,7 +496,7 @@
     window.addEventListener('touchmove', function(e) {
       const touchCurrentY = e.touches[0].clientY;
       const touchDeltaY = touchCurrentY - touchStartY;
-      const scrollable = e.target.closest('.scroll-area, #list-layanan-container, #list-pelanggan-container, #list-home, #list-order-status, #list-report, #list-kelola-layanan-container');
+      const scrollable = e.target.closest('.scroll-area, #list-layanan-container, #list-pelanggan-container, #list-home, #list-order-status, #list-report, #list-kelola-layanan-container, #list-stat-modal-container');
 
       if (!scrollable) {
         if (touchDeltaY > 0 && e.cancelable) e.preventDefault();
@@ -500,6 +513,31 @@
       }
     } catch(e) {}
 
+    // INISIALISASI STATE NAVIGASI AWAL
+    window.history.replaceState({ tab: 'home' }, "");
+
+    // HANDLER TOMBOL BACK HP (BACK BUTTON MANAGEMENT)
+    window.addEventListener('popstate', function(e) {
+      // 1. Jika menu FAB melayang lagi aktif, tutup FAB dulu
+      const container = document.getElementById('fab-container');
+      if (container && container.classList.contains('fab-active')) {
+        toggleFabMenu();
+        return;
+      }
+
+      // 2. Jika ada modal yang terbuka, tutup modal yang paling atas
+      if (modalStack.length > 0) {
+        const topModal = modalStack.pop();
+        document.getElementById(topModal).classList.add('hidden');
+        return;
+      }
+
+      // 3. Jika sedang tidak di Beranda, kembalikan ke Beranda dulu
+      if (currentActiveTab !== 'home') {
+        switchTab('home', false);
+      }
+    });
+
     // FUNGSI REFRESH MANUAL UNTUK TOMBOL REFRESH HEADER
     async function triggerManualRefresh() {
       const icon = document.getElementById('refresh-icon');
@@ -508,7 +546,7 @@
       await loadDataHome();
       await preloadLayanan();
       if (document.getElementById('panel-order').classList.contains('active')) {
-        filterOrderTab(currentOrderTab, currentFilterSubtype);
+        filterOrderTab(currentOrderTab);
       }
       
       setTimeout(() => {
@@ -516,21 +554,67 @@
       }, 600);
     }
 
-    // NAVIGASI DARI KARTU BERANDA KE TAB ORDER
-    function navigateToOrderCategory(type) {
-      switchTab('order');
-      if (type === 'Proses') {
-        filterOrderTab('Proses', 'ALL');
+    // FUNGSI BUKA POPUP MODAL UNTUK RINCIAN STATISTIK BERANDA
+    function openModalStatistik(type) {
+      const titleEl = document.getElementById('modal-stat-title');
+      const subTitleEl = document.getElementById('modal-stat-subtitle');
+      const container = document.getElementById('list-stat-modal-container');
+
+      var filtered = [];
+      var now = new Date();
+      var todayString = now.toDateString();
+
+      if (type === 'Aktif') {
+        titleEl.innerText = "🧺 Cucian Aktif";
+        subTitleEl.innerText = "Orderan yang sedang berjalan/proses";
+        filtered = globalTxCache.filter(t => {
+          var st = t.status_laundry || 'Diterima';
+          return st !== 'Selesai' && st !== 'Batal';
+        });
       } else if (type === 'HarusSelesai') {
-        filterOrderTab('Proses', 'HarusSelesai');
+        titleEl.innerText = "⏰ Harus Selesai Hari Ini";
+        subTitleEl.innerText = "Orderan estimasi selesai tanggal hari ini";
+        filtered = globalTxCache.filter(t => {
+          var st = t.status_laundry || 'Diterima';
+          return (st !== 'Selesai' && st !== 'Batal') && t.estimasi_selesai && (new Date(t.estimasi_selesai).toDateString() === todayString);
+        });
       } else if (type === 'Terlambat') {
-        filterOrderTab('Proses', 'Terlambat');
+        titleEl.innerText = "⚠️ Orderan Terlambat";
+        subTitleEl.innerText = "Orderan melewati jadwal estimasi selesai";
+        filtered = globalTxCache.filter(t => {
+          var st = t.status_laundry || 'Diterima';
+          return (st !== 'Selesai' && st !== 'Batal') && t.estimasi_selesai && (new Date(t.estimasi_selesai) < now);
+        });
       } else if (type === 'Selesai') {
-        filterOrderTab('Selesai', 'ALL');
+        titleEl.innerText = "✅ Orderan Selesai";
+        subTitleEl.innerText = "Riwayat orderan yang sudah rampung";
+        filtered = globalTxCache.filter(t => (t.status_laundry || 'Diterima') === 'Selesai');
       }
+
+      if (!filtered.length) {
+        container.innerHTML = '<p class="text-xs text-slate-400 text-center py-8">Tidak ada data orderan di kategori ini.</p>';
+      } else {
+        container.innerHTML = filtered.map((t, idx) => {
+          var nmPel = t.pelanggan.nama || t.pelanggan.nama_pelanggan || 'Customer';
+          var items = globalItemCache[t.id] || [];
+          var summaryLayanan = items.length > 0 ? items.map(i => (i.layanan ? i.layanan.nama_layanan : 'Layanan') + ' (' + i.qty + ' ' + (i.layanan ? i.layanan.satuan : 'Kg') + ')') .join(', ') : 'Multi Layanan';
+
+          return '<div onclick="openModalDetailOrderById(' + t.id + ')" class="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex justify-between items-center cursor-pointer active:scale-[0.99] transition">' +
+            '<div class="flex items-center gap-2.5"><span class="w-6 h-6 bg-blue-100 text-blue-700 font-bold text-xs rounded-full flex items-center justify-center shrink-0">' + (idx+1) + '</span>' +
+            '<div class="max-w-[200px] sm:max-w-xs">' +
+              '<p class="font-extrabold text-slate-900 text-xs truncate">' + nmPel + ' <span class="text-[9px] text-slate-400 font-normal">#' + t.id + '</span></p>' +
+              '<p class="text-[11px] text-slate-500 mt-0.5 truncate">' + summaryLayanan + '</p>' +
+              '<p class="text-[9px] text-amber-600 font-bold mt-0.5">Est: ' + (t.estimasi_selesai ? new Date(t.estimasi_selesai).toLocaleDateString('id-ID', {day:'numeric', month:'short'}) : '-') + '</p>' +
+            '</div></div>' +
+            '<p class="font-black text-blue-600 text-xs">Rp ' + (t.total_harga ? t.total_harga.toLocaleString() : '0') + '</p>' +
+          '</div>';
+        }).join('');
+      }
+
+      openModalWithHistory('modal-rincian-statistik');
     }
 
-    // HELPER MODAL & POPSTATE
+    // HELPER MODAL & POPSTATE HISTORY
     function openModalWithHistory(modalId) {
       const modalEl = document.getElementById(modalId);
       modalEl.classList.remove('hidden');
@@ -538,7 +622,7 @@
         modalStack.push(modalId);
         window.history.pushState({ modal: modalId }, "");
       }
-      const scrollElem = modalEl.querySelector('.scroll-area, #list-layanan-container, #list-pelanggan-container');
+      const scrollElem = modalEl.querySelector('.scroll-area, #list-layanan-container, #list-pelanggan-container, #list-stat-modal-container');
       if (scrollElem) scrollElem.scrollTop = 1;
     }
 
@@ -559,19 +643,6 @@
         else closeModalWithHistory(modalId);
       }
     }
-
-    window.addEventListener('popstate', function(e) {
-      const container = document.getElementById('fab-container');
-      if (container && container.classList.contains('fab-active')) {
-        toggleFabMenu();
-        return;
-      }
-
-      if (modalStack.length > 0) {
-        const topModal = modalStack.pop();
-        document.getElementById(topModal).classList.add('hidden');
-      }
-    });
 
     function toggleFabMenu() {
       const container = document.getElementById('fab-container');
@@ -997,6 +1068,7 @@
     }
 
     function switchTab(tabName, pushHistory = true) {
+      currentActiveTab = tabName;
       document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
       var target = document.getElementById('panel-' + tabName);
       if(target) target.classList.add('active');
@@ -1009,7 +1081,7 @@
         window.history.pushState({ tab: tabName }, "");
       }
 
-      if (tabName === 'order') filterOrderTab(currentOrderTab, currentFilterSubtype);
+      if (tabName === 'order') filterOrderTab(currentOrderTab);
       if (tabName === 'report') loadReport();
     }
 
@@ -1113,9 +1185,8 @@
       }
     }
 
-    async function filterOrderTab(status, subtype = 'ALL') {
+    async function filterOrderTab(status) {
       currentOrderTab = status;
-      currentFilterSubtype = subtype;
 
       var tabs = document.getElementById('panel-order').querySelectorAll('.tab-order-btn');
       tabs.forEach(function(tb) { tb.classList.remove('active'); });
@@ -1125,34 +1196,17 @@
       const container = document.getElementById('list-order-status');
       if(!container || !supabaseClient) return;
 
-      var now = new Date();
-      var todayString = now.toDateString();
-
       var filtered = globalTxCache.filter(function(t) {
         var st = t.status_laundry || 'Diterima';
-        
         if (status === 'Antrian') return st === 'Diterima';
-        
-        if (status === 'Proses') {
-          var isProses = (st === 'Dicuci' || st === 'Disetrika' || st === 'Siap Diambil' || st === 'Diterima');
-          if (!isProses) return false;
-
-          if (subtype === 'HarusSelesai') {
-            return t.estimasi_selesai && (new Date(t.estimasi_selesai).toDateString() === todayString);
-          } else if (subtype === 'Terlambat') {
-            return t.estimasi_selesai && (new Date(t.estimasi_selesai) < now);
-          }
-          return true;
-        }
-
+        if (status === 'Proses') return st === 'Dicuci' || st === 'Disetrika' || st === 'Siap Diambil';
         if (status === 'Selesai') return st === 'Selesai';
         if (status === 'Batal') return st === 'Batal';
         return true;
       });
 
       if(!filtered.length) {
-        var extraInfo = subtype !== 'ALL' ? ' (' + subtype + ')' : '';
-        container.innerHTML = '<p class="text-xs text-slate-400 text-center py-10">Tidak ada orderan di kategori ' + status + extraInfo + '.</p>';
+        container.innerHTML = '<p class="text-xs text-slate-400 text-center py-10">Tidak ada orderan di kategori ' + status + '.</p>';
         return;
       }
 
@@ -1205,7 +1259,7 @@
           .on('postgres_changes', { event: '*', schema: 'public', table: 'transaksi' }, payload => {
             loadDataHome();
             if (document.getElementById('panel-order').classList.contains('active')) {
-              filterOrderTab(currentOrderTab, currentFilterSubtype);
+              filterOrderTab(currentOrderTab);
             }
           })
           .subscribe();
