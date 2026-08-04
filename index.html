@@ -16,7 +16,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    /* KUNCI PULL TO REFRESH LEVEL ROOT */
+    /* ISOLASI ROOT DARI AUTO-REFRESH SENSITIVE GESTURE */
     html, body { 
       height: 100vh;
       height: -webkit-fill-available;
@@ -25,7 +25,7 @@
       overscroll-behavior: none !important;
       overscroll-behavior-y: none !important;
       -webkit-tap-highlight-color: transparent; 
-      touch-action: none !important;
+      touch-action: pan-x pan-y !important;
     }
 
     /* DOCKING MENU TAB */
@@ -33,21 +33,32 @@
     .page-section.active { display: flex !important; flex-direction: column; }
     .tab-order-btn.active { background-color: #2563eb; color: #ffffff; font-weight: 700; }
 
-    /* UTILITY SCROLL AREA (ISOLASI MURNI VIA CSS NATIVE) */
+    /* UTILITY SCROLL AREA */
     .scroll-area, 
     #list-layanan-container, 
     #list-pelanggan-container, 
     #list-home, 
-    #list-order-status {
+    #list-order-status,
+    #list-report,
+    #list-kelola-layanan-container {
       overflow-y: auto !important;
       -webkit-overflow-scrolling: touch !important;
       touch-action: pan-y !important;
       overscroll-behavior: contain !important;
       overscroll-behavior-y: contain !important;
     }
+
+    /* ANIMASI SPIN REFRESH */
+    .spinning {
+      animation: spin 0.6s linear infinite;
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
   </style>
 </head>
-<body class="bg-slate-50 font-sans text-slate-800 select-none flex flex-col h-screen" style="overscroll-behavior: none !important; touch-action: none !important;">
+<body class="bg-slate-50 font-sans text-slate-800 select-none flex flex-col h-screen">
 
   <!-- ======================== TOP BAR ======================== -->
   <header class="bg-blue-600 text-white p-3.5 sticky top-0 z-40 shadow-sm shrink-0 pt-safe">
@@ -59,8 +70,8 @@
           <p class="text-[10px] text-blue-200 mt-0.5">Supabase Cloud • Real-Time Sync</p>
         </div>
       </div>
-      <button onclick="loadDataHome(); if(document.getElementById('panel-order').classList.contains('active')) filterOrderTab(currentOrderTab);" class="bg-blue-700/60 hover:bg-blue-700 active:scale-95 text-xs px-2.5 py-1 rounded-xl border border-blue-400/30 font-semibold transition">
-        🔄 Refresh
+      <button onclick="triggerManualRefresh()" class="bg-blue-700/60 hover:bg-blue-700 active:scale-95 text-xs px-2.5 py-1 rounded-xl border border-blue-400/30 font-semibold transition flex items-center gap-1">
+        <span id="refresh-icon">🔄</span> <span>Refresh</span>
       </button>
     </div>
   </header>
@@ -83,23 +94,24 @@
         <span class="text-[8px] bg-amber-500 text-white font-bold px-1 py-0.5 rounded shrink-0">NEW</span>
       </div>
 
+      <!-- KARTU STATISTIK KLIK-ABLE -->
       <div class="grid grid-cols-2 gap-2 shrink-0">
-        <div class="bg-white p-2 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+        <div onclick="navigateToOrderCategory('Proses')" class="bg-white p-2 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between cursor-pointer active:scale-95 transition hover:border-blue-300">
           <div><p class="text-[9px] font-bold text-slate-400 uppercase">Cucian Aktif</p><h3 id="stat-aktif" class="text-sm font-black text-slate-800 mt-0.5">0</h3></div>
           <span class="text-sm bg-blue-50 p-1 rounded-xl">🧺</span>
         </div>
-        <div class="bg-white p-2 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+        <div onclick="navigateToOrderCategory('HarusSelesai')" class="bg-white p-2 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between cursor-pointer active:scale-95 transition hover:border-amber-300">
           <div><p class="text-[9px] font-bold text-slate-400 uppercase">Harus Selesai</p><h3 id="stat-harus-selesai" class="text-sm font-black text-amber-600 mt-0.5">0</h3></div>
           <span class="text-sm bg-amber-50 p-1 rounded-xl">⏰</span>
         </div>
       </div>
 
       <div class="grid grid-cols-2 gap-2 shrink-0">
-        <div class="bg-white p-2 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+        <div onclick="navigateToOrderCategory('Terlambat')" class="bg-white p-2 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between cursor-pointer active:scale-95 transition hover:border-rose-300">
           <div><p class="text-[9px] font-bold text-slate-400 uppercase">Terlambat</p><h3 id="stat-terlambat" class="text-sm font-black text-rose-600 mt-0.5">0</h3></div>
           <span class="text-sm bg-rose-50 p-1 rounded-xl">⚠️</span>
         </div>
-        <div class="bg-white p-2 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+        <div onclick="navigateToOrderCategory('Selesai')" class="bg-white p-2 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between cursor-pointer active:scale-95 transition hover:border-emerald-300">
           <div><p class="text-[9px] font-bold text-slate-400 uppercase">Selesai</p><h3 id="stat-selesai" class="text-sm font-black text-emerald-600 mt-0.5">0</h3></div>
           <span class="text-sm bg-emerald-50 p-1 rounded-xl">✅</span>
         </div>
@@ -112,7 +124,7 @@
         </div>
 
         <div id="list-home" class="scroll-area space-y-2 pr-1 flex-1">
-          <p class="text-xs text-slate-400 text-center py-6">Memuat orderan...</p>
+          <p class="text-xs text-slate-400 text-center py-6">Memuat orderan hari ini...</p>
         </div>
       </div>
     </section>
@@ -125,7 +137,7 @@
             <h2 class="font-extrabold text-slate-900 text-sm">Daftar Order Pelanggan</h2>
             <p class="text-[10px] text-slate-400">Klik item untuk melihat detail & memproses</p>
           </div>
-          <button onclick="openModalPOS()" class="bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-md">+ Baru</button>
+          <button onclick="openModalPOS()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-md transition">+ Baru</button>
         </div>
 
         <div class="grid grid-cols-4 gap-1 bg-slate-100 p-1 rounded-2xl text-[11px] shrink-0">
@@ -144,7 +156,7 @@
     <!-- 3. PANEL REPORT -->
     <section id="panel-report" class="page-section space-y-3 overflow-hidden">
       <div class="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-sm space-y-3 flex flex-col h-full overflow-hidden">
-        <h2 class="font-extrabold text-slate-900 text-sm border-b pb-2 border-slate-100 shrink-0">Laporan Transaksi</h2>
+        <h2 class="font-extrabold text-slate-900 text-sm border-b pb-2 border-slate-100 shrink-0">Laporan Transaksi Keseluruhan</h2>
         <div id="list-report" class="scroll-area space-y-2 flex-1"><p class="text-xs text-slate-400 text-center py-6">Memuat laporan...</p></div>
       </div>
     </section>
@@ -195,7 +207,7 @@
           <span>👤 Customer Baru</span>
         </button>
 
-        <button onclick="toggleFabMenu(); loadDataHome();" class="flex items-center gap-2 bg-white text-slate-800 text-xs font-extrabold py-2.5 px-4 rounded-2xl shadow-xl border border-slate-200 active:scale-95">
+        <button onclick="toggleFabMenu(); triggerManualRefresh();" class="flex items-center gap-2 bg-white text-slate-800 text-xs font-extrabold py-2.5 px-4 rounded-2xl shadow-xl border border-slate-200 active:scale-95">
           <span>⚡ Refresh Data</span>
         </button>
       </div>
@@ -347,7 +359,7 @@
             <p class="text-xs font-bold text-slate-500">Pelanggan</p>
             <div id="display-pelanggan" class="mt-1"><p class="text-xs text-slate-400 italic">Silahkan Pilih Customer Terlebih Dahulu.</p></div>
           </div>
-          <button onclick="openModalPilihPelanggan()" class="bg-indigo-400 hover:bg-indigo-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-sm">CARI</button>
+          <button onclick="openModalPilihPelanggan()" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-sm transition">CARI</button>
         </div>
       </div>
 
@@ -457,8 +469,9 @@
     var currentOrderTab = 'Antrian';
     var activeOrderDetail = null;
     var modalStack = [];
+    var currentFilterSubtype = 'ALL'; 
 
-    // ================= BLOKIR PULL TO REFRESH UNTUK WEBVIEW APK =================
+    // BLOKIR AUTO REFRESH WEBVIEW DENGAN PADDING SAFEGUARD
     let touchStartY = 0;
 
     window.addEventListener('touchstart', function(e) {
@@ -470,13 +483,12 @@
     window.addEventListener('touchmove', function(e) {
       const touchCurrentY = e.touches[0].clientY;
       const touchDeltaY = touchCurrentY - touchStartY;
-      const scrollable = e.target.closest('.scroll-area, #list-layanan-container, #list-pelanggan-container, #list-home, #list-order-status');
+      const scrollable = e.target.closest('.scroll-area, #list-layanan-container, #list-pelanggan-container, #list-home, #list-order-status, #list-report, #list-kelola-layanan-container');
 
       if (!scrollable) {
-        if (e.cancelable) e.preventDefault();
+        if (touchDeltaY > 0 && e.cancelable) e.preventDefault();
       } else {
-        // Jika sedang ditarik ke bawah saat posisi scroll berada di ujung paling atas (<=1px)
-        if (scrollable.scrollTop <= 1 && touchDeltaY > 0) {
+        if (scrollable.scrollTop <= 0 && touchDeltaY > 0) {
           if (e.cancelable) e.preventDefault();
         }
       }
@@ -488,7 +500,37 @@
       }
     } catch(e) {}
 
-    // ================= HELPER MODAL & POPSTATE =================
+    // FUNGSI REFRESH MANUAL UNTUK TOMBOL REFRESH HEADER
+    async function triggerManualRefresh() {
+      const icon = document.getElementById('refresh-icon');
+      if (icon) icon.classList.add('spinning');
+      
+      await loadDataHome();
+      await preloadLayanan();
+      if (document.getElementById('panel-order').classList.contains('active')) {
+        filterOrderTab(currentOrderTab, currentFilterSubtype);
+      }
+      
+      setTimeout(() => {
+        if (icon) icon.classList.remove('spinning');
+      }, 600);
+    }
+
+    // NAVIGASI DARI KARTU BERANDA KE TAB ORDER
+    function navigateToOrderCategory(type) {
+      switchTab('order');
+      if (type === 'Proses') {
+        filterOrderTab('Proses', 'ALL');
+      } else if (type === 'HarusSelesai') {
+        filterOrderTab('Proses', 'HarusSelesai');
+      } else if (type === 'Terlambat') {
+        filterOrderTab('Proses', 'Terlambat');
+      } else if (type === 'Selesai') {
+        filterOrderTab('Selesai', 'ALL');
+      }
+    }
+
+    // HELPER MODAL & POPSTATE
     function openModalWithHistory(modalId) {
       const modalEl = document.getElementById(modalId);
       modalEl.classList.remove('hidden');
@@ -497,7 +539,7 @@
         window.history.pushState({ modal: modalId }, "");
       }
       const scrollElem = modalEl.querySelector('.scroll-area, #list-layanan-container, #list-pelanggan-container');
-      if (scrollElem) scrollElem.scrollTop = 2; // Paksa berpindah 2px dari 0px
+      if (scrollElem) scrollElem.scrollTop = 1;
     }
 
     function closeModalWithHistory(modalId) {
@@ -518,7 +560,6 @@
       }
     }
 
-    // HANDLER NAVIGATION POPSTATE SEAMLESS
     window.addEventListener('popstate', function(e) {
       const container = document.getElementById('fab-container');
       if (container && container.classList.contains('fab-active')) {
@@ -968,7 +1009,7 @@
         window.history.pushState({ tab: tabName }, "");
       }
 
-      if (tabName === 'order') filterOrderTab(currentOrderTab);
+      if (tabName === 'order') filterOrderTab(currentOrderTab, currentFilterSubtype);
       if (tabName === 'report') loadReport();
     }
 
@@ -1001,13 +1042,25 @@
         };
       });
 
-      var totalOmset = 0, totalSelesai = 0, totalAktif = 0, totalHarusSelesai = 0, totalTerlambat = 0;
+      var totalOmsetHariIni = 0, totalSelesai = 0, totalAktif = 0, totalHarusSelesai = 0, totalTerlambat = 0;
       var now = new Date();
-      
-      for(var i=0; i<globalTxCache.length; i++) { 
+      var todayString = now.toDateString(); 
+
+      var txHariIni = [];
+
+      for(var i = 0; i < globalTxCache.length; i++) { 
         var t = globalTxCache[i];
         var st = t.status_laundry || 'Diterima';
-        if(st !== 'Batal') totalOmset += (t.total_harga || 0); 
+        var tglBuat = t.created_at ? new Date(t.created_at) : null;
+
+        var isHariIni = tglBuat && (tglBuat.toDateString() === todayString);
+
+        if (isHariIni) {
+          txHariIni.push(t);
+          if (st !== 'Batal') {
+            totalOmsetHariIni += (t.total_harga || 0);
+          }
+        }
         
         if(st === 'Selesai') {
           totalSelesai++;
@@ -1017,7 +1070,7 @@
             totalTerlambat++;
           } else if(t.estimasi_selesai) {
             var tglEst = new Date(t.estimasi_selesai);
-            if(tglEst.toDateString() === now.toDateString()) {
+            if(tglEst.toDateString() === todayString) {
               totalHarusSelesai++;
             }
           }
@@ -1028,14 +1081,17 @@
       document.getElementById('stat-harus-selesai').innerText = totalHarusSelesai;
       document.getElementById('stat-terlambat').innerText = totalTerlambat;
       document.getElementById('stat-selesai').innerText = totalSelesai;
-      document.getElementById('stat-omset').innerText = 'Rp ' + totalOmset.toLocaleString();
-      document.getElementById('count-masuk').innerText = globalTxCache.length + ' Order';
+      document.getElementById('stat-omset').innerText = 'Rp ' + totalOmsetHariIni.toLocaleString();
+      document.getElementById('count-masuk').innerText = txHariIni.length + ' Order';
 
       const container = document.getElementById('list-home');
       if(container) {
-        if(!globalTxCache.length) { container.innerHTML = '<p class="text-xs text-slate-400 text-center py-6">Belum ada transaksi.</p>'; return; }
+        if(!txHariIni.length) { 
+          container.innerHTML = '<p class="text-xs text-slate-400 text-center py-6">Belum ada orderan masuk hari ini.</p>'; 
+          return; 
+        }
         
-        container.innerHTML = globalTxCache.map((t, idx) => {
+        container.innerHTML = txHariIni.map((t, idx) => {
           var nmPel = t.pelanggan.nama || t.pelanggan.nama_pelanggan || 'Customer';
           var items = globalItemCache[t.id] || [];
           var summaryLayanan = items.length > 0 ? items.map(i => (i.layanan ? i.layanan.nama_layanan : 'Layanan') + ' (' + i.qty + ' ' + (i.layanan ? i.layanan.satuan : 'Kg') + ')') .join(', ') : 'Multi Layanan';
@@ -1057,8 +1113,10 @@
       }
     }
 
-    async function filterOrderTab(status) {
+    async function filterOrderTab(status, subtype = 'ALL') {
       currentOrderTab = status;
+      currentFilterSubtype = subtype;
+
       var tabs = document.getElementById('panel-order').querySelectorAll('.tab-order-btn');
       tabs.forEach(function(tb) { tb.classList.remove('active'); });
       var activeTabBtn = document.getElementById('tab-' + status);
@@ -1067,17 +1125,34 @@
       const container = document.getElementById('list-order-status');
       if(!container || !supabaseClient) return;
 
+      var now = new Date();
+      var todayString = now.toDateString();
+
       var filtered = globalTxCache.filter(function(t) {
         var st = t.status_laundry || 'Diterima';
-        if(status === 'Antrian') return st === 'Diterima';
-        if(status === 'Proses') return st === 'Dicuci' || st === 'Disetrika' || st === 'Siap Diambil';
-        if(status === 'Selesai') return st === 'Selesai';
-        if(status === 'Batal') return st === 'Batal';
+        
+        if (status === 'Antrian') return st === 'Diterima';
+        
+        if (status === 'Proses') {
+          var isProses = (st === 'Dicuci' || st === 'Disetrika' || st === 'Siap Diambil' || st === 'Diterima');
+          if (!isProses) return false;
+
+          if (subtype === 'HarusSelesai') {
+            return t.estimasi_selesai && (new Date(t.estimasi_selesai).toDateString() === todayString);
+          } else if (subtype === 'Terlambat') {
+            return t.estimasi_selesai && (new Date(t.estimasi_selesai) < now);
+          }
+          return true;
+        }
+
+        if (status === 'Selesai') return st === 'Selesai';
+        if (status === 'Batal') return st === 'Batal';
         return true;
       });
 
       if(!filtered.length) {
-        container.innerHTML = '<p class="text-xs text-slate-400 text-center py-10">Tidak ada orderan di kategori ' + status + '.</p>';
+        var extraInfo = subtype !== 'ALL' ? ' (' + subtype + ')' : '';
+        container.innerHTML = '<p class="text-xs text-slate-400 text-center py-10">Tidak ada orderan di kategori ' + status + extraInfo + '.</p>';
         return;
       }
 
@@ -1130,7 +1205,7 @@
           .on('postgres_changes', { event: '*', schema: 'public', table: 'transaksi' }, payload => {
             loadDataHome();
             if (document.getElementById('panel-order').classList.contains('active')) {
-              filterOrderTab(currentOrderTab);
+              filterOrderTab(currentOrderTab, currentFilterSubtype);
             }
           })
           .subscribe();
