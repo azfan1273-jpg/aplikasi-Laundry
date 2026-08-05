@@ -873,30 +873,58 @@
       document.getElementById('form-tambah-kasir').classList.toggle('hidden');
     }
 
-    async function simpanKasirBaru() {
-      const email = document.getElementById('new_kasir_email').value;
-      const password = document.getElementById('new_kasir_password').value;
+    aasync function simpanKasirBaru() {
+  const email = document.getElementById('new_kasir_email').value;
+  const password = document.getElementById('new_kasir_password').value;
 
-      if(!email || !password) {
-        showToast("Isi email dan password kasir!", "error");
+  if(!email || !password) {
+    showToast("Isi email dan password kasir!", "error");
+    return;
+  }
+
+  if(!currentToko) {
+    showToast("Data toko tidak ditemukan!", "error");
+    return;
+  }
+
+  try {
+    // 1. Buat client sementara agar session Owner tidak tertimpa/logout
+    const tempSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: { persistSession: false }
+    });
+
+    // 2. Daftarkan auth kasir baru
+    const { data, error } = await tempSupabase.auth.signUp({ email, password });
+
+    if (error) {
+      showToast("Gagal mendaftarkan kasir: " + error.message, "error");
+      return;
+    }
+
+    if (data && data.user) {
+      // 3. Simpan profile kasir menggunakan client utama (Owner)
+      const { error: profError } = await supabaseClient.from('profiles').insert([{
+        id: data.user.id,
+        toko_id: currentToko.id,
+        role: 'kasir',
+        nama_user: 'Kasir ' + email.split('@')[0]
+      }]);
+
+      if (profError) {
+        showToast("Gagal membuat profil kasir: " + profError.message, "error");
         return;
       }
 
-      if(!currentToko) return;
-
-      // Create Kasir Auth Account via Supabase
-      const { data, error } = await supabaseClient.auth.signUp({ email, password });
-      if(error) {
-        showToast("Gagal mendaftarkan kasir: " + error.message, "error");
-      } else if (data.user) {
-        await supabaseClient.from('profiles').insert([{ id: data.user.id, toko_id: currentToko.id, role: 'kasir', nama_user: 'Kasir ' + email.split('@')[0] }]);
-        showToast("Akun Kasir " + email + " Berhasil Dibuat! 🎉", "success");
-        document.getElementById('new_kasir_email').value = '';
-        document.getElementById('new_kasir_password').value = '';
-        toggleFormTambahKasir();
-        loadDaftarKasirList();
-      }
+      showToast("Akun Kasir " + email + " Berhasil Dibuat! 🎉", "success");
+      document.getElementById('new_kasir_email').value = '';
+      document.getElementById('new_kasir_password').value = '';
+      toggleFormTambahKasir();
+      loadDaftarKasirList();
     }
+  } catch (err) {
+    showToast("Terjadi kesalahan: " + err.message, "error");
+  }
+}
 
     async function loadDaftarKasirList() {
       if (!currentToko) return;
