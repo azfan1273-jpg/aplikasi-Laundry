@@ -198,11 +198,7 @@
 
     <!-- 1. PANEL HOME -->
     <section id="panel-home" class="page-section active space-y-2.5 flex flex-col h-full overflow-hidden">
-      <!-- PANEL TOTAL OMSET HARI INI -->
-      <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-3 rounded-2xl shadow-md space-y-0.5 shrink-0">
-        <p class="text-[10px] text-blue-100 font-medium">Total Omset Hari Ini</p>
-        <h2 id="stat-omset" class="text-lg font-black tracking-tight">Rp 0</h2>
-      </div>
+      
 
       <!-- 1. NEWS / MARQUEE -->
       <div class="bg-amber-500/10 border border-amber-500/30 px-3 py-2 rounded-xl flex items-center gap-2 text-xs text-amber-900 overflow-hidden shrink-0">
@@ -242,6 +238,27 @@
         </div>
       </div>
 
+      <!-- BUNGKUSAN LIST OMSET & PENGELUARAN HARI INI (BARU) -->
+      <div class="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-sm space-y-2 shrink-0">
+        <div class="flex justify-between items-center border-b pb-1.5 border-slate-100">
+          <p class="text-[11px] font-black text-slate-700 tracking-wide uppercase flex items-center gap-1">
+            <span>💵</span> Keuangan Hari Ini
+          </p>
+          <span class="text-[9px] bg-blue-50 text-blue-600 font-bold px-2 py-0.5 rounded-lg">Hari Ini</span>
+        </div>
+        
+        <div class="space-y-1.5 text-xs">
+          <div class="flex justify-between items-center p-2 bg-slate-50 rounded-xl border border-slate-100">
+            <span class="font-bold text-slate-600">Omset Hari Ini</span>
+            <span id="stat-omset" class="font-black text-blue-600 text-xs">Rp 0</span>
+          </div>
+          <div class="flex justify-between items-center p-2 bg-slate-50 rounded-xl border border-slate-100">
+            <span class="font-bold text-slate-600">Pengeluaran Hari Ini</span>
+            <span id="home-footer-pengeluaran" class="font-black text-rose-600 text-xs">Rp 0</span>
+          </div>
+        </div>
+      </div>
+
       <!-- 3. JENDELA MASUK HARI INI -->
       <div class="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-sm space-y-2 flex-1 flex flex-col min-h-0 overflow-hidden">
         <div class="flex justify-between items-center border-b pb-1.5 border-slate-100 shrink-0">
@@ -252,18 +269,6 @@
         <div id="list-home" class="scroll-area space-y-2 pr-1 flex-1">
           <p class="text-xs text-slate-400 text-center py-6">Memuat orderan hari ini...</p>
         </div>
-
-        <div class="pt-2 border-t border-slate-100 grid grid-cols-2 gap-2 text-xs shrink-0 bg-slate-50/80 p-2 rounded-xl">
-          <div class="flex flex-col">
-            <span class="text-[9px] font-bold text-slate-400 uppercase">Omset Hari Ini</span>
-            <span id="home-footer-omset" class="font-extrabold text-blue-600 text-xs mt-0.5">Rp 0</span>
-          </div>
-          <div class="flex flex-col border-l border-slate-200/80 pl-2">
-            <span class="text-[9px] font-bold text-slate-400 uppercase">Pengeluaran Hari Ini</span>
-            <span id="home-footer-pengeluaran" class="font-extrabold text-rose-600 text-xs mt-0.5">Rp 0</span>
-          </div>
-        </div>
-      </div>
     </section>
 
     <!-- 2. PANEL ORDER -->
