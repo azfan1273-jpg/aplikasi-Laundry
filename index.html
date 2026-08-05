@@ -177,7 +177,6 @@
   <!-- ======================== TOP BAR ======================== -->
   <header class="bg-blue-600 text-white p-3.5 sticky top-0 z-40 shadow-sm shrink-0 pt-safe">
     <div class="max-w-md mx-auto flex justify-between items-center">
-      <!-- UBAH ONCLICK BIAR MEMANGGIL FUNGSI CHART DENGAN AMAN -->
       <div onclick="openModalJendelaAkunWithChart()" class="flex items-center gap-2.5 cursor-pointer active:opacity-80 transition">
         <img src="logo.png" alt="LNDR Logo" class="w-9 h-9 object-contain drop-shadow">
         <div>
@@ -200,7 +199,6 @@
     <!-- 1. PANEL HOME -->
     <section id="panel-home" class="page-section active space-y-2.5 flex flex-col h-full overflow-hidden">
       
-
       <!-- 1. NEWS / MARQUEE -->
       <div class="bg-amber-500/10 border border-amber-500/30 px-3 py-2 rounded-xl flex items-center gap-2 text-xs text-amber-900 overflow-hidden shrink-0">
         <span class="text-sm shrink-0">📢</span>
@@ -239,7 +237,7 @@
         </div>
       </div>
 
-      <!-- BUNGKUSAN LIST OMSET & PENGELUARAN HARI INI (BARU) -->
+      <!-- BUNGKUSAN LIST OMSET & PENGELUARAN HARI INI -->
       <div class="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-sm space-y-2 shrink-0">
         <div class="flex justify-between items-center border-b pb-1.5 border-slate-100">
           <p class="text-[11px] font-black text-slate-700 tracking-wide uppercase flex items-center gap-1">
@@ -270,6 +268,7 @@
         <div id="list-home" class="scroll-area space-y-2 pr-1 flex-1">
           <p class="text-xs text-slate-400 text-center py-6">Memuat orderan hari ini...</p>
         </div>
+      </div>
     </section>
 
     <!-- 2. PANEL ORDER -->
@@ -379,24 +378,13 @@
             <button onclick="openModalKelolaLayanan()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs shadow-sm">Buka</button>
           </div>
 
-          <!-- KHUSUS OWNER: MANAJEMEN AKUN KASIR -->
-          <div id="setting-owner-kasir" class="p-3.5 bg-indigo-50/80 rounded-2xl border border-indigo-100 space-y-2.5">
-            <div class="flex justify-between items-center">
-              <div>
-                <p class="font-extrabold text-indigo-900 text-xs">👥 Kelola Akun Kasir</p>
-                <p class="text-[10px] text-indigo-600 mt-0.5">Buat sub-akun login khusus pegawai kasir</p>
-              </div>
-              <button onclick="toggleFormTambahKasir()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs shadow-sm">+ Buat Kasir</button>
+          <!-- MENGHUBUNGKAN KE JENDELA AKUN FULL SCREEN -->
+          <div id="setting-owner-kasir" class="p-3 bg-indigo-50 rounded-2xl border border-indigo-100 flex items-center justify-between">
+            <div>
+              <p class="font-extrabold text-indigo-900 text-xs">👥 Kelola Akun</p>
+              <p class="text-[10px] text-indigo-600 mt-0.5">Buka analitik traffic & manajemen toko</p>
             </div>
-
-            <div id="form-tambah-kasir" class="space-y-2 pt-2 border-t border-indigo-200/60 hidden">
-              <p class="font-bold text-indigo-950 text-[11px]">Daftarkan Kasir Baru:</p>
-              <input id="new_kasir_email" type="email" placeholder="Email Kasir (misal: kasir1@lndr.com)" class="w-full p-2.5 bg-white border rounded-xl text-xs outline-none font-semibold">
-              <input id="new_kasir_password" type="password" placeholder="Password Kasir" class="w-full p-2.5 bg-white border rounded-xl text-xs outline-none font-semibold">
-              <button onclick="simpanKasirBaru()" class="w-full bg-indigo-600 text-white font-bold text-xs py-2 rounded-xl shadow-sm">Simpan Akun Kasir</button>
-            </div>
-
-            <div id="list-kasir-container" class="space-y-1.5 pt-1"></div>
+            <button onclick="openModalJendelaAkunWithChart()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs shadow-sm">Buka</button>
           </div>
 
           <div class="p-2.5 bg-slate-50 rounded-2xl border border-slate-100">
@@ -414,6 +402,93 @@
   </main>
 
   <div id="toast-container"></div>
+
+  <!-- ======================== JENDELA AKUN (FULL SCREEN) ======================== -->
+  <div id="modal-jendela-akun" onclick="closeOnBackdrop(event, 'modal-jendela-akun')" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-0 hidden">
+    <div class="bg-white w-full h-full flex flex-col shadow-2xl" onclick="event.stopPropagation()">
+      
+      <!-- HEADER FULL SCREEN -->
+      <div class="bg-blue-600 text-white p-4 flex justify-between items-center shrink-0 pt-safe shadow-sm">
+        <div class="flex items-center gap-3">
+          <button onclick="closeModalWithHistory('modal-jendela-akun')" class="text-white font-bold text-xl hover:opacity-80 active:scale-95 transition">←</button>
+          <div>
+            <h3 class="font-black text-base tracking-wide">Kelola Akun & Analitik</h3>
+            <p id="account-modal-email" class="text-[10px] text-blue-200 truncate max-w-[200px]">Memuat email...</p>
+          </div>
+        </div>
+        <button onclick="closeModalWithHistory('modal-jendela-akun')" class="w-8 h-8 bg-blue-700/60 rounded-full font-bold text-white text-xs flex items-center justify-center">✕</button>
+      </div>
+
+      <div class="scroll-area p-4 space-y-5 flex-1 pr-1" style="min-height: 0;">
+        
+        <!-- DIAGRAM GARIS: TRAFFIC PENDAPATAN HARI INI -->
+        <div class="p-4 bg-slate-50 border border-slate-200/80 rounded-3xl space-y-3 shadow-sm">
+          <div class="flex justify-between items-center border-b pb-2 border-slate-200/60">
+            <div>
+              <h4 class="font-black text-slate-800 text-xs uppercase tracking-wider">📈 Traffic Pendapatan (7 Hari)</h4>
+              <p class="text-[10px] text-slate-400 mt-0.5">Grafik pergerakan omset masuk minggu ini</p>
+            </div>
+            <span class="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-lg">Realtime</span>
+          </div>
+
+          <div class="pt-2 flex justify-center items-center">
+            <canvas id="trafficPendapatanChart" width="300" height="140" class="w-full max-w-xs mx-auto"></canvas>
+          </div>
+        </div>
+
+        <!-- PENGATURAN MANAGEMENT -->
+        <div class="space-y-2.5 pt-1">
+          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">Pengaturan Management Toko</p>
+          
+          <!-- FORM BUAT KASIR BARU -->
+          <div class="p-3.5 bg-indigo-50/80 rounded-2xl border border-indigo-100 space-y-2.5">
+            <div class="flex justify-between items-center">
+              <div>
+                <p class="font-extrabold text-indigo-900 text-xs">👥 Kelola Sub-Akun Kasir</p>
+                <p class="text-[10px] text-indigo-600 mt-0.5">Buat sub-akun login khusus pegawai kasir</p>
+              </div>
+              <button onclick="toggleFormTambahKasir()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs shadow-sm">+ Buat Kasir</button>
+            </div>
+
+            <div id="form-tambah-kasir" class="space-y-2 pt-2 border-t border-indigo-200/60 hidden">
+              <p class="font-bold text-indigo-950 text-[11px]">Daftarkan Kasir Baru:</p>
+              <input id="new_kasir_email" type="email" placeholder="Email Kasir (misal: kasir1@lndr.com)" class="w-full p-2.5 bg-white border rounded-xl text-xs outline-none font-semibold">
+              <input id="new_kasir_password" type="password" placeholder="Password Kasir" class="w-full p-2.5 bg-white border rounded-xl text-xs outline-none font-semibold">
+              <button onclick="simpanKasirBaru()" class="w-full bg-indigo-600 text-white font-bold text-xs py-2 rounded-xl shadow-sm">Simpan Akun Kasir</button>
+            </div>
+
+            <div id="list-kasir-container" class="space-y-1.5 pt-1"></div>
+          </div>
+
+          <!-- MENU 2: KELOLA LAYANAN -->
+          <div onclick="closeModalWithHistory('modal-jendela-akun'); openModalKelolaLayanan();" class="p-3.5 bg-slate-50 hover:bg-blue-50/50 rounded-2xl border border-slate-200/80 flex items-center justify-between cursor-pointer active:scale-[0.98] transition">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center font-bold text-base shadow-sm">🧺</div>
+              <div>
+                <p class="font-extrabold text-slate-800 text-xs">Kelola Daftar Layanan</p>
+                <p class="text-[10px] text-slate-400 mt-0.5">Tambah paket, estimasi & atur harga laundry</p>
+              </div>
+            </div>
+            <span class="text-slate-400 font-bold text-xs">➔</span>
+          </div>
+
+          <!-- MENU 3: LOGOUT -->
+          <div onclick="closeModalWithHistory('modal-jendela-akun'); handleLogout();" class="p-3.5 bg-rose-50 hover:bg-rose-100/70 rounded-2xl border border-rose-100 flex items-center justify-between cursor-pointer active:scale-[0.98] transition">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center font-bold text-base shadow-sm">🚪</div>
+              <div>
+                <p class="font-extrabold text-rose-700 text-xs">Keluar dari Akun</p>
+                <p class="text-[10px] text-rose-400 mt-0.5">Logout session dari HP / browser ini</p>
+              </div>
+            </div>
+            <span class="text-rose-400 font-bold text-xs">➔</span>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </div>
 
   <!-- FLOATING ACTION BUTTON -->
   <div id="fab-backdrop" onclick="toggleFabMenu()" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 opacity-0 pointer-events-none transition-opacity duration-300"></div>
@@ -910,11 +985,9 @@
       }
     }
 
-    // 1. Dapatkan Sesi User & Profil (Perbaikan Penanganan User Dihapus)
     async function checkUserSession() {
       if(!supabaseClient) return;
 
-      // Cek apakah ada hash token penanda reset password di URL
       if (window.location.hash && window.location.hash.includes('type=recovery')) {
         document.getElementById('modal-update-password').classList.remove('hidden');
       }
@@ -926,7 +999,6 @@
         
         let resProf = await supabaseClient.from('profiles').select('*, toko(*)').eq('id', currentUser.id).maybeSingle();
         
-        // Jika session lokal ada tapi data profile di DB terhapus / tak ada, paksa logout
         if (!resProf.data) {
           await supabaseClient.auth.signOut();
           currentUser = null; currentProfile = null; currentToko = null;
@@ -964,7 +1036,7 @@
         } else {
           if(navReportBtn) navReportBtn.style.display = 'flex';
           if(settingLayanan) settingLayanan.style.display = 'flex';
-          if(settingKasir) settingKasir.style.display = 'block';
+          if(settingKasir) settingKasir.style.display = 'flex';
           if(fabPengeluaran) fabPengeluaran.style.display = 'flex';
           loadDaftarKasirList();
         }
@@ -1768,7 +1840,6 @@
       document.getElementById('stat-omset').innerText = 'Rp ' + totalOmsetHariIni.toLocaleString();
       document.getElementById('count-masuk').innerText = txHariIni.length + ' Order';
 
-      document.getElementById('home-footer-omset').innerText = 'Rp ' + totalOmsetHariIni.toLocaleString();
       document.getElementById('home-footer-pengeluaran').innerText = 'Rp ' + totalPengeluaranHariIni.toLocaleString();
 
       const container = document.getElementById('list-home');
@@ -2231,6 +2302,84 @@
       });
 
       container.innerHTML = '<div class="space-y-3 py-2 px-1"><div class="text-center border-b pb-3 border-slate-100"><h3 class="font-extrabold text-slate-900 text-base">' + title + '</h3></div><div class="space-y-2">' + filtered.map(t => '<div onclick="openModalDetailOrderById(' + t.id + ')" class="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-center text-xs"><div><p class="font-extrabold text-slate-900">' + (t.pelanggan.nama||'Customer') + '</p><p class="text-[10px] text-slate-400">' + formatDateIndo(t.created_at) + '</p></div><p class="font-black text-blue-600">Rp ' + (t.total_harga||0).toLocaleString() + '</p></div>').join('') + '</div></div>';
+    }
+
+    // ==================== FUNGSI DIAGRAM TRAFFIC PENDAPATAN ====================
+    function openModalJendelaAkunWithChart() {
+      openModalWithHistory('modal-jendela-akun');
+      if(currentUser && currentUser.email) {
+        var emailEl = document.getElementById('account-modal-email');
+        if(emailEl) emailEl.innerText = currentUser.email;
+      }
+      setTimeout(() => renderTrafficPendapatanChart(), 150);
+    }
+
+    function renderTrafficPendapatanChart() {
+      var canvas = document.getElementById('trafficPendapatanChart');
+      if (!canvas) return;
+      var ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, 300, 140);
+
+      var days = [];
+      var totals = [];
+      var now = new Date();
+
+      for (var i = 6; i >= 0; i--) {
+        var d = new Date(now.getTime() - (i * 24 * 60 * 60 * 1000));
+        var dateStr = d.toDateString();
+        var dayLabel = d.toLocaleDateString('id-ID', { weekday: 'short' });
+        
+        var totalHariIni = globalTxCache.reduce((sum, t) => {
+          var tgl = t.created_at ? new Date(t.created_at) : null;
+          if (tgl && tgl.toDateString() === dateStr && t.status_laundry !== 'Batal') {
+            return sum + (t.total_harga || 0);
+          }
+          return sum;
+        }, 0);
+
+        days.push(dayLabel);
+        totals.push(totalHariIni);
+      }
+
+      var maxVal = Math.max(...totals, 100000);
+
+      // Sumbu & Grid
+      ctx.strokeStyle = "#e2e8f0";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(30, 20); ctx.lineTo(30, 110);
+      ctx.moveTo(30, 110); ctx.lineTo(290, 110);
+      ctx.stroke();
+
+      // Line Chart
+      ctx.strokeStyle = "#2563eb";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+
+      var points = [];
+      var stepX = (290 - 30) / 6;
+
+      totals.forEach((val, idx) => {
+        var x = 30 + (idx * stepX);
+        var y = 110 - ((val / maxVal) * 80);
+        points.push({x, y});
+        if (idx === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      // Titik Point & Label
+      points.forEach((pt, idx) => {
+        ctx.fillStyle = "#2563eb";
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#64748b";
+        ctx.font = "9px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(days[idx], pt.x, 125);
+      });
     }
 
     window.onload = function() { 
