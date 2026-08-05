@@ -54,6 +54,53 @@
     /* ANIMASI SPIN REFRESH */
     .spinning { animation: spin 0.6s linear infinite; }
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+    /* =========================================
+       STYLE UNTUK NOTIFIKASI TOAST (MODERN ALERT)
+       ========================================= */
+    #toast-container {
+      position: fixed;
+      top: 20px; /* Muncul di area atas layar */
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999; /* Paling depan */
+      width: 90%;
+      max-width: 400px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none; /* Biar ga ngeblok klik di belakangnya */
+    }
+
+    .toast {
+      background-color: #1e293b; /* Slate 800 (Dark) */
+      color: white;
+      padding: 12px 20px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      items-center: center;
+      gap: 12px;
+      opacity: 0;
+      transform: translateY(-20px);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: auto; /* Balikin biar bisa di-swipe nanti kalo perlu */
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Variasi Warna Toast */
+    .toast-success { border-left: 4px solid #10b981; /* Emerald 500 */ }
+    .toast-error { border-left: 4px solid #ef4444; /* Red 500 */ }
+    .toast-info { border-left: 4px solid #3b82f6; /* Blue 500 */ }
+
+    .toast-icon { font-size: 18px; }
+
   </style>
 </head>
 <body class="bg-slate-50 font-sans text-slate-800 select-none flex flex-col h-screen">
@@ -243,6 +290,9 @@
 
   </main>
 
+  <!-- ======================== TOAST NOTIFICATION CONTAINER ======================== -->
+  <div id="toast-container"></div>
+
   <!-- ======================== FLOATING ACTION BUTTON ======================== -->
   <div id="fab-backdrop" onclick="toggleFabMenu()" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 opacity-0 pointer-events-none transition-opacity duration-300"></div>
 
@@ -283,7 +333,7 @@
     </div>
   </div>
 
-  <!-- JENDELA MODAL PROFILE & HISTORI PELANGGAN (GAMBAR 3) -->
+  <!-- JENDELA MODAL PROFILE & HISTORI PELANGGAN -->
   <div id="modal-profile-pelanggan" onclick="closeOnBackdrop(event, 'modal-profile-pelanggan')" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[80] flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
     <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-4 sm:p-5 space-y-4 max-h-[90vh] flex flex-col shadow-2xl" onclick="event.stopPropagation()">
       <div class="flex justify-between items-center border-b pb-2 shrink-0">
@@ -641,6 +691,35 @@
       }
     });
 
+    // =========================================
+    // FUNGSI UTAMA NOTIFIKASI TOAST (MODERN ALERT)
+    // =========================================
+    function showToast(message, type = 'success') {
+  const container = document.getElementById('toast-container');
+
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+
+  let icon = '✅';
+  if (type === 'error') icon = '❌';
+  if (type === 'info') icon = 'ℹ️';
+
+  toast.innerHTML = `<span class="toast-icon">${icon}</span> <span>${message}</span>`;
+
+  // Diubah jadi appendChild (cocok untuk posisi container di atas)
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.classList.add('show');
+  }, 10);
+
+  setTimeout(() => {
+    toast.classList.remove('show');
+    toast.addEventListener('transitionend', () => {
+      toast.remove();
+    });
+  }, 3000);
+}
     function switchTab(tabName, pushHistory = true) {
       currentActiveTab = tabName;
 
@@ -688,6 +767,7 @@
       
       setTimeout(() => {
         if (icon) icon.classList.remove('spinning');
+        showToast("Data berhasil diperbarui! 🔄", "info"); // GANTI ALERT
       }, 600);
     }
 
@@ -825,7 +905,7 @@
       const nom = parseFloat(document.getElementById('input_nominal_pengeluaran').value);
 
       if(!ket || isNaN(nom) || nom <= 0) {
-        alert("Harap isi keterangan dan nominal pengeluaran dengan benar!");
+        showToast("Harap isi keterangan dan nominal pengeluaran dengan benar!", "error"); // GANTI ALERT
         return;
       }
 
@@ -836,11 +916,11 @@
         }]);
 
         if(!error) {
-          alert("Pengeluaran berhasil dicatat! 💸");
+          showToast("Pengeluaran berhasil dicatat! 💸", "success"); // GANTI ALERT
           closeModalPengeluaran();
           loadDataHome();
         } else {
-          alert("Gagal menyimpan pengeluaran: " + error.message);
+          showToast("Gagal menyimpan pengeluaran: " + error.message, "error"); // GANTI ALERT
         }
       }
     }
@@ -886,7 +966,7 @@
       const estimasi = parseFloat(document.getElementById('new_estimasi_hari').value) || 1;
 
       if(!nama || isNaN(harga)) {
-        alert("Nama layanan dan harga wajib diisi dengan benar!");
+        showToast("Nama layanan dan harga wajib diisi dengan benar!", "error"); // GANTI ALERT
         return;
       }
 
@@ -898,26 +978,27 @@
       }]);
 
       if(!error) {
-        alert("Layanan baru berhasil ditambahkan! 🎉");
+        showToast("Layanan baru berhasil ditambahkan! 🎉", "success"); // GANTI ALERT
         document.getElementById('new_nama_layanan').value = '';
         document.getElementById('new_harga_layanan').value = '';
         document.getElementById('new_estimasi_hari').value = '';
         renderKelolaLayananList();
         preloadLayanan();
       } else {
-        alert("Gagal menambah layanan: " + error.message);
+        showToast("Gagal menambah layanan: " + error.message, "error"); // GANTI ALERT
       }
     }
 
     async function hapusLayanan(id) {
+      // NOTE: Confirm masih pake bawaan browser karena butuh feedback user YES/NO.
       if(confirm("Yakin ingin menghapus layanan ini?")) {
         const { error } = await supabaseClient.from('layanan').delete().eq('id', id);
         if(!error) {
-          alert("Layanan berhasil dihapus.");
+          showToast("Layanan berhasil dihapus.", "success"); // GANTI ALERT
           renderKelolaLayananList();
           preloadLayanan();
         } else {
-          alert("Gagal menghapus layanan (mungkin sedang digunakan di transaksi aktif).");
+          showToast("Gagal menghapus layanan (mungkin sedang digunakan di transaksi aktif).", "error"); // GANTI ALERT
         }
       }
     }
@@ -1001,12 +1082,12 @@
       }).eq('id', activeOrderDetail.id);
 
       if(!error) {
-        alert("Orderan #" + activeOrderDetail.id + " berhasil diperbarui! ✅");
+        showToast("Orderan #" + activeOrderDetail.id + " berhasil diperbarui! ✅", "success"); // GANTI ALERT
         closeModalEditOrder();
         closeModalDetailOrder();
         loadDataHome();
       } else {
-        alert("Gagal memperbarui orderan!");
+        showToast("Gagal memperbarui orderan!", "error"); // GANTI ALERT
       }
     }
 
@@ -1021,28 +1102,43 @@
       else if(statusSekarang === 'Siap Diambil') nextStatus = 'Selesai';
       else nextStatus = 'Selesai';
 
-      await supabaseClient.from('transaksi').update({ status_laundry: nextStatus }).eq('id', activeOrderDetail.id);
-      alert("Status order #" + activeOrderDetail.id + " berhasil diubah menjadi " + nextStatus + "!");
-      closeModalDetailOrder();
-      loadDataHome();
+      const { error } = await supabaseClient.from('transaksi').update({ status_laundry: nextStatus }).eq('id', activeOrderDetail.id);
+      
+      if(!error) {
+        showToast("Status order #" + activeOrderDetail.id + " berhasil diubah menjadi " + nextStatus + "!", "success"); // GANTI ALERT
+        closeModalDetailOrder();
+        loadDataHome();
+      } else {
+        showToast("Gagal mengubah status order.", "error"); // GANTI ALERT
+      }
     }
 
     async function actionBatalkanOrder() {
       if(!activeOrderDetail) return;
+      // NOTE: Confirm masih pake bawaan browser karena butuh feedback user YES/NO.
       if(confirm("Apakah Anda yakin ingin membatalkan orderan #" + activeOrderDetail.id + "?")) {
-        await supabaseClient.from('transaksi').update({ status_laundry: 'Batal' }).eq('id', activeOrderDetail.id);
-        alert("Orderan #" + activeOrderDetail.id + " telah dibatalkan.");
-        closeModalDetailOrder();
-        loadDataHome();
+        const { error } = await supabaseClient.from('transaksi').update({ status_laundry: 'Batal' }).eq('id', activeOrderDetail.id);
+        if(!error) {
+            showToast("Orderan #" + activeOrderDetail.id + " telah dibatalkan.", "info"); // GANTI ALERT
+            closeModalDetailOrder();
+            loadDataHome();
+        } else {
+            showToast("Gagal membatalkan order.", "error"); // GANTI ALERT
+        }
       }
     }
 
     async function actionBayarOrder() {
       if(!activeOrderDetail) return;
-      await supabaseClient.from('transaksi').update({ status_pembayaran: 'Lunas' }).eq('id', activeOrderDetail.id);
-      alert("Pembayaran LUNAS untuk order #" + activeOrderDetail.id + "!");
-      closeModalDetailOrder();
-      loadDataHome();
+      const { error } = await supabaseClient.from('transaksi').update({ status_pembayaran: 'Lunas' }).eq('id', activeOrderDetail.id);
+      
+      if(!error) {
+        showToast("Pembayaran LUNAS untuk order #" + activeOrderDetail.id + "!", "success"); // GANTI ALERT
+        closeModalDetailOrder();
+        loadDataHome();
+      } else {
+        showToast("Gagal memproses pembayaran.", "error"); // GANTI ALERT
+      }
     }
 
     async function openModalPilihPelanggan() {
@@ -1087,11 +1183,14 @@
     async function simpanCustomerBaru() {
       const nama = document.getElementById('new_nama_pelanggan').value;
       const no_hp = document.getElementById('new_no_hp').value;
-      if(!nama) { alert("Isi nama customer!"); return; }
+      if(!nama) { showToast("Isi nama customer!", "error"); return; } // GANTI ALERT
       const res = await supabaseClient.from('pelanggan').insert([{ nama: nama, no_hp: no_hp }]).select().single();
       if(res.data) {
+        showToast(`Customer ${nama} berhasil disimpan!`, "success"); // GANTI ALERT
         selectCustomer(res.data.id, (res.data.nama||res.data.nama_pelanggan), res.data.no_hp);
         document.getElementById('new_nama_pelanggan').value = ''; document.getElementById('new_no_hp').value = ''; toggleFormCustomerBaru();
+      } else {
+        showToast("Gagal menyimpan customer baru.", "error"); // GANTI ALERT
       }
     }
 
@@ -1139,6 +1238,8 @@
         subtotal: l.harga * qty
       });
 
+      showToast(`Layanan ${l.nama_layanan} ditambahkan (${qty})`, "info"); // GANTI ALERT (atau bisa pake toast info biar kalem)
+
       renderCartLayanan();
       closeModalQty(); 
       closeModalPilihLayanan();
@@ -1146,6 +1247,7 @@
 
     function removeCartItem(index) {
       cartLayanan.splice(index, 1);
+      showToast("Layanan dihapus dari keranjang.", "info"); // GANTI ALERT
       renderCartLayanan();
     }
 
@@ -1182,8 +1284,8 @@
     }
 
     async function submitOrderFinal() {
-      if(!selectedPelanggan) { alert("Pilih customer dulu bro!"); return; }
-      if(cartLayanan.length === 0) { alert("Tambahkan minimal 1 layanan dulu bro!"); return; }
+      if(!selectedPelanggan) { showToast("Pilih customer dulu bro!", "error"); return; } // GANTI ALERT
+      if(cartLayanan.length === 0) { showToast("Tambahkan minimal 1 layanan dulu bro!", "error"); return; } // GANTI ALERT
 
       const parfum = document.getElementById('pilih_parfum').value;
       const catatan = document.getElementById('catatan_order').value || '';
@@ -1209,7 +1311,7 @@
       }]).select().single();
 
       if(resHeader.error || !resHeader.data) {
-        alert("Gagal menyimpan transaksi utama! Error: " + (resHeader.error?.message || 'Unknown'));
+        showToast("Gagal menyimpan transaksi utama! Error: " + (resHeader.error?.message || 'Unknown'), "error"); // GANTI ALERT
         return;
       }
 
@@ -1227,11 +1329,11 @@
       }
 
       if(!hasError) {
-        alert("PESANAN BERHASIL DISIMPAN! 🎉");
+        showToast("PESANAN BERHASIL DISIMPAN! 🎉", "success"); // GANTI ALERT
         closeModalPOS();
         loadDataHome();
       } else { 
-        alert("Transaksi tersimpan sebagian."); 
+        showToast("Transaksi tersimpan sebagian. Error pada item layanan.", "error"); // GANTI ALERT
       }
     }
 
@@ -1506,6 +1608,8 @@
         renderModalRingkasanPelanggan();
       } else if (type === 'pelanggan_detail') {
         renderModalListDetailPelanggan();
+      } else if (type === 'pelanggan_top') {
+        renderModalTopCustomer(); // <--- TAMBAHKAN BARIS INI
       } else {
         container.innerHTML = 
           '<div class="p-4 bg-blue-50 rounded-2xl border border-blue-100 text-center space-y-2 py-8 my-4">' +
@@ -1518,21 +1622,44 @@
       openModalWithHistory('modal-detail-laporan');
     }
 
-    // 2. RINGKASAN PELANGGAN (LENGKAP DENGAN CHART/DIAGRAM & GRID STATISTIK SAMA GAMBAR 1)
+    // 2 & 3. RINGKASAN PELANGGAN BERDASARKAN RANK TRANSAKSI 7 HARI TERAKHIR (GMT+7)
     function renderModalRingkasanPelanggan() {
       const container = document.getElementById('list-report-modal-container');
 
       var totalPel = allPelanggan.length;
-      var now = new Date();
 
-      var pelHariIni = 0, pel7Hari = 0, pelBulanIni = 0;
+      // HITUNG RANGE 7 HARI TERAKHIR WAKTU GMT+7 (WIB)
+      var now = new Date();
+      var sevenDaysAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+
+      var rankS = 0; // >= 300k
+      var rankA = 0; // 200k - 300k
+      var rankB = 0; // 100k - 200k
+      var rankC = 0; // 50k - 100k
+      var rankD = 0; // < 50k
+      var countDihapus = 0;
+
       allPelanggan.forEach(p => {
-        var tgl = p.created_at ? new Date(p.created_at) : new Date();
-        if (tgl.toDateString() === now.toDateString()) pelHariIni++;
-        
-        var diffTime = Math.abs(now - tgl);
-        if (Math.ceil(diffTime / (1000 * 60 * 60 * 24)) <= 7) pel7Hari++;
-        if (tgl.getMonth() === now.getMonth() && tgl.getFullYear() === now.getFullYear()) pelBulanIni++;
+        if (p.is_deleted) {
+          countDihapus++;
+          return;
+        }
+
+        // Kalkulasi total spend transaksi 7 hari terakhir
+        var pelTxList = globalTxCache.filter(t => {
+          if (t.pelanggan_id !== p.id) return false;
+          if (t.status_laundry === 'Batal') return false;
+          var tgl = t.created_at ? new Date(t.created_at) : new Date();
+          return tgl >= sevenDaysAgo && tgl <= now;
+        });
+
+        var totalSpend7Hari = pelTxList.reduce((sum, t) => sum + (t.total_harga || 0), 0);
+
+        if (totalSpend7Hari >= 300000) rankS++;
+        else if (totalSpend7Hari >= 200000) rankA++;
+        else if (totalSpend7Hari >= 100000) rankB++;
+        else if (totalSpend7Hari >= 50000) rankC++;
+        else rankD++;
       });
 
       container.innerHTML = 
@@ -1549,7 +1676,7 @@
             '</div>' +
             '<div>' +
               '<h4 class="font-extrabold text-slate-800 text-sm">Total Jumlah Pelanggan</h4>' +
-              '<p class="text-[10px] text-slate-400 mt-0.5">Grafik perbandingan pelanggan baru vs aktif</p>' +
+              '<p class="text-[10px] text-slate-400 mt-0.5">Statistik Rank Pelanggan (7 Hari Terakhir GMT+7)</p>' +
             '</div>' +
 
             '<!-- CANVAS DIAGRAM VISUAL MODERN -->' +
@@ -1558,74 +1685,83 @@
             '</div>' +
           '</div>' +
 
-          '<!-- GRID STATISTIK IKON SESUAI GAMBAR 1 -->' +
+          '<!-- GRID STATISTIK IKON DENGAN RANK S, A, B, C, D & DIHAPUS (GAMBAR 2) -->' +
           '<div class="grid grid-cols-3 gap-3 text-center pt-2">' +
             '<div class="space-y-1">' +
-              '<div class="w-10 h-10 bg-indigo-50 border border-indigo-100 rounded-2xl flex items-center justify-center mx-auto text-indigo-600 text-base">👨</div>' +
-              '<p class="text-[10px] font-bold text-slate-500">Pria</p>' +
-              '<p class="font-black text-slate-800 text-sm">77</p>' +
+              '<div class="w-10 h-10 bg-cyan-50 border border-cyan-200 rounded-2xl flex items-center justify-center mx-auto text-cyan-600 text-lg shadow-sm">💎</div>' +
+              '<p class="text-[10px] font-bold text-slate-600">Rank S</p>' +
+              '<p class="font-black text-slate-800 text-sm">' + rankS + '</p>' +
+              '<p class="text-[8px] text-slate-400">≥ 300k</p>' +
             '</div>' +
 
             '<div class="space-y-1">' +
-              '<div class="w-10 h-10 bg-rose-50 border border-rose-100 rounded-2xl flex items-center justify-center mx-auto text-rose-600 text-base">👩</div>' +
-              '<p class="text-[10px] font-bold text-slate-500">Wanita</p>' +
-              '<p class="font-black text-slate-800 text-sm">221</p>' +
+              '<div class="w-10 h-10 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-center mx-auto text-amber-600 text-lg shadow-sm">🥇</div>' +
+              '<p class="text-[10px] font-bold text-slate-600">Rank A</p>' +
+              '<p class="font-black text-slate-800 text-sm">' + rankA + '</p>' +
+              '<p class="text-[8px] text-slate-400">200k - 300k</p>' +
             '</div>' +
 
             '<div class="space-y-1">' +
-              '<div class="w-10 h-10 bg-slate-100 border border-slate-200 rounded-2xl flex items-center justify-center mx-auto text-slate-500 text-base">🗑️</div>' +
-              '<p class="text-[10px] font-bold text-slate-500">Dihapus</p>' +
-              '<p class="font-black text-slate-800 text-sm">0</p>' +
+              '<div class="w-10 h-10 bg-slate-100 border border-slate-300 rounded-2xl flex items-center justify-center mx-auto text-slate-600 text-lg shadow-sm">🥈</div>' +
+              '<p class="text-[10px] font-bold text-slate-600">Rank B</p>' +
+              '<p class="font-black text-slate-800 text-sm">' + rankB + '</p>' +
+              '<p class="text-[8px] text-slate-400">100k - 200k</p>' +
             '</div>' +
 
             '<div class="space-y-1 pt-2">' +
-              '<div class="w-10 h-10 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center justify-center mx-auto text-emerald-600 text-base">✨</div>' +
-              '<p class="text-[10px] font-bold text-slate-500 leading-tight">Pelanggan Baru<br>Hari Ini</p>' +
-              '<p class="font-black text-slate-800 text-sm">' + pelHariIni + '</p>' +
+              '<div class="w-10 h-10 bg-amber-100/60 border border-amber-300 rounded-2xl flex items-center justify-center mx-auto text-amber-800 text-lg shadow-sm">🥉</div>' +
+              '<p class="text-[10px] font-bold text-slate-600 leading-tight">Rank C</p>' +
+              '<p class="font-black text-slate-800 text-sm">' + rankC + '</p>' +
+              '<p class="text-[8px] text-slate-400">50k - 100k</p>' +
             '</div>' +
 
             '<div class="space-y-1 pt-2">' +
-              '<div class="w-10 h-10 bg-amber-50 border border-amber-100 rounded-2xl flex items-center justify-center mx-auto text-amber-600 text-base">📅</div>' +
-              '<p class="text-[10px] font-bold text-slate-500 leading-tight">Pelanggan Baru<br>7 Hari Terakhir</p>' +
-              '<p class="font-black text-slate-800 text-sm">' + pel7Hari + '</p>' +
+              '<div class="w-10 h-10 bg-slate-200/70 border border-slate-300 rounded-2xl flex items-center justify-center mx-auto text-slate-700 text-lg shadow-sm">🎖️</div>' +
+              '<p class="text-[10px] font-bold text-slate-600 leading-tight">Rank D</p>' +
+              '<p class="font-black text-slate-800 text-sm">' + rankD + '</p>' +
+              '<p class="text-[8px] text-slate-400">&lt; 50k</p>' +
             '</div>' +
 
             '<div class="space-y-1 pt-2">' +
-              '<div class="w-10 h-10 bg-blue-50 border border-blue-100 rounded-2xl flex items-center justify-center mx-auto text-blue-600 text-base">📆</div>' +
-              '<p class="text-[10px] font-bold text-slate-500 leading-tight">Pelanggan Baru<br>Bulan Ini</p>' +
-              '<p class="font-black text-slate-800 text-sm">' + pelBulanIni + '</p>' +
+              '<div class="w-10 h-10 bg-rose-50 border border-rose-200 rounded-2xl flex items-center justify-center mx-auto text-rose-600 text-lg shadow-sm">🗑️</div>' +
+              '<p class="text-[10px] font-bold text-slate-600 leading-tight">Dihapus</p>' +
+              '<p class="font-black text-slate-800 text-sm">' + countDihapus + '</p>' +
+              '<p class="text-[8px] text-slate-400">Nonaktif</p>' +
             '</div>' +
           '</div>' +
         '</div>';
 
-      // DRAW DIAGRAM DENGAN CANVAS DYNAMIC
+      // DRAW DIAGRAM BAR RANK CANVAS DYNAMIC
       setTimeout(() => {
         var canvas = document.getElementById('pelangganChart');
         if (canvas) {
           var ctx = canvas.getContext('2d');
           ctx.clearRect(0,0,220,100);
 
-          // Bar Diagram
-          ctx.fillStyle = "#2563eb"; // Baru
-          ctx.fillRect(30, 20, 40, 60);
+          var maxVal = Math.max(rankS, rankA, rankB, rankC, rankD, 1);
 
-          ctx.fillStyle = "#10b981"; // Aktif
-          ctx.fillRect(90, 10, 40, 70);
+          // Render Grafik
+          var drawBar = (x, val, color, label) => {
+            var h = (val / maxVal) * 55;
+            ctx.fillStyle = color;
+            ctx.fillRect(x, 70 - h, 25, h);
 
-          ctx.fillStyle = "#f59e0b"; // Sering
-          ctx.fillRect(150, 40, 40, 40);
+            ctx.fillStyle = "#64748b";
+            ctx.font = "8px sans-serif";
+            ctx.fillText(label, x + 4, 85);
+          };
 
-          // Label
-          ctx.fillStyle = "#64748b";
-          ctx.font = "9px sans-serif";
-          ctx.fillText("Baru", 38, 93);
-          ctx.fillText("Aktif", 98, 93);
-          ctx.fillText("Sering", 155, 93);
+          drawBar(10, rankS, "#06b6d4", "S");
+          drawBar(45, rankA, "#f59e0b", "A");
+          drawBar(80, rankB, "#94a3b8", "B");
+          drawBar(115, rankC, "#d97706", "C");
+          drawBar(150, rankD, "#64748b", "D");
+          drawBar(185, countDihapus, "#f43f5e", "Del");
         }
       }, 100);
     }
 
-    // 3. DETAIL PELANGGAN (LIST DATA PELANGGAN LALU BISA DIKLIK MEMBUKA GAMBAR 3)
+    // 3. DETAIL PELANGGAN
     function renderModalListDetailPelanggan() {
       const container = document.getElementById('list-report-modal-container');
 
@@ -1660,8 +1796,91 @@
           '</div>' +
         '</div>';
     }
+    
+    // FUNGSI MENAMPILKAN DAFTAR TOP CUSTOMER URUT DARI NO 1
+function renderModalTopCustomer() {
+  const container = document.getElementById('list-report-modal-container');
 
-    // BUKAJENDELA MODAL PROFILE SPESIFIK PELANGGAN (SESUAI GAMBAR 3 AKURAT)
+  if (!allPelanggan.length) {
+    container.innerHTML = '<p class="text-xs text-slate-400 text-center py-10">Belum ada data pelanggan.</p>';
+    return;
+  }
+
+  // 1. Hitung total belanjaan per pelanggan dari transaksi yang Lunas & Tidak Batal
+  var topList = allPelanggan.map(p => {
+    var nm = p.nama || p.nama_pelanggan || 'Customer';
+    var hp = p.no_hp || '08-';
+
+    // Filter transaksi milik pelanggan ini
+    var txList = globalTxCache.filter(t => t.pelanggan_id === p.id && t.status_laundry !== 'Batal');
+    
+    // Total uang yang dibelanjakan
+    var totalBelanja = txList.reduce((sum, t) => sum + (t.total_harga || 0), 0);
+    var totalOrder = txList.length;
+
+    return {
+      id: p.id,
+      nama: nm,
+      no_hp: hp,
+      totalBelanja: totalBelanja,
+      totalOrder: totalOrder
+    };
+  });
+
+  // 2. Urutkan dari belanjaan TERBANYAK ke TERSEDIT (Rank 1 paling atas)
+  topList.sort((a, b) => b.totalBelanja - a.totalBelanja);
+
+  // 3. Render ke dalam daftar list
+  container.innerHTML = 
+    '<div class="space-y-3 py-2">' +
+      '<div class="text-center border-b pb-3 border-slate-100">' +
+        '<h3 class="font-extrabold text-slate-900 text-base">👑 Top Customer</h3>' +
+        '<p class="text-[10px] text-slate-400 mt-0.5">Daftar pelanggan diurutkan dari total pengeluaran terbanyak</p>' +
+        '<div class="w-10 h-0.5 bg-rose-500 mx-auto mt-1 rounded-full"></div>' +
+      '</div>' +
+
+      '<div class="space-y-2">' +
+        topList.map((p, idx) => {
+          var rankNum = idx + 1;
+          
+          // Style badge nomor / juara
+          var badgeStyle = "bg-slate-100 text-slate-600";
+          var medalIcon = "";
+          
+          if (rankNum === 1) {
+            badgeStyle = "bg-amber-400 text-white font-black shadow-md";
+            medalIcon = "🥇 ";
+          } else if (rankNum === 2) {
+            badgeStyle = "bg-slate-300 text-slate-800 font-black";
+            medalIcon = "🥈 ";
+          } else if (rankNum === 3) {
+            badgeStyle = "bg-amber-700/80 text-white font-black";
+            medalIcon = "🥉 ";
+          }
+
+          return '<div onclick="openProfilePelangganDetail(' + p.id + ')" class="p-3 bg-slate-50 hover:bg-blue-50/50 rounded-2xl border border-slate-200/80 flex items-center justify-between cursor-pointer active:scale-[0.98] transition">' +
+            '<div class="flex items-center gap-3 max-w-[200px] sm:max-w-xs">' +
+              '<!-- BADGE NOMOR URUT -->' +
+              '<div class="w-8 h-8 rounded-xl flex items-center justify-center font-extrabold text-xs shrink-0 ' + badgeStyle + '">' +
+                rankNum +
+              '</div>' +
+              '<div class="truncate">' +
+                '<p class="font-extrabold text-slate-800 text-xs truncate">' + medalIcon + p.nama + '</p>' +
+                '<p class="text-[10px] text-slate-400 mt-0.5">' + p.totalOrder + ' Orderan • HP: ' + p.no_hp + '</p>' +
+              '</div>' +
+            '</div>' +
+            '<!-- TOTAL BELANJA -->' +
+            '<div class="text-right shrink-0">' +
+              '<p class="font-black text-blue-600 text-xs">Rp ' + p.totalBelanja.toLocaleString() + '</p>' +
+              '<p class="text-[9px] text-emerald-600 font-bold mt-0.5">Top #' + rankNum + '</p>' +
+            '</div>' +
+          '</div>';
+        }).join('') +
+      '</div>' +
+    '</div>';
+}
+
+    // BUKA JENDELA MODAL PROFILE SPESIFIK PELANGGAN
     function openProfilePelangganDetail(pelangganId) {
       const pel = allPelanggan.find(p => p.id === pelangganId);
       if (!pel) return;
@@ -1670,7 +1889,6 @@
       var nm = pel.nama || pel.nama_pelanggan || 'Customer';
       var hp = pel.no_hp || '08-';
 
-      // KALKULASI REKAPAN DATA TRANSAKSI KHUSUS PELANGGAN INI
       var pelTxList = globalTxCache.filter(t => t.pelanggan_id === pelangganId);
       
       var totalUang = 0;
@@ -1720,7 +1938,7 @@
             '<p class="text-xs font-bold text-slate-400">' + hp + '</p>' +
           '</div>' +
 
-          '<!-- SECTION DATA TRANSAKSI (GAMBAR 3) -->' +
+          '<!-- SECTION DATA TRANSAKSI -->' +
           '<div class="space-y-2">' +
             '<h4 class="font-black text-slate-900 text-xs tracking-wide">Data Transaksi</h4>' +
             '<div class="space-y-2 text-xs font-medium text-slate-600 bg-slate-50 p-3 rounded-2xl border border-slate-100">' +
@@ -1735,7 +1953,7 @@
             '</div>' +
           '</div>' +
 
-          '<!-- SECTION HISTORY 50 TRANSAKSI (GAMBAR 3) -->' +
+          '<!-- SECTION HISTORY TRANSAKSI -->' +
           '<div class="space-y-2 pt-2 border-t border-slate-100">' +
             '<h4 class="font-black text-slate-900 text-xs tracking-wide">History ' + pelTxList.length + ' Transaksi</h4>' +
             (!pelTxList.length 
@@ -1765,7 +1983,7 @@
       openModalWithHistory('modal-profile-pelanggan');
     }
 
-    // RENDER LAPORAN TRANSAKSI (GAMBAR 1)
+    // RENDER LAPORAN TRANSAKSI
     function renderModalFilterableReport(type, title) {
       const container = document.getElementById('list-report-modal-container');
       
@@ -1859,7 +2077,7 @@
     }
 
     function exportToExcelPlaceholder() {
-      alert("Fitur Export Excel laporan sedang disiapkan! 📊");
+      showToast("Fitur Export Excel laporan sedang disiapkan! 📊", "info"); // GANTI ALERT
     }
 
     function applyKeuanganFilter(type) {
@@ -2033,7 +2251,7 @@
       }
     }
 
-    // 1. RENDER LIST DIRECT (POIN 1: TRANSAKSI BELUM SELESAI -> BARIS UTAMA NAMA PELANGGAN & TEKS BAWAH HP)
+    // 1. RENDER LIST TRANSAKSI BELUM SELESAI (POIN 1: TEKS DIKETENGAHKAN AGAR TIDAK KEPOTONG GAMBAR 1)
     function renderModalListDirectReport(type, title) {
       const container = document.getElementById('list-report-modal-container');
 
@@ -2084,7 +2302,7 @@
                 '<span>' + dateKey + '</span>' +
                 '<span>' + items.length + ' Transaksi</span>' +
               '</div>' +
-              '<div class="divide-y divide-slate-100 px-2">' +
+              '<div class="divide-y divide-slate-100 px-3">' +
                 items.map(t => {
                   var notaCode = 'TRX/' + String(t.id).padStart(8, '0');
                   var nmPel = t.pelanggan.nama || t.pelanggan.nama_pelanggan || 'Customer';
@@ -2093,14 +2311,14 @@
                   var stLaundry = (t.status_laundry || 'Diterima').toUpperCase();
                   if (stLaundry === 'SIAP DIAMBIL') stLaundry = 'SIAPAMBIL';
 
-                  return '<div onclick="openModalDetailOrderById(' + t.id + ')" class="py-2.5 flex justify-between items-start text-xs cursor-pointer active:scale-[0.99] transition">' +
-                    '<div class="space-y-0.5">' +
-                      '<!-- NAMA PELANGGAN SEBAGAI BARIS UTAMA (POIN 1) -->' +
-                      '<p class="font-extrabold text-slate-800 text-xs">' + nmPel + ' <span class="text-[10px] text-slate-400 font-normal">(' + notaCode + ')</span></p>' +
-                      '<!-- TEKS BAWAH DIUBAH MENJADI HP (POIN 1) -->' +
-                      '<p class="text-slate-500 font-medium text-[11px]">HP : ' + hpPel + '</p>' +
+                  return '<div onclick="openModalDetailOrderById(' + t.id + ')" class="py-3 flex justify-between items-center text-xs cursor-pointer active:scale-[0.99] transition px-1">' +
+                    '<!-- TEKS KIRI DIBUAT PAS & TIDAK KEPOTONG (POIN 1) -->' +
+                    '<div class="space-y-0.5 text-left pr-2 overflow-hidden">' +
+                      '<p class="font-extrabold text-slate-900 text-xs truncate">' + nmPel + ' <span class="text-[10px] text-slate-400 font-normal">(' + notaCode + ')</span></p>' +
+                      '<p class="text-slate-500 font-medium text-[11px] truncate">P : ' + hpPel + '</p>' +
                     '</div>' +
-                    '<div class="text-right space-y-0.5">' +
+                    '<!-- TEKS KANAN DIBUAT CENTER-RIGHT SAFE MARGIN (POIN 1) -->' +
+                    '<div class="text-right space-y-0.5 shrink-0 pl-2">' +
                       '<p class="font-extrabold ' + (stBayar === 'Lunas' ? 'text-emerald-600' : 'text-rose-600') + '">' + stBayar + '</p>' +
                       '<p class="text-slate-600 font-medium text-[11px]">Status : ' + stLaundry + '</p>' +
                     '</div>' +
@@ -2112,19 +2330,19 @@
       }
 
       container.innerHTML = 
-        '<div class="space-y-3 py-2">' +
+        '<div class="space-y-3 py-2 px-1">' +
           '<div class="text-center border-b pb-3 border-slate-100">' +
             '<h3 class="font-extrabold text-slate-900 text-base">' + headerTitle + '</h3>' +
             '<div class="w-10 h-0.5 bg-rose-500 mx-auto mt-1 rounded-full"></div>' +
           '</div>' +
 
-          '<p class="text-[10px] text-slate-400 leading-relaxed text-center px-2">' + headerDesc + '</p>' +
+          '<p class="text-[10px] text-slate-400 leading-relaxed text-center px-4">' + headerDesc + '</p>' +
 
-          '<div class="pt-2">' +
-            '<h2 class="text-emerald-600 font-black text-base">' + filtered.length + ' <span class="text-slate-800 font-bold text-sm">Transaksi</span></h2>' +
+          '<div class="pt-2 text-center">' +
+            '<h2 class="text-emerald-600 font-black text-base inline-block">' + filtered.length + ' <span class="text-slate-800 font-bold text-sm">Transaksi</span></h2>' +
           '</div>' +
 
-          '<div class="-mx-4">' + groupsHtml + '</div>' +
+          '<div class="-mx-2">' + groupsHtml + '</div>' +
         '</div>';
     }
 
@@ -2139,6 +2357,8 @@
             loadDataHome();
             if (currentActiveTab === 'order') filterOrderTab(currentOrderTab);
             if (currentActiveTab === 'report') loadReport();
+            // Optional: kasih toast kalo ada update realtime
+            // showToast("Ada pembaruan data transaksi otomatis.", "info");
           })
           .subscribe();
       }
