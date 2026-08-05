@@ -440,7 +440,7 @@
           <p class="text-[9px] text-slate-400 text-center italic">Geser ke kanan/kiri untuk melihat 24 jam lengkap 👉</p>
         </div>
 
-        <!-- TARGET OMSET BULANAN TRACKER (MASALAH #4 SOLVED) -->
+        <!-- TARGET OMSET BULANAN TRACKER -->
         <div class="p-4 bg-emerald-50/80 border border-emerald-200/80 rounded-3xl space-y-2.5 shadow-sm">
           <div class="flex justify-between items-center">
             <div>
@@ -462,7 +462,7 @@
           </div>
         </div>
 
-        <!-- PENGATURAN MANAGEMENT BERBENTUK ACCORDION / DROPDOWN (MASALAH #5 SOLVED) -->
+        <!-- PENGATURAN MANAGEMENT BERBENTUK ACCORDION / DROPDOWN -->
         <div class="space-y-3 pt-1">
           <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">Pengaturan Management Toko</p>
 
@@ -959,7 +959,7 @@
     </div>
   </nav>
 
-  <!-- JAVASCRIPT LOGIC REVISED FIX ALL 5 ISSUES -->
+  <!-- JAVASCRIPT LOGIC FULL REVISED & FIXED -->
   <script>
     const SUPABASE_URL = "https://qcpxitlltkkxtdctertz.supabase.co"; 
     const SUPABASE_KEY = "sb_publishable_CeC_XB7zVoD26xBHmsKHKw_VxqWhPAG"; 
@@ -1010,7 +1010,7 @@
       }
     } catch(e) {}
 
-    // FUNGSI ACCORDION DROPDOWN (SOLUSI MASALAH #5)
+    // FUNGSI ACCORDION DROPDOWN
     function toggleAccordion(accId) {
       const content = document.getElementById(accId);
       const arrow = document.getElementById('arrow-' + accId);
@@ -1077,7 +1077,7 @@
           }]).select().single();
 
           if(resToko.data) {
-            await supabaseClient.from('profiles').insert([{ id: data.user.id, toko_id: resToko.data.id, role: 'owner', nama_user: 'Owner' }]);
+            await supabaseClient.from('profiles').upsert([{ id: data.user.id, toko_id: resToko.data.id, role: 'owner', nama_user: 'Owner' }]);
           }
           showToast("Pendaftaran Toko Berhasil! Otomatis masuk...", "success");
           setTimeout(() => checkUserSession(), 1000);
@@ -1136,16 +1136,18 @@
       }
     }
 
-    // UPDATE DYNAMIC ROLE PERMISSIONS ACCORDING TO OWNER & KASIR (SOLUSI MASALAH #2 & #3)
+    // UPDATE DYNAMIC ROLE PERMISSIONS ACCORDING TO OWNER & KASIR
     function applyUserPermissionsUI() {
       if (!currentProfile) return;
 
       var role = currentProfile.role;
       var perms = getTokoPermissions();
 
-      var canReport = role === 'owner' || perms.is_manager || perms.akses_laporan;
-      var canLayanan = role === 'owner' || perms.is_manager || perms.akses_layanan;
-      var canPengeluaran = role === 'owner' || perms.is_manager || perms.akses_pengeluaran;
+      var isManagerOrOwner = (role === 'owner') || perms.is_manager;
+
+      var canReport = isManagerOrOwner || perms.akses_laporan;
+      var canLayanan = isManagerOrOwner || perms.akses_layanan;
+      var canPengeluaran = isManagerOrOwner || perms.akses_pengeluaran;
 
       const navReportBtn = document.getElementById('nav-report');
       const settingLayanan = document.getElementById('setting-owner-layanan');
@@ -1160,7 +1162,7 @@
 
         if (currentActiveTab === 'report' && !canReport) {
           switchTab('home');
-          showToast("Akses Laporan baru saja dimatikan oleh Owner!", "error");
+          showToast("Akses Laporan dikunci oleh Owner!", "error");
         }
 
         const topbarHeader = document.getElementById('topbar-header-click');
@@ -1192,7 +1194,11 @@
       if(session && session.user) {
         currentUser = session.user;
         
-        let resProf = await supabaseClient.from('profiles').select('*, toko(*)').eq('id', currentUser.id).maybeSingle();
+        let resProf = await supabaseClient
+          .from('profiles')
+          .select('*, toko:toko_id(*)')
+          .eq('id', currentUser.id)
+          .maybeSingle();
         
         if (!resProf.data) {
           await supabaseClient.auth.signOut();
@@ -1226,10 +1232,9 @@
           loadSettingsToForm();
         }
 
-        // AKTIFKAN SUPABASE REALTIME LISTENER TOKO UNTUK SYNCHRONIZE HAK AKSES KASIR INSTAN (SOLUSI MASALAH #3)
         if(currentToko) {
           supabaseClient
-            .channel('public:toko:' + currentToko.id)
+            .channel('realtime_toko_perm_' + currentToko.id)
             .on('postgres_changes', { 
               event: 'UPDATE', 
               schema: 'public', 
@@ -1240,7 +1245,7 @@
                 currentToko = payload.new;
                 applyUserPermissionsUI();
                 if(role === 'kasir') {
-                  showToast("Hak akses kasir diperbarui oleh Owner secara Realtime! ⚡", "info");
+                  showToast("Hak akses Anda diperbarui oleh Owner! ⚡", "info");
                 }
               }
             })
@@ -1255,68 +1260,65 @@
       }
     }
 
-    // SIMPAN & PENDAFTARAN KASIR TANPA MERUSAK SESI OWNER (SOLUSI MASALAH #1)
+    // SIMPAN & PENDAFTARAN KASIR (PENGGUNAAN UPDATE SETELAH TRIGGER DATABASE)
     function toggleFormTambahKasir() {
       document.getElementById('form-tambah-kasir').classList.toggle('hidden');
     }
 
     async function simpanKasirBaru() {
-  const email = document.getElementById('new_kasir_email').value;
-  const password = document.getElementById('new_kasir_password').value;
+      const email = document.getElementById('new_kasir_email').value;
+      const password = document.getElementById('new_kasir_password').value;
 
-  if(!email || !password) {
-    showToast("Isi email dan password kasir!", "error");
-    return;
-  }
-
-  if(!currentToko) {
-    showToast("Data toko tidak ditemukan!", "error");
-    return;
-  }
-
-  try {
-    // isolated client agar sesi Owner tidak tertimpa
-    const tempSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: { persistSession: false }
-    });
-
-    // 1. Buat akun kasir di Auth Supabase (Trigger database akan otomatis bikin row di tabel profiles)
-    const { data, error } = await tempSupabase.auth.signUp({ email, password });
-
-    if (error) {
-      showToast("Gagal mendaftarkan kasir: " + error.message, "error");
-      return;
-    }
-
-    if (data && data.user) {
-      // Beri jeda 500ms agar trigger database selesai membuat row di profiles
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // 2. Lakukan UPDATE saja pada profil kasir yang sudah dibuatkan oleh trigger
-      const { error: profError } = await supabaseClient
-        .from('profiles')
-        .update({
-          toko_id: currentToko.id,
-          role: 'kasir',
-          nama_user: 'Kasir ' + email.split('@')[0]
-        })
-        .eq('id', data.user.id);
-
-      if (profError) {
-        showToast("Gagal menyambungkan profil kasir: " + profError.message, "error");
+      if(!email || !password) {
+        showToast("Isi email dan password kasir!", "error");
         return;
       }
 
-      showToast("Akun Kasir " + email + " Berhasil Dibuat! 🎉", "success");
-      document.getElementById('new_kasir_email').value = '';
-      document.getElementById('new_kasir_password').value = '';
-      toggleFormTambahKasir();
-      loadDaftarKasirList();
+      if(!currentToko) {
+        showToast("Data toko tidak ditemukan!", "error");
+        return;
+      }
+
+      try {
+        const tempSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+          auth: { persistSession: false }
+        });
+
+        const { data, error } = await tempSupabase.auth.signUp({ email, password });
+
+        if (error) {
+          showToast("Gagal mendaftarkan kasir: " + error.message, "error");
+          return;
+        }
+
+        if (data && data.user) {
+          // Beri jeda 500ms agar trigger database selesai membuat row profil kasir
+          await new Promise(resolve => setTimeout(resolve, 500));
+
+          const { error: profError } = await supabaseClient
+            .from('profiles')
+            .update({
+              toko_id: currentToko.id,
+              role: 'kasir',
+              nama_user: 'Kasir ' + email.split('@')[0]
+            })
+            .eq('id', data.user.id);
+
+          if (profError) {
+            showToast("Gagal menyambungkan profil kasir: " + profError.message, "error");
+            return;
+          }
+
+          showToast("Akun Kasir " + email + " Berhasil Dibuat! 🎉", "success");
+          document.getElementById('new_kasir_email').value = '';
+          document.getElementById('new_kasir_password').value = '';
+          toggleFormTambahKasir();
+          loadDaftarKasirList();
+        }
+      } catch (err) {
+        showToast("Terjadi kesalahan: " + err.message, "error");
+      }
     }
-  } catch (err) {
-    showToast("Terjadi kesalahan: " + err.message, "error");
-  }
-}
 
     async function loadDaftarKasirList() {
       if (!currentToko) return;
@@ -1797,7 +1799,7 @@
       var formattedHp = hp.replace(/[^0-9]/g, '');
       if(formattedHp.startsWith('0')) formattedHp = '62' + formattedHp.substring(1);
 
-      var template = (currentToko && currentToko.wa_template) ? currentToko.wa_template : "Halo Kak {nama_pelanggan}, cucian Anda Nota #{id_nota} telah Selesai & Siap Diambil. Total Tagihan: Rp {total_harga}. Terima kasih!";
+      var template = (currentToko && currentToko.wa_template) ? currentToko.wa_template : "Halo Kak {nama_pelanggan}, orderan Nota #{id_nota} sudah selesai! Total: Rp {total_harga}. Terima kasih!";
       
       var msg = template
         .replace('{nama_pelanggan}', pelName)
@@ -1981,7 +1983,7 @@
       }]).select().single();
 
       if(resHeader.error || !resHeader.data) {
-        showToast("Gagal menyimpan transaksi utama! Error: " + (resHeader.error?.message || 'Unknown'), "error");
+        showToast("Gagal menyimpan transaksi utama!", "error");
         return;
       }
 
@@ -2003,7 +2005,7 @@
         closeModalPOS();
         loadDataHome();
       } else { 
-        showToast("Transaksi tersimpan sebagian. Error pada item layanan.", "error");
+        showToast("Transaksi tersimpan sebagian.", "error");
       }
     }
 
@@ -2722,13 +2724,13 @@
 
       if (!error) {
         currentToko.permissions = perms;
-        showToast("Izin akses kasir diperbarui! ⚙️", "success");
+        showToast("Izin akses kasir berhasil diperbarui! ⚙️", "success");
       } else {
-        showToast("Gagal memperbarui izin akses.", "error");
+        showToast("Gagal memperbarui izin akses: " + error.message, "error");
       }
     }
 
-    // PENYIMPANAN TARGET OMSET BULANAN (SOLUSI MASALAH #4)
+    // PENYIMPANAN TARGET OMSET BULANAN
     function updateTargetProgressBar(currentOmsetBulanIni) {
       var targetVal = (currentToko && currentToko.target_omset) ? parseFloat(currentToko.target_omset) : 15000000;
       var percent = Math.min(100, Math.round((currentOmsetBulanIni / targetVal) * 100));
