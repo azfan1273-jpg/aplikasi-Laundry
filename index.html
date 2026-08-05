@@ -1083,12 +1083,12 @@
         }
 
         if (data && data.user) {
-          const { error: profError } = await supabaseClient.from('profiles').upsert([{
-            id: data.user.id,
+          // Profil sudah otomatis dibuat oleh Trigger, kita tinggal mengisi toko_id miliknya
+          const { error: profError } = await supabaseClient.from('profiles').update({
             toko_id: currentToko.id,
             role: 'kasir',
             nama_user: 'Kasir ' + email.split('@')[0]
-          }]);
+          }).eq('id', data.user.id);
 
           if (profError) {
             showToast("Gagal menyambungkan profil kasir: " + profError.message, "error");
