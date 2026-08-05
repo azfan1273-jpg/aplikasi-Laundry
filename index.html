@@ -92,6 +92,9 @@
     .toast-error { border-left: 4px solid #ef4444; }
     .toast-info { border-left: 4px solid #3b82f6; }
     .toast-icon { font-size: 18px; }
+
+    /* ROTASI ARROW DROPDOWN */
+    .rotate-180 { transform: rotate(180deg); }
   </style>
 </head>
 <body class="bg-slate-50 font-sans text-slate-800 select-none flex flex-col h-screen">
@@ -155,7 +158,7 @@
     </div>
   </div>
 
-  <!-- MODAL BUAT PASSWORD BARU (DARI LINK RESET EMAIL) -->
+  <!-- MODAL BUAT PASSWORD BARU -->
   <div id="modal-update-password" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[120] flex items-center justify-center p-4 hidden">
     <div class="bg-white w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl" onclick="event.stopPropagation()">
       <div class="text-center space-y-1">
@@ -199,7 +202,7 @@
     <!-- 1. PANEL HOME -->
     <section id="panel-home" class="page-section active space-y-2.5 flex flex-col h-full overflow-hidden">
       
-      <!-- 1. NEWS / MARQUEE -->
+      <!-- NEWS / MARQUEE -->
       <div class="bg-amber-500/10 border border-amber-500/30 px-3 py-2 rounded-xl flex items-center gap-2 text-xs text-amber-900 overflow-hidden shrink-0">
         <span class="text-sm shrink-0">📢</span>
         <marquee scrollamount="4" class="font-extrabold text-xs tracking-wide">
@@ -208,7 +211,7 @@
         <span class="text-[9px] bg-amber-500 text-white font-bold px-1.5 py-0.5 rounded shrink-0">NEW</span>
       </div>
 
-      <!-- 2. WRAPPER BUNGKUSAN JENDELA STATUS CUCIAN -->
+      <!-- WRAPPER RINGKASAN STATUS CUCIAN -->
       <div class="bg-white p-2.5 rounded-2xl border border-slate-200/80 shadow-sm space-y-2 shrink-0">
         <div class="flex justify-between items-center border-b pb-1.5 border-slate-100">
           <p class="text-[11px] font-black text-slate-700 tracking-wide uppercase flex items-center gap-1">
@@ -237,7 +240,7 @@
         </div>
       </div>
 
-      <!-- BUNGKUSAN LIST OMSET & PENGELUARAN HARI INI -->
+      <!-- KEUANGAN HARI INI -->
       <div class="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-sm space-y-2 shrink-0">
         <div class="flex justify-between items-center border-b pb-1.5 border-slate-100">
           <p class="text-[11px] font-black text-slate-700 tracking-wide uppercase flex items-center gap-1">
@@ -258,7 +261,7 @@
         </div>
       </div>
 
-      <!-- 3. JENDELA MASUK HARI INI -->
+      <!-- MASUK HARI INI -->
       <div class="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-sm space-y-2 flex-1 flex flex-col min-h-0 overflow-hidden">
         <div class="flex justify-between items-center border-b pb-1.5 border-slate-100 shrink-0">
           <h3 class="font-extrabold text-slate-900 text-xs">📌 Masuk Hari Ini</h3>
@@ -295,7 +298,7 @@
       </div>
     </section>
 
-    <!-- 3. PANEL REPORT (HANYA UNTUK OWNER) -->
+    <!-- 3. PANEL REPORT -->
     <section id="panel-report" class="page-section space-y-3 overflow-hidden">
       <div class="bg-white p-3.5 rounded-3xl border border-slate-200/80 shadow-sm space-y-3 flex flex-col h-full overflow-hidden">
         
@@ -419,7 +422,7 @@
         <button onclick="closeModalWithHistory('modal-jendela-akun')" class="w-8 h-8 bg-blue-700/60 rounded-full font-bold text-white text-xs flex items-center justify-center">✕</button>
       </div>
 
-      <div class="scroll-area p-4 space-y-5 flex-1 pr-1" style="min-height: 0;">
+      <div class="scroll-area p-4 space-y-4 flex-1 pr-1" style="min-height: 0;">
         
         <!-- DIAGRAM CANDLESTICK: TRAFFIC KEUANGAN PER JAM (24 JAM) -->
         <div class="p-4 bg-slate-50 border border-slate-200/80 rounded-3xl space-y-3 shadow-sm">
@@ -431,14 +434,13 @@
             <span class="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-lg">Realtime</span>
           </div>
 
-          <!-- BUNGKUSAN SCROLL HORIZONTAL AGAR 24 CANDLE RAPI & TIDAK NUMPUK -->
           <div class="pt-2 overflow-x-auto scroll-area">
             <canvas id="trafficPendapatanChart" width="750" height="150" class="block mx-auto"></canvas>
           </div>
           <p class="text-[9px] text-slate-400 text-center italic">Geser ke kanan/kiri untuk melihat 24 jam lengkap 👉</p>
         </div>
 
-        <!-- FITUR BARU 1: TARGET OMSET BULANAN TRACKER -->
+        <!-- TARGET OMSET BULANAN TRACKER (MASALAH #4 SOLVED) -->
         <div class="p-4 bg-emerald-50/80 border border-emerald-200/80 rounded-3xl space-y-2.5 shadow-sm">
           <div class="flex justify-between items-center">
             <div>
@@ -456,49 +458,55 @@
           </div>
           <div class="flex gap-2 pt-1">
             <input id="input_target_omset" type="number" placeholder="Set Target (Rp)" class="w-full p-2 bg-white border border-emerald-300 rounded-xl text-xs font-bold outline-none">
-            <button onclick="simpanTargetOmset()" class="bg-emerald-600 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-sm shrink-0">Simpan</button>
+            <button onclick="simpanTargetOmset()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-sm shrink-0 active:scale-95 transition">Simpan</button>
           </div>
         </div>
 
-        <!-- PENGATURAN MANAGEMENT -->
-        <div class="space-y-2.5 pt-1">
+        <!-- PENGATURAN MANAGEMENT BERBENTUK ACCORDION / DROPDOWN (MASALAH #5 SOLVED) -->
+        <div class="space-y-3 pt-1">
           <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">Pengaturan Management Toko</p>
-          
-          <!-- FORM BUAT KASIR BARU -->
-          <div class="p-3.5 bg-indigo-50/80 rounded-2xl border border-indigo-100 space-y-2.5">
-            <div class="flex justify-between items-center">
+
+          <!-- DROPDOWN 1: KELOLA KASIR -->
+          <div class="border border-slate-200 rounded-2xl bg-white overflow-hidden shadow-sm">
+            <button onclick="toggleAccordion('acc-kasir')" class="w-full p-3.5 bg-indigo-50/80 hover:bg-indigo-100/50 flex justify-between items-center transition text-left">
               <div>
-                <p class="font-extrabold text-indigo-900 text-xs">👥 Kelola Sub-Akun Kasir</p>
-                <p class="text-[10px] text-indigo-600 mt-0.5">Buat sub-akun login khusus pegawai kasir</p>
+                <p class="font-extrabold text-indigo-950 text-xs">👥 Kelola Sub-Akun Kasir</p>
+                <p class="text-[10px] text-indigo-600 mt-0.5">Daftar & buat sub-akun login khusus pegawai</p>
               </div>
-              <button onclick="toggleFormTambahKasir()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs shadow-sm">+ Buat Kasir</button>
-            </div>
+              <span id="arrow-acc-kasir" class="text-indigo-600 text-xs transition-transform duration-200">▼</span>
+            </button>
+            <div id="acc-kasir" class="hidden p-3.5 border-t border-indigo-100 space-y-3 bg-indigo-50/20">
+              <div class="flex justify-between items-center">
+                <span class="text-xs font-extrabold text-indigo-900">Daftar Kasir Aktif</span>
+                <button onclick="toggleFormTambahKasir()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1 rounded-xl text-[11px] shadow-sm">+ Buat Kasir</button>
+              </div>
 
-            <div id="form-tambah-kasir" class="space-y-2 pt-2 border-t border-indigo-200/60 hidden">
-              <p class="font-bold text-indigo-950 text-[11px]">Daftarkan Kasir Baru:</p>
-              <input id="new_kasir_email" type="email" placeholder="Email Kasir (misal: kasir1@lndr.com)" class="w-full p-2.5 bg-white border rounded-xl text-xs outline-none font-semibold">
-              <input id="new_kasir_password" type="password" placeholder="Password Kasir" class="w-full p-2.5 bg-white border rounded-xl text-xs outline-none font-semibold">
-              <button onclick="simpanKasirBaru()" class="w-full bg-indigo-600 text-white font-bold text-xs py-2 rounded-xl shadow-sm">Simpan Akun Kasir</button>
-            </div>
+              <div id="form-tambah-kasir" class="space-y-2 pt-2 border-t border-indigo-200/60 hidden">
+                <p class="font-bold text-indigo-950 text-[11px]">Daftarkan Kasir Baru:</p>
+                <input id="new_kasir_email" type="email" placeholder="Email Kasir (misal: kasir1@lndr.com)" class="w-full p-2.5 bg-white border rounded-xl text-xs outline-none font-semibold">
+                <input id="new_kasir_password" type="password" placeholder="Password Kasir" class="w-full p-2.5 bg-white border rounded-xl text-xs outline-none font-semibold">
+                <button onclick="simpanKasirBaru()" class="w-full bg-indigo-600 text-white font-bold text-xs py-2 rounded-xl shadow-sm">Simpan Akun Kasir</button>
+              </div>
 
-            <div id="list-kasir-container" class="space-y-1.5 pt-1"></div>
+              <div id="list-kasir-container" class="space-y-1.5 pt-1"></div>
+            </div>
           </div>
 
-          <!-- MENU PENGATURAN AKSES FITUR KASIR (MANAGER PERMISSIONS) -->
-          <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3">
-            <div class="flex justify-between items-center border-b pb-2 border-slate-200/60">
+          <!-- DROPDOWN 2: PENGATURAN AKSES & HAK KASIR -->
+          <div class="border border-slate-200 rounded-2xl bg-white overflow-hidden shadow-sm">
+            <button onclick="toggleAccordion('acc-akses')" class="w-full p-3.5 bg-slate-50 hover:bg-slate-100/70 flex justify-between items-center transition text-left">
               <div>
                 <p class="font-extrabold text-slate-800 text-xs">⚙️ Pengaturan Akses & Hak Kasir</p>
-                <p class="text-[10px] text-slate-400 mt-0.5">Atur izin fitur yang boleh diakses oleh Kasir / Manager</p>
+                <p class="text-[10px] text-slate-400 mt-0.5">Atur izin fitur kasir secara realtime</p>
               </div>
-            </div>
-
-            <div class="space-y-2.5 text-xs pt-1">
-              <!-- PERMISSION 1: MANAGER FULL ACCESS -->
+              <span id="arrow-acc-akses" class="text-slate-500 text-xs transition-transform duration-200">▼</span>
+            </button>
+            <div id="acc-akses" class="hidden p-3.5 border-t border-slate-200/60 space-y-2.5 bg-white">
+              
               <div class="flex items-center justify-between p-2 bg-amber-50/80 rounded-xl border border-amber-200/60">
                 <div>
                   <p class="font-black text-amber-950 text-xs">👑 Jadikan Kasir sebagai Manager</p>
-                  <p class="text-[9px] text-amber-700">Memberikan akses penuh ke seluruh fitur aplikasi</p>
+                  <p class="text-[9px] text-amber-700">Akses penuh ke seluruh fitur aplikasi</p>
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
                   <input type="checkbox" id="perm_is_manager" onchange="togglePermission('is_manager')" class="sr-only peer">
@@ -506,8 +514,7 @@
                 </label>
               </div>
 
-              <!-- PERMISSION 2: LAPORAN & REPORT -->
-              <div class="flex items-center justify-between p-2 bg-white rounded-xl border border-slate-200">
+              <div class="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200">
                 <div>
                   <p class="font-extrabold text-slate-800 text-xs">📊 Akses Menu Laporan & Report</p>
                   <p class="text-[9px] text-slate-400">Kasir dapat melihat rekap omset & keuangan</p>
@@ -518,11 +525,10 @@
                 </label>
               </div>
 
-              <!-- PERMISSION 3: KELOLA LAYANAN -->
-              <div class="flex items-center justify-between p-2 bg-white rounded-xl border border-slate-200">
+              <div class="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200">
                 <div>
                   <p class="font-extrabold text-slate-800 text-xs">🧺 Akses Kelola Layanan & Harga</p>
-                  <p class="text-[9px] text-slate-400">Kasir dapat menambah/menghapus paket laundry</p>
+                  <p class="text-[9px] text-slate-400">Kasir dapat menambah/menghapus paket</p>
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
                   <input type="checkbox" id="perm_akses_layanan" onchange="togglePermission('akses_layanan')" class="sr-only peer">
@@ -530,11 +536,10 @@
                 </label>
               </div>
 
-              <!-- PERMISSION 4: TAMBAH PENGELUARAN -->
-              <div class="flex items-center justify-between p-2 bg-white rounded-xl border border-slate-200">
+              <div class="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200">
                 <div>
                   <p class="font-extrabold text-slate-800 text-xs">💸 Akses Catat Pengeluaran Toko</p>
-                  <p class="text-[9px] text-slate-400">Kasir dapat mencatat biaya operasional/sabun</p>
+                  <p class="text-[9px] text-slate-400">Kasir dapat mencatat biaya operasional</p>
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
                   <input type="checkbox" id="perm_akses_pengeluaran" onchange="togglePermission('akses_pengeluaran')" class="sr-only peer">
@@ -542,81 +547,75 @@
                 </label>
               </div>
 
-              <!-- PERMISSION 5: EDIT & BATALKAN ORDER -->
-              <div class="flex items-center justify-between p-2 bg-white rounded-xl border border-slate-200">
+              <div class="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200">
                 <div>
-                  <p class="font-extrabold text-slate-800 text-xs">❌ Akses Edit / Batalkan Orderan</p>
-                  <p class="text-[9px] text-slate-400">Kasir dapat membatalkan transaksi atau mengedit order</p>
+                  <p class="font-extrabold text-slate-800 text-xs">❌ Akses Edit / Batalkan Order</p>
+                  <p class="text-[9px] text-slate-400">Kasir dapat membatalkan atau mengedit order</p>
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
                   <input type="checkbox" id="perm_akses_edit_order" onchange="togglePermission('akses_edit_order')" class="sr-only peer">
                   <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
                 </label>
               </div>
+
             </div>
           </div>
 
-          <!-- FITUR BARU 2: PENGATURAN STRUK & PRINTER BLUETOOTH -->
-          <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2.5">
-            <p class="font-extrabold text-slate-800 text-xs">🖨️ Pengaturan Struk & Printer Thermal</p>
-            <div class="space-y-2 text-xs">
+          <!-- DROPDOWN 3: STRUK & PRINTER -->
+          <div class="border border-slate-200 rounded-2xl bg-white overflow-hidden shadow-sm">
+            <button onclick="toggleAccordion('acc-struk')" class="w-full p-3.5 bg-slate-50 hover:bg-slate-100/70 flex justify-between items-center transition text-left">
+              <div>
+                <p class="font-extrabold text-slate-800 text-xs">🖨️ Pengaturan Struk & Printer Thermal</p>
+                <p class="text-[10px] text-slate-400 mt-0.5">Ukuran kertas & catatan footer nota</p>
+              </div>
+              <span id="arrow-acc-struk" class="text-slate-500 text-xs transition-transform duration-200">▼</span>
+            </button>
+            <div id="acc-struk" class="hidden p-3.5 border-t border-slate-200/60 space-y-2 bg-white">
               <div>
                 <label class="font-bold text-slate-600 text-[10px]">Ukuran Kertas Thermal</label>
-                <select id="setting_paper_size" class="w-full p-2 border border-slate-200 rounded-xl bg-white mt-0.5 font-bold">
+                <select id="setting_paper_size" class="w-full p-2 border border-slate-200 rounded-xl bg-slate-50 mt-0.5 font-bold text-xs">
                   <option value="58mm">58 mm (Printer Kasir Mini)</option>
                   <option value="80mm">80 mm (Printer Desktop)</option>
                 </select>
               </div>
               <div>
                 <label class="font-bold text-slate-600 text-[10px]">Catatan Footer Struk / Nota</label>
-                <textarea id="setting_struk_footer" rows="2" placeholder="Contoh: Barang tidak diambil > 30 hari di luar tanggung jawab toko." class="w-full p-2 border border-slate-200 rounded-xl bg-white mt-0.5 font-semibold text-xs outline-none"></textarea>
+                <textarea id="setting_struk_footer" rows="2" placeholder="Contoh: Barang tidak diambil > 30 hari di luar tanggung jawab toko." class="w-full p-2 border border-slate-200 rounded-xl bg-slate-50 mt-0.5 font-semibold text-xs outline-none"></textarea>
               </div>
-              <button onclick="simpanPengaturanStruk()" class="w-full bg-blue-600 text-white font-bold py-2 rounded-xl shadow-sm text-xs">Simpan Pengaturan Struk</button>
+              <button onclick="simpanPengaturanStruk()" class="w-full bg-blue-600 text-white font-bold py-2 rounded-xl shadow-sm text-xs mt-1">Simpan Pengaturan Struk</button>
             </div>
           </div>
 
-          <!-- FITUR BARU 3: TEMPLATE PESAN WHATSAPP OTOMATIS -->
-          <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2.5">
-            <p class="font-extrabold text-slate-800 text-xs">📲 Template Pesan WhatsApp Notifikasi</p>
-            <div class="space-y-2 text-xs">
+          <!-- DROPDOWN 4: TEMPLATE WHATSAPP -->
+          <div class="border border-slate-200 rounded-2xl bg-white overflow-hidden shadow-sm">
+            <button onclick="toggleAccordion('acc-wa')" class="w-full p-3.5 bg-slate-50 hover:bg-slate-100/70 flex justify-between items-center transition text-left">
+              <div>
+                <p class="font-extrabold text-slate-800 text-xs">📲 Template Pesan WhatsApp Notifikasi</p>
+                <p class="text-[10px] text-slate-400 mt-0.5">Atur format pesan saat kirim notifikasi selesai</p>
+              </div>
+              <span id="arrow-acc-wa" class="text-slate-500 text-xs transition-transform duration-200">▼</span>
+            </button>
+            <div id="acc-wa" class="hidden p-3.5 border-t border-slate-200/60 space-y-2 bg-white">
               <p class="text-[9px] text-slate-400">Variabel: <b>{nama_pelanggan}</b>, <b>{id_nota}</b>, <b>{total_harga}</b></p>
-              <textarea id="setting_wa_template" rows="3" placeholder="Halo Kak {nama_pelanggan}, orderan Nota #{id_nota} sudah selesai! Total: Rp {total_harga}." class="w-full p-2 border border-slate-200 rounded-xl bg-white font-semibold text-xs outline-none"></textarea>
+              <textarea id="setting_wa_template" rows="3" placeholder="Halo Kak {nama_pelanggan}, orderan Nota #{id_nota} sudah selesai! Total: Rp {total_harga}." class="w-full p-2 border border-slate-200 rounded-xl bg-slate-50 font-semibold text-xs outline-none"></textarea>
               <button onclick="simpanTemplateWA()" class="w-full bg-emerald-600 text-white font-bold py-2 rounded-xl shadow-sm text-xs">Simpan Template WA</button>
             </div>
           </div>
 
-          <!-- FITUR BARU 4: EDIT PROFIL TOKO & UBAH PASSWORD OWNER -->
-          <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2.5">
-            <p class="font-extrabold text-slate-800 text-xs">🔑 Ubah Profil Toko & Password Owner</p>
-            <div class="space-y-2 text-xs">
-              <input id="edit_nama_toko" type="text" placeholder="Nama Toko Laundry" class="w-full p-2 border border-slate-200 rounded-xl bg-white font-semibold outline-none">
-              <input id="edit_owner_pass" type="password" placeholder="Password Baru (Kosongkan jika tidak diubah)" class="w-full p-2 border border-slate-200 rounded-xl bg-white font-semibold outline-none">
+          <!-- DROPDOWN 5: EDIT PROFIL & PASSWORD -->
+          <div class="border border-slate-200 rounded-2xl bg-white overflow-hidden shadow-sm">
+            <button onclick="toggleAccordion('acc-profil')" class="w-full p-3.5 bg-slate-50 hover:bg-slate-100/70 flex justify-between items-center transition text-left">
+              <div>
+                <p class="font-extrabold text-slate-800 text-xs">🔑 Ubah Profil Toko & Password Owner</p>
+                <p class="text-[10px] text-slate-400 mt-0.5">Ubah nama laundry & kata sandi akun</p>
+              </div>
+              <span id="arrow-acc-profil" class="text-slate-500 text-xs transition-transform duration-200">▼</span>
+            </button>
+            <div id="acc-profil" class="hidden p-3.5 border-t border-slate-200/60 space-y-2 bg-white">
+              <input id="edit_nama_toko" type="text" placeholder="Nama Toko Laundry" class="w-full p-2 border border-slate-200 rounded-xl bg-slate-50 font-semibold outline-none text-xs">
+              <input id="edit_owner_pass" type="password" placeholder="Password Baru (Kosongkan jika tidak diubah)" class="w-full p-2 border border-slate-200 rounded-xl bg-slate-50 font-semibold outline-none text-xs">
               <button onclick="simpanProfilDanPassOwner()" class="w-full bg-indigo-600 text-white font-bold py-2 rounded-xl shadow-sm text-xs">Simpan Perubahan</button>
             </div>
-          </div>
-
-          <!-- MENU 2: KELOLA LAYANAN -->
-          <div onclick="closeModalWithHistory('modal-jendela-akun'); openModalKelolaLayanan();" class="p-3.5 bg-slate-50 hover:bg-blue-50/50 rounded-2xl border border-slate-200/80 flex items-center justify-between cursor-pointer active:scale-[0.98] transition">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center font-bold text-base shadow-sm">🧺</div>
-              <div>
-                <p class="font-extrabold text-slate-800 text-xs">Kelola Daftar Layanan</p>
-                <p class="text-[10px] text-slate-400 mt-0.5">Tambah paket, estimasi & atur harga laundry</p>
-              </div>
-            </div>
-            <span class="text-slate-400 font-bold text-xs">➔</span>
-          </div>
-
-          <!-- MENU 3: LOGOUT -->
-          <div onclick="closeModalWithHistory('modal-jendela-akun'); handleLogout();" class="p-3.5 bg-rose-50 hover:bg-rose-100/70 rounded-2xl border border-rose-100 flex items-center justify-between cursor-pointer active:scale-[0.98] transition">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center font-bold text-base shadow-sm">🚪</div>
-              <div>
-                <p class="font-extrabold text-rose-700 text-xs">Keluar dari Akun</p>
-                <p class="text-[10px] text-rose-400 mt-0.5">Logout session dari HP / browser ini</p>
-              </div>
-            </div>
-            <span class="text-rose-400 font-bold text-xs">➔</span>
           </div>
 
         </div>
@@ -809,7 +808,6 @@
           <button id="btn-lanjut-proses" onclick="actionLanjutProses()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-3.5 rounded-2xl shadow-md text-xs">
             ⚡ Lanjut Proses Order
           </button>
-          <!-- FITUR KIRIM WA SELESAI -->
           <button onclick="kirimNotifikasiWA()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3 rounded-2xl shadow-md text-xs">
             📲 Kirim WA Notifikasi Selesai
           </button>
@@ -961,7 +959,7 @@
     </div>
   </nav>
 
-  <!-- JAVASCRIPT SYSTEM SUPABASE AUTH & MULTI-TENANT SUB-AKUN -->
+  <!-- JAVASCRIPT LOGIC REVISED FIX ALL 5 ISSUES -->
   <script>
     const SUPABASE_URL = "https://qcpxitlltkkxtdctertz.supabase.co"; 
     const SUPABASE_KEY = "sb_publishable_CeC_XB7zVoD26xBHmsKHKw_VxqWhPAG"; 
@@ -1012,6 +1010,20 @@
       }
     } catch(e) {}
 
+    // FUNGSI ACCORDION DROPDOWN (SOLUSI MASALAH #5)
+    function toggleAccordion(accId) {
+      const content = document.getElementById(accId);
+      const arrow = document.getElementById('arrow-' + accId);
+      
+      if(content.classList.contains('hidden')) {
+        content.classList.remove('hidden');
+        if(arrow) arrow.innerText = '▲';
+      } else {
+        content.classList.add('hidden');
+        if(arrow) arrow.innerText = '▼';
+      }
+    }
+
     // LOGIKA AUTENTIKASI SUPABASE (LOGIN / REGISTER OWNER & KASIR)
     function toggleAuthMode() {
       isRegisterMode = !isRegisterMode;
@@ -1052,7 +1064,18 @@
         if(error) {
           showToast("Gagal Daftar: " + error.message, "error");
         } else if (data && data.user) {
-          const resToko = await supabaseClient.from('toko').insert([{ owner_id: data.user.id, nama_toko: namaToko }]).select().single();
+          const resToko = await supabaseClient.from('toko').insert([{ 
+            owner_id: data.user.id, 
+            nama_toko: namaToko,
+            permissions: {
+              akses_laporan: false,
+              akses_layanan: false,
+              akses_pengeluaran: false,
+              akses_edit_order: false,
+              is_manager: false
+            }
+          }]).select().single();
+
           if(resToko.data) {
             await supabaseClient.from('profiles').insert([{ id: data.user.id, toko_id: resToko.data.id, role: 'owner', nama_user: 'Owner' }]);
           }
@@ -1070,7 +1093,6 @@
       }
     }
 
-    // FITUR LUPA PASSWORD & UPDATE PASSWORD
     function openModalLupaPassword() {
       document.getElementById('forgot_email_input').value = document.getElementById('auth_email').value || '';
       openModalWithHistory('modal-lupa-password');
@@ -1078,19 +1100,13 @@
 
     async function handleKirimResetPassword() {
       const email = document.getElementById('forgot_email_input').value;
-      if (!email) {
-        showToast("Masukkan email Anda terlebih dahulu!", "error");
-        return;
-      }
+      if (!email) { showToast("Masukkan email Anda terlebih dahulu!", "error"); return; }
 
       const redirectUrl = window.location.origin + window.location.pathname;
-      const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-        redirectTo: redirectUrl
-      });
+      const { error } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo: redirectUrl });
 
-      if (error) {
-        showToast("Gagal mengirim email reset: " + error.message, "error");
-      } else {
+      if (error) showToast("Gagal mengirim email reset: " + error.message, "error");
+      else {
         showToast("Link reset password berhasil dikirim ke email!", "success");
         closeModalWithHistory('modal-lupa-password');
       }
@@ -1098,16 +1114,12 @@
 
     async function handleSaveNewPassword() {
       const newPassword = document.getElementById('new_reset_password').value;
-      if (!newPassword || newPassword.length < 6) {
-        showToast("Password minimal 6 karakter!", "error");
-        return;
-      }
+      if (!newPassword || newPassword.length < 6) { showToast("Password minimal 6 karakter!", "error"); return; }
 
       const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
 
-      if (error) {
-        showToast("Gagal memperbarui password: " + error.message, "error");
-      } else {
+      if (error) showToast("Gagal memperbarui password: " + error.message, "error");
+      else {
         showToast("Password berhasil diubah! Silahkan login kembali.", "success");
         document.getElementById('modal-update-password').classList.add('hidden');
         await supabaseClient.auth.signOut();
@@ -1121,6 +1133,50 @@
         currentUser = null; currentProfile = null; currentToko = null;
         document.getElementById('auth-screen').classList.remove('hidden');
         showToast("Berhasil logout.", "info");
+      }
+    }
+
+    // UPDATE DYNAMIC ROLE PERMISSIONS ACCORDING TO OWNER & KASIR (SOLUSI MASALAH #2 & #3)
+    function applyUserPermissionsUI() {
+      if (!currentProfile) return;
+
+      var role = currentProfile.role;
+      var perms = getTokoPermissions();
+
+      var canReport = role === 'owner' || perms.is_manager || perms.akses_laporan;
+      var canLayanan = role === 'owner' || perms.is_manager || perms.akses_layanan;
+      var canPengeluaran = role === 'owner' || perms.is_manager || perms.akses_pengeluaran;
+
+      const navReportBtn = document.getElementById('nav-report');
+      const settingLayanan = document.getElementById('setting-owner-layanan');
+      const settingKasir = document.getElementById('setting-owner-kasir');
+      const fabPengeluaran = document.getElementById('fab-btn-pengeluaran');
+
+      if (role === 'kasir') {
+        if (navReportBtn) navReportBtn.style.display = canReport ? 'flex' : 'none';
+        if (settingLayanan) settingLayanan.style.display = canLayanan ? 'flex' : 'none';
+        if (settingKasir) settingKasir.style.display = 'none';
+        if (fabPengeluaran) fabPengeluaran.style.display = canPengeluaran ? 'flex' : 'none';
+
+        if (currentActiveTab === 'report' && !canReport) {
+          switchTab('home');
+          showToast("Akses Laporan baru saja dimatikan oleh Owner!", "error");
+        }
+
+        const topbarHeader = document.getElementById('topbar-header-click');
+        if (topbarHeader) {
+          topbarHeader.onclick = function() { showToast("Akses Analitik dikunci khusus Owner!", "error"); };
+        }
+      } else {
+        if (navReportBtn) navReportBtn.style.display = 'flex';
+        if (settingLayanan) settingLayanan.style.display = 'flex';
+        if (settingKasir) settingKasir.style.display = 'flex';
+        if (fabPengeluaran) fabPengeluaran.style.display = 'flex';
+
+        const topbarHeader = document.getElementById('topbar-header-click');
+        if (topbarHeader) {
+          topbarHeader.onclick = function() { openModalJendelaAkunWithChart(); };
+        }
       }
     }
 
@@ -1162,43 +1218,33 @@
         document.getElementById('topbar-role-badge').innerText = badgeText;
         document.getElementById('setting-role-badge').innerText = badgeText;
 
-        const navReportBtn = document.getElementById('nav-report');
-        const settingLayanan = document.getElementById('setting-owner-layanan');
-        const settingKasir = document.getElementById('setting-owner-kasir');
-        const fabPengeluaran = document.getElementById('fab-btn-pengeluaran');
+        applyUserPermissionsUI();
 
-        var perms = getTokoPermissions();
-        var canReport = role === 'owner' || perms.is_manager || perms.akses_laporan;
-        var canLayanan = role === 'owner' || perms.is_manager || perms.akses_layanan;
-        var canPengeluaran = role === 'owner' || perms.is_manager || perms.akses_pengeluaran;
-
-        if (role === 'kasir') {
-          if (navReportBtn) navReportBtn.style.display = canReport ? 'flex' : 'none';
-          if (settingLayanan) settingLayanan.style.display = canLayanan ? 'flex' : 'none';
-          if (settingKasir) settingKasir.style.display = 'none';
-          if (fabPengeluaran) fabPengeluaran.style.display = canPengeluaran ? 'flex' : 'none';
-          
-          const topbarHeader = document.getElementById('topbar-header-click');
-          if (topbarHeader) {
-            topbarHeader.onclick = function() {
-              showToast("Akses Analitik dikunci khusus Owner!", "error");
-            };
-          }
-        } else {
-          if (navReportBtn) navReportBtn.style.display = 'flex';
-          if (settingLayanan) settingLayanan.style.display = 'flex';
-          if (settingKasir) settingKasir.style.display = 'flex';
-          if (fabPengeluaran) fabPengeluaran.style.display = 'flex';
-          
-          const topbarHeader = document.getElementById('topbar-header-click');
-          if (topbarHeader) {
-            topbarHeader.onclick = function() {
-              openModalJendelaAkunWithChart();
-            };
-          }
+        if (role === 'owner') {
           loadDaftarKasirList();
           loadPermissionSwitches();
           loadSettingsToForm();
+        }
+
+        // AKTIFKAN SUPABASE REALTIME LISTENER TOKO UNTUK SYNCHRONIZE HAK AKSES KASIR INSTAN (SOLUSI MASALAH #3)
+        if(currentToko) {
+          supabaseClient
+            .channel('public:toko:' + currentToko.id)
+            .on('postgres_changes', { 
+              event: 'UPDATE', 
+              schema: 'public', 
+              table: 'toko', 
+              filter: 'id=eq.' + currentToko.id 
+            }, payload => {
+              if(payload.new) {
+                currentToko = payload.new;
+                applyUserPermissionsUI();
+                if(role === 'kasir') {
+                  showToast("Hak akses kasir diperbarui oleh Owner secara Realtime! ⚡", "info");
+                }
+              }
+            })
+            .subscribe();
         }
 
         loadDataHome();
@@ -1209,7 +1255,7 @@
       }
     }
 
-    // MANAJEMEN AKUN KASIR (KHUSUS OWNER)
+    // SIMPAN & PENDAFTARAN KASIR TANPA MERUSAK SESI OWNER (SOLUSI MASALAH #1)
     function toggleFormTambahKasir() {
       document.getElementById('form-tambah-kasir').classList.toggle('hidden');
     }
@@ -1229,6 +1275,7 @@
       }
 
       try {
+        // MENGGUNAKAN INSTANCE ISOLATED AGAR SESI LOGIN OWNER TIDAK TERTIMPA KASIR
         const tempSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
           auth: { persistSession: false }
         });
@@ -1241,11 +1288,12 @@
         }
 
         if (data && data.user) {
-          const { error: profError } = await supabaseClient.from('profiles').update({
+          const { error: profError } = await supabaseClient.from('profiles').upsert({
+            id: data.user.id,
             toko_id: currentToko.id,
             role: 'kasir',
             nama_user: 'Kasir ' + email.split('@')[0]
-          }).eq('id', data.user.id);
+          });
 
           if (profError) {
             showToast("Gagal menyambungkan profil kasir: " + profError.message, "error");
@@ -1270,12 +1318,12 @@
       const data = res.data || [];
 
       if (!data.length) {
-        container.innerHTML = '<p class="text-[10px] text-slate-400 italic">Belum ada akun kasir terdaftar.</p>';
+        container.innerHTML = '<p class="text-[10px] text-slate-400 italic py-2">Belum ada akun kasir terdaftar.</p>';
       } else {
         container.innerHTML = data.map(k => 
-          '<div class="flex justify-between items-center p-2 bg-white rounded-xl border border-indigo-100 text-[11px]">' +
+          '<div class="flex justify-between items-center p-2.5 bg-white rounded-xl border border-indigo-100 text-[11px] shadow-sm">' +
             '<div><p class="font-extrabold text-slate-800">' + (k.nama_user || 'Kasir') + '</p><p class="text-[9px] text-slate-400">ID: ' + k.id.substring(0,8) + '</p></div>' +
-            '<span class="text-[8px] bg-indigo-100 text-indigo-700 font-bold px-1.5 py-0.5 rounded">Aktif</span>' +
+            '<span class="text-[8px] bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 rounded-full uppercase">Aktif</span>' +
           '</div>'
         ).join('');
       }
@@ -1729,7 +1777,6 @@
       }
     }
 
-    // FITUR NOTIFIKASI WA OTOMATIS
     function kirimNotifikasiWA() {
       if(!activeOrderDetail) return;
       var pelName = activeOrderDetail.pelanggan ? (activeOrderDetail.pelanggan.nama || activeOrderDetail.pelanggan.nama_pelanggan) : 'Pelanggan';
@@ -1898,8 +1945,8 @@
     }
 
     async function submitOrderFinal() {
-      if(!selectedPelanggan) { showToast("Pilih customer dulu bro!", "error"); return; }
-      if(cartLayanan.length === 0) { showToast("Tambahkan minimal 1 layanan dulu bro!", "error"); return; }
+      if(!selectedPelanggan) { showToast("Pilih customer dulu!", "error"); return; }
+      if(cartLayanan.length === 0) { showToast("Tambahkan minimal 1 layanan!", "error"); return; }
       if(!currentToko) return;
 
       const parfum = document.getElementById('pilih_parfum').value;
@@ -2382,7 +2429,7 @@
       var hp = pel.no_hp || '08-';
 
       var pelTxList = globalTxCache.filter(t => t.pelanggan_id === pelangganId);
-      var totalUang = 0, totalDiskon = 0, tagihanBelumLunas = 0, jumlahTrx = pelTxList.length, jumlahTrxBatal = 0, totalBeratKg = 0;
+      var totalUang = 0, tagihanBelumLunas = 0, jumlahTrx = pelTxList.length, jumlahTrxBatal = 0, totalBeratKg = 0;
       var trxPertama = '-', trxTerakhir = '-';
 
       if (pelTxList.length > 0) {
@@ -2510,7 +2557,7 @@
       container.innerHTML = '<div class="space-y-3 py-2 px-1"><div class="text-center border-b pb-3 border-slate-100"><h3 class="font-extrabold text-slate-900 text-base">' + title + '</h3></div><div class="space-y-2">' + filtered.map(t => '<div onclick="openModalDetailOrderById(' + t.id + ')" class="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-center text-xs"><div><p class="font-extrabold text-slate-900">' + (t.pelanggan.nama||'Customer') + '</p><p class="text-[10px] text-slate-400">' + formatDateIndo(t.created_at) + '</p></div><p class="font-black text-blue-600">Rp ' + (t.total_harga||0).toLocaleString() + '</p></div>').join('') + '</div></div>';
     }
 
-    // ==================== FUNGSI DIAGRAM TRAFFIC PENDAPATAN ====================
+    // DIAGRAM TRAFFIC PENDAPATAN
     function openModalJendelaAkunWithChart() {
       if (currentProfile && currentProfile.role === 'kasir') {
         showToast("Akses Analitik dikunci khusus Owner!", "error");
@@ -2615,7 +2662,7 @@
       });
     }
 
-    // ==================== PENGATURAN AKSES KASIR (PERMISSIONS) ====================
+    // PENGATURAN AKSES KASIR (PERMISSIONS)
     function getTokoPermissions() {
       if (currentToko && currentToko.permissions) {
         return currentToko.permissions;
@@ -2674,9 +2721,9 @@
       }
     }
 
-    // ==================== SCRIPT FUNGSI FITUR BARU ====================
+    // PENYIMPANAN TARGET OMSET BULANAN (SOLUSI MASALAH #4)
     function updateTargetProgressBar(currentOmsetBulanIni) {
-      var targetVal = (currentToko && currentToko.target_omset) ? currentToko.target_omset : 15000000;
+      var targetVal = (currentToko && currentToko.target_omset) ? parseFloat(currentToko.target_omset) : 15000000;
       var percent = Math.min(100, Math.round((currentOmsetBulanIni / targetVal) * 100));
       
       var badge = document.getElementById('target-percentage-badge');
@@ -2698,13 +2745,18 @@
       }
       if(!currentToko) return;
 
-      const { error } = await supabaseClient.from('toko').update({ target_omset: val }).eq('id', currentToko.id);
+      const { error } = await supabaseClient
+        .from('toko')
+        .update({ target_omset: val })
+        .eq('id', currentToko.id);
+
       if(!error) {
         currentToko.target_omset = val;
         showToast("Target omset bulanan diperbarui! 🎯", "success");
+        document.getElementById('input_target_omset').value = '';
         loadDataHome();
       } else {
-        showToast("Gagal menyimpan target omset.", "error");
+        showToast("Gagal menyimpan target omset: " + error.message, "error");
       }
     }
 
