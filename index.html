@@ -1261,55 +1261,62 @@
     }
 
     async function simpanKasirBaru() {
-      const email = document.getElementById('new_kasir_email').value;
-      const password = document.getElementById('new_kasir_password').value;
+  const email = document.getElementById('new_kasir_email').value;
+  const password = document.getElementById('new_kasir_password').value;
 
-      if(!email || !password) {
-        showToast("Isi email dan password kasir!", "error");
-        return;
-      }
+  if(!email || !password) {
+    showToast("Isi email dan password kasir!", "error");
+    return;
+  }
 
-      if(!currentToko) {
-        showToast("Data toko tidak ditemukan!", "error");
-        return;
-      }
+  if(!currentToko) {
+    showToast("Data toko tidak ditemukan!", "error");
+    return;
+  }
 
-      try {
-        // MENGGUNAKAN INSTANCE ISOLATED AGAR SESI LOGIN OWNER TIDAK TERTIMPA KASIR
-        const tempSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-          auth: { persistSession: false }
-        });
+  try {
+    // isolated client agar sesi Owner tidak tertimpa
+    const tempSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: { persistSession: false }
+    });
 
-        const { data, error } = await tempSupabase.auth.signUp({ email, password });
+    // 1. Buat akun kasir di Auth Supabase (Trigger database akan otomatis bikin row di tabel profiles)
+    const { data, error } = await tempSupabase.auth.signUp({ email, password });
 
-        if (error) {
-          showToast("Gagal mendaftarkan kasir: " + error.message, "error");
-          return;
-        }
-
-        if (data && data.user) {
-          const { error: profError } = await supabaseClient.from('profiles').upsert({
-            id: data.user.id,
-            toko_id: currentToko.id,
-            role: 'kasir',
-            nama_user: 'Kasir ' + email.split('@')[0]
-          });
-
-          if (profError) {
-            showToast("Gagal menyambungkan profil kasir: " + profError.message, "error");
-            return;
-          }
-
-          showToast("Akun Kasir " + email + " Berhasil Dibuat! 🎉", "success");
-          document.getElementById('new_kasir_email').value = '';
-          document.getElementById('new_kasir_password').value = '';
-          toggleFormTambahKasir();
-          loadDaftarKasirList();
-        }
-      } catch (err) {
-        showToast("Terjadi kesalahan: " + err.message, "error");
-      }
+    if (error) {
+      showToast("Gagal mendaftarkan kasir: " + error.message, "error");
+      return;
     }
+
+    if (data && data.user) {
+      // Beri jeda 500ms agar trigger database selesai membuat row di profiles
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // 2. Lakukan UPDATE saja pada profil kasir yang sudah dibuatkan oleh trigger
+      const { error: profError } = await supabaseClient
+        .from('profiles')
+        .update({
+          toko_id: currentToko.id,
+          role: 'kasir',
+          nama_user: 'Kasir ' + email.split('@')[0]
+        })
+        .eq('id', data.user.id);
+
+      if (profError) {
+        showToast("Gagal menyambungkan profil kasir: " + profError.message, "error");
+        return;
+      }
+
+      showToast("Akun Kasir " + email + " Berhasil Dibuat! 🎉", "success");
+      document.getElementById('new_kasir_email').value = '';
+      document.getElementById('new_kasir_password').value = '';
+      toggleFormTambahKasir();
+      loadDaftarKasirList();
+    }
+  } catch (err) {
+    showToast("Terjadi kesalahan: " + err.message, "error");
+  }
+}
 
     async function loadDaftarKasirList() {
       if (!currentToko) return;
