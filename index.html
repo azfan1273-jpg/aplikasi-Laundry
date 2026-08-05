@@ -421,19 +421,21 @@
 
       <div class="scroll-area p-4 space-y-5 flex-1 pr-1" style="min-height: 0;">
         
-        <!-- DIAGRAM GARIS: TRAFFIC PENDAPATAN HARI INI -->
+        <!-- DIAGRAM CANDLESTICK: TRAFFIC KEUANGAN PER JAM (24 JAM) -->
         <div class="p-4 bg-slate-50 border border-slate-200/80 rounded-3xl space-y-3 shadow-sm">
           <div class="flex justify-between items-center border-b pb-2 border-slate-200/60">
             <div>
-              <h4 class="font-black text-slate-800 text-xs uppercase tracking-wider">📈 Traffic Pendapatan (7 Hari)</h4>
-              <p class="text-[10px] text-slate-400 mt-0.5">Grafik pergerakan omset masuk minggu ini</p>
+              <h4 class="font-black text-slate-800 text-xs uppercase tracking-wider">📊 Traffic Keuangan 24 Jam</h4>
+              <p class="text-[10px] text-slate-400 mt-0.5">Pendapatan, Pengeluaran & Sisa Modal per Jam</p>
             </div>
             <span class="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-lg">Realtime</span>
           </div>
 
-          <div class="pt-2 flex justify-center items-center">
-            <canvas id="trafficPendapatanChart" width="300" height="140" class="w-full max-w-xs mx-auto"></canvas>
+          <!-- BUNGKUSAN SCROLL HORIZONTAL AGAR 24 CANDLE RAPI & TIDAK NUMPUK -->
+          <div class="pt-2 overflow-x-auto scroll-area">
+            <canvas id="trafficPendapatanChart" width="750" height="150" class="block mx-auto"></canvas>
           </div>
+          <p class="text-[9px] text-slate-400 text-center italic">Geser ke kanan/kiri untuk melihat 24 jam lengkap 👉</p>
         </div>
 
         <!-- PENGATURAN MANAGEMENT -->
@@ -2318,67 +2320,101 @@
       var canvas = document.getElementById('trafficPendapatanChart');
       if (!canvas) return;
       var ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, 300, 140);
+      
+      // Clear Canvas (Lebar 750px untuk 24 jam)
+      ctx.clearRect(0, 0, 750, 150);
 
-      var days = [];
-      var totals = [];
       var now = new Date();
+      var todayStr = now.toDateString();
+      var chartData = [];
 
-      for (var i = 6; i >= 0; i--) {
-        var d = new Date(now.getTime() - (i * 24 * 60 * 60 * 1000));
-        var dateStr = d.toDateString();
-        var dayLabel = d.toLocaleDateString('id-ID', { weekday: 'short' });
-        
-        var totalHariIni = globalTxCache.reduce((sum, t) => {
+      // 1. Ekstrak Data Per Jam (00:00 s/d 23:00) Hari Ini
+      for (var h = 0; h < 24; h++) {
+        // Hitung Pendapatan pada jam h
+        var pendapatan = globalTxCache.reduce((sum, t) => {
           var tgl = t.created_at ? new Date(t.created_at) : null;
-          if (tgl && tgl.toDateString() === dateStr && t.status_laundry !== 'Batal') {
+          if (tgl && tgl.toDateString() === todayStr && tgl.getHours() === h && t.status_laundry !== 'Batal') {
             return sum + (t.total_harga || 0);
           }
           return sum;
         }, 0);
 
-        days.push(dayLabel);
-        totals.push(totalHariIni);
+        // Hitung Pengeluaran pada jam h
+        var pengeluaran = globalPengeluaranCache.reduce((sum, p) => {
+          var tgl = p.created_at ? new Date(p.created_at) : null;
+          if (tgl && tgl.toDateString() === todayStr && tgl.getHours() === h) {
+            return sum + (p.nominal || 0);
+          }
+          return sum;
+        }, 0);
+
+        var sisaModal = pendapatan - pengeluaran;
+
+        chartData.push({
+          hourLabel: (h < 10 ? '0' + h : h) + ':00',
+          pendapatan: pendapatan,
+          pengeluaran: pengeluaran,
+          sisaModal: sisaModal
+        });
       }
 
-      var maxVal = Math.max(...totals, 100000);
+      // 2. Tentukan Skala Maksimum Sumbu Y
+      var maxVal = 50000; // Skala dasar minimal
+      chartData.forEach(d => {
+        var peak = Math.max(d.pendapatan, d.pengeluaran, Math.abs(d.sisaModal));
+        if (peak > maxVal) maxVal = peak;
+      });
 
-      // Sumbu & Grid
+      // 3. Gambar Sumbu X dan Y
+      var paddingLeft = 35;
+      var paddingBottom = 120;
+      var chartWidth = 730 - paddingLeft;
+      var heightMax = 95; // Ketinggian grafik maksimal
+
       ctx.strokeStyle = "#e2e8f0";
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(30, 20); ctx.lineTo(30, 110);
-      ctx.moveTo(30, 110); ctx.lineTo(290, 110);
+      ctx.moveTo(paddingLeft, 15); ctx.lineTo(paddingLeft, paddingBottom);
+      ctx.moveTo(paddingLeft, paddingBottom); ctx.lineTo(730, paddingBottom);
       ctx.stroke();
 
-      // Line Chart
-      ctx.strokeStyle = "#2563eb";
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
+      var stepX = chartWidth / 24;
 
-      var points = [];
-      var stepX = (290 - 30) / 6;
+      // 4. Render 24 Candlestick per Jam
+      chartData.forEach((d, idx) => {
+        var x = paddingLeft + (idx * stepX) + (stepX / 2);
 
-      totals.forEach((val, idx) => {
-        var x = 30 + (idx * stepX);
-        var y = 110 - ((val / maxVal) * 80);
-        points.push({x, y});
-        if (idx === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      });
-      ctx.stroke();
+        // Konversi nilai nominal ke koordinat Y
+        var yPendapatan = paddingBottom - ((d.pendapatan / maxVal) * heightMax);
+        var yPengeluaran = paddingBottom - ((d.pengeluaran / maxVal) * heightMax);
 
-      // Titik Point & Label
-      points.forEach((pt, idx) => {
-        ctx.fillStyle = "#2563eb";
+        var isProfit = d.sisaModal >= 0;
+        var color = (d.pendapatan === 0 && d.pengeluaran === 0) ? "#cbd5e1" : (isProfit ? "#10b981" : "#ef4444");
+
+        var yHigh = Math.min(yPendapatan, yPengeluaran);
+        var yLow = Math.max(yPendapatan, yPengeluaran);
+
+        // Gambar Garis Wick (Jarum)
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.moveTo(x, yHigh);
+        ctx.lineTo(x, paddingBottom);
+        ctx.stroke();
 
-        ctx.fillStyle = "#64748b";
-        ctx.font = "9px sans-serif";
-        ctx.textAlign = "center";
-        ctx.fillText(days[idx], pt.x, 125);
+        // Gambar Batang Candle (Body)
+        var bodyHeight = Math.max(4, yLow - yHigh); // Minimal 4px agar transaksi kecil tetap kelihatan
+
+        ctx.fillStyle = color;
+        ctx.fillRect(x - 4, yHigh, 8, bodyHeight);
+
+        // Label Jam (Tampilkan jam genap agar teks tidak terlalu padat: 00:00, 02:00, dst)
+        if (idx % 2 === 0) {
+          ctx.fillStyle = "#64748b";
+          ctx.font = "8px sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(d.hourLabel, x, paddingBottom + 15);
+        }
       });
     }
 
