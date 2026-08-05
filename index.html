@@ -177,7 +177,7 @@
   <!-- ======================== TOP BAR ======================== -->
   <header class="bg-blue-600 text-white p-3.5 sticky top-0 z-40 shadow-sm shrink-0 pt-safe">
     <div class="max-w-md mx-auto flex justify-between items-center">
-      <div onclick="openModalJendelaAkunWithChart()" class="flex items-center gap-2.5 cursor-pointer active:opacity-80 transition">
+      <div id="topbar-header-click" onclick="openModalJendelaAkunWithChart()" class="flex items-center gap-2.5 cursor-pointer active:opacity-80 transition">
         <img src="logo.png" alt="LNDR Logo" class="w-9 h-9 object-contain drop-shadow">
         <div>
           <div class="flex items-center gap-1.5">
@@ -438,6 +438,28 @@
           <p class="text-[9px] text-slate-400 text-center italic">Geser ke kanan/kiri untuk melihat 24 jam lengkap 👉</p>
         </div>
 
+        <!-- FITUR BARU 1: TARGET OMSET BULANAN TRACKER -->
+        <div class="p-4 bg-emerald-50/80 border border-emerald-200/80 rounded-3xl space-y-2.5 shadow-sm">
+          <div class="flex justify-between items-center">
+            <div>
+              <p class="font-black text-emerald-950 text-xs uppercase tracking-wider">🎯 Target Omset Bulanan</p>
+              <p class="text-[10px] text-emerald-700 mt-0.5">Pantau progres pencapaian target toko bulan ini</p>
+            </div>
+            <span id="target-percentage-badge" class="text-[10px] bg-emerald-600 text-white font-black px-2 py-0.5 rounded-lg">0%</span>
+          </div>
+          <div class="w-full bg-emerald-200/70 rounded-full h-3 overflow-hidden">
+            <div id="target-progress-bar" class="bg-emerald-600 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+          <div class="flex justify-between items-center text-[11px] font-bold text-emerald-900 pt-1">
+            <span>Tercapai: <b id="display-omset-bulan-ini" class="text-emerald-700">Rp 0</b></span>
+            <span>Target: <b id="display-target-omset" class="text-emerald-900">Rp 15.000.000</b></span>
+          </div>
+          <div class="flex gap-2 pt-1">
+            <input id="input_target_omset" type="number" placeholder="Set Target (Rp)" class="w-full p-2 bg-white border border-emerald-300 rounded-xl text-xs font-bold outline-none">
+            <button onclick="simpanTargetOmset()" class="bg-emerald-600 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-sm shrink-0">Simpan</button>
+          </div>
+        </div>
+
         <!-- PENGATURAN MANAGEMENT -->
         <div class="space-y-2.5 pt-1">
           <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">Pengaturan Management Toko</p>
@@ -460,7 +482,9 @@
             </div>
 
             <div id="list-kasir-container" class="space-y-1.5 pt-1"></div>
-            <!-- MENU PENGATURAN AKSES FITUR KASIR (MANAGER PERMISSIONS) -->
+          </div>
+
+          <!-- MENU PENGATURAN AKSES FITUR KASIR (MANAGER PERMISSIONS) -->
           <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3">
             <div class="flex justify-between items-center border-b pb-2 border-slate-200/60">
               <div>
@@ -531,7 +555,45 @@
               </div>
             </div>
           </div>
-        </div>
+
+          <!-- FITUR BARU 2: PENGATURAN STRUK & PRINTER BLUETOOTH -->
+          <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2.5">
+            <p class="font-extrabold text-slate-800 text-xs">🖨️ Pengaturan Struk & Printer Thermal</p>
+            <div class="space-y-2 text-xs">
+              <div>
+                <label class="font-bold text-slate-600 text-[10px]">Ukuran Kertas Thermal</label>
+                <select id="setting_paper_size" class="w-full p-2 border border-slate-200 rounded-xl bg-white mt-0.5 font-bold">
+                  <option value="58mm">58 mm (Printer Kasir Mini)</option>
+                  <option value="80mm">80 mm (Printer Desktop)</option>
+                </select>
+              </div>
+              <div>
+                <label class="font-bold text-slate-600 text-[10px]">Catatan Footer Struk / Nota</label>
+                <textarea id="setting_struk_footer" rows="2" placeholder="Contoh: Barang tidak diambil > 30 hari di luar tanggung jawab toko." class="w-full p-2 border border-slate-200 rounded-xl bg-white mt-0.5 font-semibold text-xs outline-none"></textarea>
+              </div>
+              <button onclick="simpanPengaturanStruk()" class="w-full bg-blue-600 text-white font-bold py-2 rounded-xl shadow-sm text-xs">Simpan Pengaturan Struk</button>
+            </div>
+          </div>
+
+          <!-- FITUR BARU 3: TEMPLATE PESAN WHATSAPP OTOMATIS -->
+          <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2.5">
+            <p class="font-extrabold text-slate-800 text-xs">📲 Template Pesan WhatsApp Notifikasi</p>
+            <div class="space-y-2 text-xs">
+              <p class="text-[9px] text-slate-400">Variabel: <b>{nama_pelanggan}</b>, <b>{id_nota}</b>, <b>{total_harga}</b></p>
+              <textarea id="setting_wa_template" rows="3" placeholder="Halo Kak {nama_pelanggan}, orderan Nota #{id_nota} sudah selesai! Total: Rp {total_harga}." class="w-full p-2 border border-slate-200 rounded-xl bg-white font-semibold text-xs outline-none"></textarea>
+              <button onclick="simpanTemplateWA()" class="w-full bg-emerald-600 text-white font-bold py-2 rounded-xl shadow-sm text-xs">Simpan Template WA</button>
+            </div>
+          </div>
+
+          <!-- FITUR BARU 4: EDIT PROFIL TOKO & UBAH PASSWORD OWNER -->
+          <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2.5">
+            <p class="font-extrabold text-slate-800 text-xs">🔑 Ubah Profil Toko & Password Owner</p>
+            <div class="space-y-2 text-xs">
+              <input id="edit_nama_toko" type="text" placeholder="Nama Toko Laundry" class="w-full p-2 border border-slate-200 rounded-xl bg-white font-semibold outline-none">
+              <input id="edit_owner_pass" type="password" placeholder="Password Baru (Kosongkan jika tidak diubah)" class="w-full p-2 border border-slate-200 rounded-xl bg-white font-semibold outline-none">
+              <button onclick="simpanProfilDanPassOwner()" class="w-full bg-indigo-600 text-white font-bold py-2 rounded-xl shadow-sm text-xs">Simpan Perubahan</button>
+            </div>
+          </div>
 
           <!-- MENU 2: KELOLA LAYANAN -->
           <div onclick="closeModalWithHistory('modal-jendela-akun'); openModalKelolaLayanan();" class="p-3.5 bg-slate-50 hover:bg-blue-50/50 rounded-2xl border border-slate-200/80 flex items-center justify-between cursor-pointer active:scale-[0.98] transition">
@@ -746,6 +808,10 @@
         <div class="space-y-2 pt-2">
           <button id="btn-lanjut-proses" onclick="actionLanjutProses()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-3.5 rounded-2xl shadow-md text-xs">
             ⚡ Lanjut Proses Order
+          </button>
+          <!-- FITUR KIRIM WA SELESAI -->
+          <button onclick="kirimNotifikasiWA()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3 rounded-2xl shadow-md text-xs">
+            📲 Kirim WA Notifikasi Selesai
           </button>
           <div class="grid grid-cols-2 gap-2">
             <button onclick="actionBatalkanOrder()" class="bg-rose-50 text-rose-600 border border-rose-200 font-bold py-3 rounded-xl text-xs">❌ Batalkan Order</button>
@@ -1131,7 +1197,8 @@
             };
           }
           loadDaftarKasirList();
-          loadPermissionSwitches(); // Memuat posisi saklar ON/OFF saat Owner login
+          loadPermissionSwitches();
+          loadSettingsToForm();
         }
 
         loadDataHome();
@@ -1174,7 +1241,6 @@
         }
 
         if (data && data.user) {
-          // Profil sudah otomatis dibuat oleh Trigger, kita tinggal mengisi toko_id miliknya
           const { error: profError } = await supabaseClient.from('profiles').update({
             toko_id: currentToko.id,
             role: 'kasir',
@@ -1236,8 +1302,11 @@
 
     function switchTab(tabName, pushHistory = true) {
       if(tabName === 'report' && currentProfile && currentProfile.role === 'kasir') {
-        showToast("Akses Laporan dikunci khusus Owner!", "error");
-        return;
+        var perms = getTokoPermissions();
+        if(!perms.is_manager && !perms.akses_laporan) {
+          showToast("Akses Laporan dikunci khusus Owner!", "error");
+          return;
+        }
       }
 
       currentActiveTab = tabName;
@@ -1574,6 +1643,11 @@
 
     function openModalEditOrder() {
       if(!activeOrderDetail) return;
+      var perms = getTokoPermissions();
+      if(currentProfile && currentProfile.role === 'kasir' && !perms.is_manager && !perms.akses_edit_order) {
+        showToast("Izin edit/batal order dikunci oleh Owner!", "error");
+        return;
+      }
       document.getElementById('edit_parfum').value = activeOrderDetail.parfum || 'Standard';
       document.getElementById('edit_catatan').value = activeOrderDetail.catatan || '';
       openModalWithHistory('modal-edit-order');
@@ -1625,6 +1699,11 @@
 
     async function actionBatalkanOrder() {
       if(!activeOrderDetail) return;
+      var perms = getTokoPermissions();
+      if(currentProfile && currentProfile.role === 'kasir' && !perms.is_manager && !perms.akses_edit_order) {
+        showToast("Izin pembatalan order dikunci oleh Owner!", "error");
+        return;
+      }
       if(confirm("Apakah Anda yakin ingin membatalkan orderan #" + activeOrderDetail.id + "?")) {
         const { error } = await supabaseClient.from('transaksi').update({ status_laundry: 'Batal' }).eq('id', activeOrderDetail.id);
         if(!error) {
@@ -1648,6 +1727,31 @@
       } else {
         showToast("Gagal memproses pembayaran.", "error");
       }
+    }
+
+    // FITUR NOTIFIKASI WA OTOMATIS
+    function kirimNotifikasiWA() {
+      if(!activeOrderDetail) return;
+      var pelName = activeOrderDetail.pelanggan ? (activeOrderDetail.pelanggan.nama || activeOrderDetail.pelanggan.nama_pelanggan) : 'Pelanggan';
+      var hp = activeOrderDetail.pelanggan ? activeOrderDetail.pelanggan.no_hp : '';
+      
+      if(!hp || hp.length < 5) {
+        showToast("Nomor HP pelanggan tidak valid!", "error");
+        return;
+      }
+
+      var formattedHp = hp.replace(/[^0-9]/g, '');
+      if(formattedHp.startsWith('0')) formattedHp = '62' + formattedHp.substring(1);
+
+      var template = (currentToko && currentToko.wa_template) ? currentToko.wa_template : "Halo Kak {nama_pelanggan}, cucian Anda Nota #{id_nota} telah Selesai & Siap Diambil. Total Tagihan: Rp {total_harga}. Terima kasih!";
+      
+      var msg = template
+        .replace('{nama_pelanggan}', pelName)
+        .replace('{id_nota}', activeOrderDetail.id)
+        .replace('{total_harga}', (activeOrderDetail.total_harga || 0).toLocaleString());
+
+      var waUrl = "https://wa.me/" + formattedHp + "?text=" + encodeURIComponent(msg);
+      window.open(waUrl, '_blank');
     }
 
     async function openModalPilihPelanggan() {
@@ -1889,6 +1993,9 @@
       var todayString = now.toDateString(); 
 
       var txHariIni = [];
+      var omsetBulanIni = 0;
+      var currentMonth = now.getMonth();
+      var currentYear = now.getFullYear();
 
       for(var i = 0; i < globalTxCache.length; i++) { 
         var t = globalTxCache[i];
@@ -1896,6 +2003,10 @@
         var tglBuat = t.created_at ? new Date(t.created_at) : null;
 
         var isHariIni = tglBuat && (tglBuat.toDateString() === todayString);
+
+        if (tglBuat && tglBuat.getMonth() === currentMonth && tglBuat.getFullYear() === currentYear && st !== 'Batal') {
+          omsetBulanIni += (t.total_harga || 0);
+        }
 
         if (isHariIni) {
           txHariIni.push(t);
@@ -1934,6 +2045,8 @@
       document.getElementById('count-masuk').innerText = txHariIni.length + ' Order';
 
       document.getElementById('home-footer-pengeluaran').innerText = 'Rp ' + totalPengeluaranHariIni.toLocaleString();
+
+      updateTargetProgressBar(omsetBulanIni);
 
       const container = document.getElementById('list-home');
       if(container) {
@@ -2399,6 +2512,10 @@
 
     // ==================== FUNGSI DIAGRAM TRAFFIC PENDAPATAN ====================
     function openModalJendelaAkunWithChart() {
+      if (currentProfile && currentProfile.role === 'kasir') {
+        showToast("Akses Analitik dikunci khusus Owner!", "error");
+        return;
+      }
       openModalWithHistory('modal-jendela-akun');
       if(currentUser && currentUser.email) {
         var emailEl = document.getElementById('account-modal-email');
@@ -2412,16 +2529,13 @@
       if (!canvas) return;
       var ctx = canvas.getContext('2d');
       
-      // Clear Canvas (Lebar 750px untuk 24 jam)
       ctx.clearRect(0, 0, 750, 150);
 
       var now = new Date();
       var todayStr = now.toDateString();
       var chartData = [];
 
-      // 1. Ekstrak Data Per Jam (00:00 s/d 23:00) Hari Ini
       for (var h = 0; h < 24; h++) {
-        // Hitung Pendapatan pada jam h
         var pendapatan = globalTxCache.reduce((sum, t) => {
           var tgl = t.created_at ? new Date(t.created_at) : null;
           if (tgl && tgl.toDateString() === todayStr && tgl.getHours() === h && t.status_laundry !== 'Batal') {
@@ -2430,7 +2544,6 @@
           return sum;
         }, 0);
 
-        // Hitung Pengeluaran pada jam h
         var pengeluaran = globalPengeluaranCache.reduce((sum, p) => {
           var tgl = p.created_at ? new Date(p.created_at) : null;
           if (tgl && tgl.toDateString() === todayStr && tgl.getHours() === h) {
@@ -2449,18 +2562,16 @@
         });
       }
 
-      // 2. Tentukan Skala Maksimum Sumbu Y
-      var maxVal = 50000; // Skala dasar minimal
+      var maxVal = 50000;
       chartData.forEach(d => {
         var peak = Math.max(d.pendapatan, d.pengeluaran, Math.abs(d.sisaModal));
         if (peak > maxVal) maxVal = peak;
       });
 
-      // 3. Gambar Sumbu X dan Y
       var paddingLeft = 35;
       var paddingBottom = 120;
       var chartWidth = 730 - paddingLeft;
-      var heightMax = 95; // Ketinggian grafik maksimal
+      var heightMax = 95;
 
       ctx.strokeStyle = "#e2e8f0";
       ctx.lineWidth = 1;
@@ -2471,11 +2582,9 @@
 
       var stepX = chartWidth / 24;
 
-      // 4. Render 24 Candlestick per Jam
       chartData.forEach((d, idx) => {
         var x = paddingLeft + (idx * stepX) + (stepX / 2);
 
-        // Konversi nilai nominal ke koordinat Y
         var yPendapatan = paddingBottom - ((d.pendapatan / maxVal) * heightMax);
         var yPengeluaran = paddingBottom - ((d.pengeluaran / maxVal) * heightMax);
 
@@ -2485,7 +2594,6 @@
         var yHigh = Math.min(yPendapatan, yPengeluaran);
         var yLow = Math.max(yPendapatan, yPengeluaran);
 
-        // Gambar Garis Wick (Jarum)
         ctx.strokeStyle = color;
         ctx.lineWidth = 1.5;
         ctx.beginPath();
@@ -2493,13 +2601,11 @@
         ctx.lineTo(x, paddingBottom);
         ctx.stroke();
 
-        // Gambar Batang Candle (Body)
-        var bodyHeight = Math.max(4, yLow - yHigh); // Minimal 4px agar transaksi kecil tetap kelihatan
+        var bodyHeight = Math.max(4, yLow - yHigh);
 
         ctx.fillStyle = color;
         ctx.fillRect(x - 4, yHigh, 8, bodyHeight);
 
-        // Label Jam (Tampilkan jam genap agar teks tidak terlalu padat: 00:00, 02:00, dst)
         if (idx % 2 === 0) {
           ctx.fillStyle = "#64748b";
           ctx.font = "8px sans-serif";
@@ -2509,22 +2615,6 @@
       });
     }
 
-    window.onload = function() { 
-      checkUserSession();
-
-      if (supabaseClient) {
-        supabaseClient
-          .channel('public:transaksi')
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'transaksi' }, payload => {
-            if(currentUser) {
-              loadDataHome();
-              if (currentActiveTab === 'order') filterOrderTab(currentOrderTab);
-              if (currentActiveTab === 'report') loadReport();
-            }
-          })
-          .subscribe();
-      }
-    };
     // ==================== PENGATURAN AKSES KASIR (PERMISSIONS) ====================
     function getTokoPermissions() {
       if (currentToko && currentToko.permissions) {
@@ -2563,7 +2653,6 @@
       
       perms[key] = checkbox.checked;
 
-      // Jika Manager di-ON-kan, otomatis centang semua akses
       if (key === 'is_manager' && checkbox.checked) {
         perms.akses_laporan = true;
         perms.akses_layanan = true;
@@ -2584,6 +2673,127 @@
         showToast("Gagal memperbarui izin akses.", "error");
       }
     }
+
+    // ==================== SCRIPT FUNGSI FITUR BARU ====================
+    function updateTargetProgressBar(currentOmsetBulanIni) {
+      var targetVal = (currentToko && currentToko.target_omset) ? currentToko.target_omset : 15000000;
+      var percent = Math.min(100, Math.round((currentOmsetBulanIni / targetVal) * 100));
+      
+      var badge = document.getElementById('target-percentage-badge');
+      var bar = document.getElementById('target-progress-bar');
+      var txtOmset = document.getElementById('display-omset-bulan-ini');
+      var txtTarget = document.getElementById('display-target-omset');
+
+      if(badge) badge.innerText = percent + '%';
+      if(bar) bar.style.width = percent + '%';
+      if(txtOmset) txtOmset.innerText = 'Rp ' + currentOmsetBulanIni.toLocaleString();
+      if(txtTarget) txtTarget.innerText = 'Rp ' + targetVal.toLocaleString();
+    }
+
+    async function simpanTargetOmset() {
+      var val = parseFloat(document.getElementById('input_target_omset').value);
+      if(isNaN(val) || val <= 0) {
+        showToast("Masukkan nominal target omset yang valid!", "error");
+        return;
+      }
+      if(!currentToko) return;
+
+      const { error } = await supabaseClient.from('toko').update({ target_omset: val }).eq('id', currentToko.id);
+      if(!error) {
+        currentToko.target_omset = val;
+        showToast("Target omset bulanan diperbarui! 🎯", "success");
+        loadDataHome();
+      } else {
+        showToast("Gagal menyimpan target omset.", "error");
+      }
+    }
+
+    function loadSettingsToForm() {
+      if(!currentToko) return;
+      var paperEl = document.getElementById('setting_paper_size');
+      var footerEl = document.getElementById('setting_struk_footer');
+      var waEl = document.getElementById('setting_wa_template');
+      var namaTokoEl = document.getElementById('edit_nama_toko');
+
+      if(paperEl) paperEl.value = currentToko.paper_size || '58mm';
+      if(footerEl) footerEl.value = currentToko.struk_footer || '';
+      if(waEl) waEl.value = currentToko.wa_template || '';
+      if(namaTokoEl) namaTokoEl.value = currentToko.nama_toko || '';
+    }
+
+    async function simpanPengaturanStruk() {
+      var size = document.getElementById('setting_paper_size').value;
+      var footer = document.getElementById('setting_struk_footer').value;
+      if(!currentToko) return;
+
+      const { error } = await supabaseClient.from('toko').update({ paper_size: size, struk_footer: footer }).eq('id', currentToko.id);
+      if(!error) {
+        currentToko.paper_size = size;
+        currentToko.struk_footer = footer;
+        showToast("Pengaturan struk tersimpan! 🖨️", "success");
+      } else {
+        showToast("Gagal menyimpan pengaturan struk.", "error");
+      }
+    }
+
+    async function simpanTemplateWA() {
+      var tmpl = document.getElementById('setting_wa_template').value;
+      if(!currentToko) return;
+
+      const { error } = await supabaseClient.from('toko').update({ wa_template: tmpl }).eq('id', currentToko.id);
+      if(!error) {
+        currentToko.wa_template = tmpl;
+        showToast("Template pesan WhatsApp tersimpan! 📲", "success");
+      } else {
+        showToast("Gagal menyimpan template WA.", "error");
+      }
+    }
+
+    async function simpanProfilDanPassOwner() {
+      var newNama = document.getElementById('edit_nama_toko').value;
+      var newPass = document.getElementById('edit_owner_pass').value;
+
+      if(!newNama) {
+        showToast("Nama toko tidak boleh kosong!", "error");
+        return;
+      }
+
+      if(currentToko) {
+        const { error } = await supabaseClient.from('toko').update({ nama_toko: newNama }).eq('id', currentToko.id);
+        if(!error) {
+          currentToko.nama_toko = newNama;
+          document.getElementById('topbar-nama-toko').innerText = newNama;
+          showToast("Profil Toko diperbarui! 🔑", "success");
+        }
+      }
+
+      if(newPass && newPass.length >= 6) {
+        const { error: passErr } = await supabaseClient.auth.updateUser({ password: newPass });
+        if(!passErr) {
+          showToast("Password Owner berhasil diperbarui!", "success");
+          document.getElementById('edit_owner_pass').value = '';
+        } else {
+          showToast("Gagal ubah password: " + passErr.message, "error");
+        }
+      }
+    }
+
+    window.onload = function() { 
+      checkUserSession();
+
+      if (supabaseClient) {
+        supabaseClient
+          .channel('public:transaksi')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'transaksi' }, payload => {
+            if(currentUser) {
+              loadDataHome();
+              if (currentActiveTab === 'order') filterOrderTab(currentOrderTab);
+              if (currentActiveTab === 'report') loadReport();
+            }
+          })
+          .subscribe();
+      }
+    };
   </script>
 </body>
 </html>
