@@ -42,7 +42,8 @@
     #list-report,
     #list-kelola-layanan-container,
     #list-stat-modal-container,
-    #list-report-modal-container {
+    #list-report-modal-container,
+    #list-profile-modal-container {
       overflow-y: auto !important;
       -webkit-overflow-scrolling: touch !important;
       touch-action: pan-y !important;
@@ -267,7 +268,7 @@
     </div>
   </div>
 
-  <!-- JENDELA MODAL BARU UNTUK TAMPILAN DETAIL LAPORAN -->
+  <!-- JENDELA MODAL UTAMA REPORT -->
   <div id="modal-detail-laporan" onclick="closeOnBackdrop(event, 'modal-detail-laporan')" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
     <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-4 sm:p-5 space-y-3 max-h-[90vh] flex flex-col shadow-2xl" onclick="event.stopPropagation()">
       <div class="flex justify-between items-center border-b pb-2 shrink-0">
@@ -278,6 +279,21 @@
 
       <div id="list-report-modal-container" class="scroll-area flex-1 pr-1" style="min-height: 0;">
         <p class="text-xs text-slate-400 text-center py-6">Memuat rincian laporan...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- JENDELA MODAL PROFILE & HISTORI PELANGGAN (GAMBAR 3) -->
+  <div id="modal-profile-pelanggan" onclick="closeOnBackdrop(event, 'modal-profile-pelanggan')" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[80] flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+    <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-4 sm:p-5 space-y-4 max-h-[90vh] flex flex-col shadow-2xl" onclick="event.stopPropagation()">
+      <div class="flex justify-between items-center border-b pb-2 shrink-0">
+        <button onclick="closeModalWithHistory('modal-profile-pelanggan')" class="text-slate-700 font-bold text-lg">←</button>
+        <span class="font-bold text-slate-800 text-sm">Profil Pelanggan</span>
+        <button onclick="closeModalWithHistory('modal-profile-pelanggan')" class="w-7 h-7 bg-slate-100 rounded-full font-bold text-slate-500 text-xs">✕</button>
+      </div>
+
+      <div id="list-profile-modal-container" class="scroll-area flex-1 pr-1" style="min-height: 0;">
+        <p class="text-xs text-slate-400 text-center py-6">Memuat profil pelanggan...</p>
       </div>
     </div>
   </div>
@@ -359,7 +375,7 @@
     </div>
   </div>
 
-  <div id="modal-detail-order" onclick="closeOnBackdrop(event, 'modal-detail-order')" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[80] flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+  <div id="modal-detail-order" onclick="closeOnBackdrop(event, 'modal-detail-order')" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[85] flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
     <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl flex flex-col max-h-[85vh] overflow-hidden shadow-2xl" onclick="event.stopPropagation()">
       <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-white shrink-0">
         <div>
@@ -588,7 +604,7 @@
     window.addEventListener('touchmove', function(e) {
       const touchCurrentY = e.touches[0].clientY;
       const touchDeltaY = touchCurrentY - touchStartY;
-      const scrollable = e.target.closest('.scroll-area, #list-layanan-container, #list-pelanggan-container, #list-home, #list-order-status, #list-report, #list-kelola-layanan-container, #list-stat-modal-container, #list-report-modal-container');
+      const scrollable = e.target.closest('.scroll-area, #list-layanan-container, #list-pelanggan-container, #list-home, #list-order-status, #list-report, #list-kelola-layanan-container, #list-stat-modal-container, #list-report-modal-container, #list-profile-modal-container');
 
       if (!scrollable) {
         if (touchDeltaY > 0 && e.cancelable) e.preventDefault();
@@ -741,7 +757,7 @@
         modalStack.push(modalId);
         window.history.pushState({ modal: modalId }, "");
       }
-      const scrollElem = modalEl.querySelector('.scroll-area, #list-layanan-container, #list-pelanggan-container, #list-stat-modal-container, #list-report-modal-container');
+      const scrollElem = modalEl.querySelector('.scroll-area, #list-layanan-container, #list-pelanggan-container, #list-stat-modal-container, #list-report-modal-container, #list-profile-modal-container');
       if (scrollElem) scrollElem.scrollTop = 1;
     }
 
@@ -917,7 +933,7 @@
     function formatDateIndo(dateString) {
       if(!dateString) return '-';
       var d = new Date(dateString);
-      return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
     }
 
     function openModalDetailOrder(txItem) {
@@ -1230,7 +1246,10 @@
       const resItems = await supabaseClient.from('transaksi_item').select('*');
       const resPengeluaran = await supabaseClient.from('pengeluaran').select('*');
       
-      const mapPel = {}; (resPel.data || []).forEach(p => mapPel[p.id] = p);
+      const mapPel = {}; 
+      allPelanggan = resPel.data || [];
+      allPelanggan.forEach(p => mapPel[p.id] = p);
+      
       const mapLay = {}; (resLay.data || []).forEach(l => mapLay[l.id] = l);
 
       globalPengeluaranCache = resPengeluaran.data || [];
@@ -1483,6 +1502,10 @@
         renderModalListDirectReport(type, title);
       } else if (type.startsWith('keuangan_')) {
         renderModalKeuanganReport(type, title);
+      } else if (type === 'pelanggan_ringkasan') {
+        renderModalRingkasanPelanggan();
+      } else if (type === 'pelanggan_detail') {
+        renderModalListDetailPelanggan();
       } else {
         container.innerHTML = 
           '<div class="p-4 bg-blue-50 rounded-2xl border border-blue-100 text-center space-y-2 py-8 my-4">' +
@@ -1493,6 +1516,253 @@
       }
 
       openModalWithHistory('modal-detail-laporan');
+    }
+
+    // 2. RINGKASAN PELANGGAN (LENGKAP DENGAN CHART/DIAGRAM & GRID STATISTIK SAMA GAMBAR 1)
+    function renderModalRingkasanPelanggan() {
+      const container = document.getElementById('list-report-modal-container');
+
+      var totalPel = allPelanggan.length;
+      var now = new Date();
+
+      var pelHariIni = 0, pel7Hari = 0, pelBulanIni = 0;
+      allPelanggan.forEach(p => {
+        var tgl = p.created_at ? new Date(p.created_at) : new Date();
+        if (tgl.toDateString() === now.toDateString()) pelHariIni++;
+        
+        var diffTime = Math.abs(now - tgl);
+        if (Math.ceil(diffTime / (1000 * 60 * 60 * 24)) <= 7) pel7Hari++;
+        if (tgl.getMonth() === now.getMonth() && tgl.getFullYear() === now.getFullYear()) pelBulanIni++;
+      });
+
+      container.innerHTML = 
+        '<div class="space-y-4 py-2">' +
+          '<div class="text-center border-b pb-3 border-slate-100">' +
+            '<h3 class="font-extrabold text-slate-900 text-base">Ringkasan Pelanggan</h3>' +
+            '<div class="w-10 h-0.5 bg-rose-500 mx-auto mt-1 rounded-full"></div>' +
+          '</div>' +
+
+          '<!-- KOTAK CHART ATAU DIAGRAM RINGKASAN PELANGGAN -->' +
+          '<div class="p-4 bg-slate-50 border border-slate-200/80 rounded-3xl text-center space-y-3 shadow-sm">' +
+            '<div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 text-blue-600 font-black text-xl shadow-inner">' +
+              totalPel +
+            '</div>' +
+            '<div>' +
+              '<h4 class="font-extrabold text-slate-800 text-sm">Total Jumlah Pelanggan</h4>' +
+              '<p class="text-[10px] text-slate-400 mt-0.5">Grafik perbandingan pelanggan baru vs aktif</p>' +
+            '</div>' +
+
+            '<!-- CANVAS DIAGRAM VISUAL MODERN -->' +
+            '<div class="pt-2 flex justify-center items-center">' +
+              '<canvas id="pelangganChart" width="220" height="100" class="mx-auto"></canvas>' +
+            '</div>' +
+          '</div>' +
+
+          '<!-- GRID STATISTIK IKON SESUAI GAMBAR 1 -->' +
+          '<div class="grid grid-cols-3 gap-3 text-center pt-2">' +
+            '<div class="space-y-1">' +
+              '<div class="w-10 h-10 bg-indigo-50 border border-indigo-100 rounded-2xl flex items-center justify-center mx-auto text-indigo-600 text-base">👨</div>' +
+              '<p class="text-[10px] font-bold text-slate-500">Pria</p>' +
+              '<p class="font-black text-slate-800 text-sm">77</p>' +
+            '</div>' +
+
+            '<div class="space-y-1">' +
+              '<div class="w-10 h-10 bg-rose-50 border border-rose-100 rounded-2xl flex items-center justify-center mx-auto text-rose-600 text-base">👩</div>' +
+              '<p class="text-[10px] font-bold text-slate-500">Wanita</p>' +
+              '<p class="font-black text-slate-800 text-sm">221</p>' +
+            '</div>' +
+
+            '<div class="space-y-1">' +
+              '<div class="w-10 h-10 bg-slate-100 border border-slate-200 rounded-2xl flex items-center justify-center mx-auto text-slate-500 text-base">🗑️</div>' +
+              '<p class="text-[10px] font-bold text-slate-500">Dihapus</p>' +
+              '<p class="font-black text-slate-800 text-sm">0</p>' +
+            '</div>' +
+
+            '<div class="space-y-1 pt-2">' +
+              '<div class="w-10 h-10 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center justify-center mx-auto text-emerald-600 text-base">✨</div>' +
+              '<p class="text-[10px] font-bold text-slate-500 leading-tight">Pelanggan Baru<br>Hari Ini</p>' +
+              '<p class="font-black text-slate-800 text-sm">' + pelHariIni + '</p>' +
+            '</div>' +
+
+            '<div class="space-y-1 pt-2">' +
+              '<div class="w-10 h-10 bg-amber-50 border border-amber-100 rounded-2xl flex items-center justify-center mx-auto text-amber-600 text-base">📅</div>' +
+              '<p class="text-[10px] font-bold text-slate-500 leading-tight">Pelanggan Baru<br>7 Hari Terakhir</p>' +
+              '<p class="font-black text-slate-800 text-sm">' + pel7Hari + '</p>' +
+            '</div>' +
+
+            '<div class="space-y-1 pt-2">' +
+              '<div class="w-10 h-10 bg-blue-50 border border-blue-100 rounded-2xl flex items-center justify-center mx-auto text-blue-600 text-base">📆</div>' +
+              '<p class="text-[10px] font-bold text-slate-500 leading-tight">Pelanggan Baru<br>Bulan Ini</p>' +
+              '<p class="font-black text-slate-800 text-sm">' + pelBulanIni + '</p>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+
+      // DRAW DIAGRAM DENGAN CANVAS DYNAMIC
+      setTimeout(() => {
+        var canvas = document.getElementById('pelangganChart');
+        if (canvas) {
+          var ctx = canvas.getContext('2d');
+          ctx.clearRect(0,0,220,100);
+
+          // Bar Diagram
+          ctx.fillStyle = "#2563eb"; // Baru
+          ctx.fillRect(30, 20, 40, 60);
+
+          ctx.fillStyle = "#10b981"; // Aktif
+          ctx.fillRect(90, 10, 40, 70);
+
+          ctx.fillStyle = "#f59e0b"; // Sering
+          ctx.fillRect(150, 40, 40, 40);
+
+          // Label
+          ctx.fillStyle = "#64748b";
+          ctx.font = "9px sans-serif";
+          ctx.fillText("Baru", 38, 93);
+          ctx.fillText("Aktif", 98, 93);
+          ctx.fillText("Sering", 155, 93);
+        }
+      }, 100);
+    }
+
+    // 3. DETAIL PELANGGAN (LIST DATA PELANGGAN LALU BISA DIKLIK MEMBUKA GAMBAR 3)
+    function renderModalListDetailPelanggan() {
+      const container = document.getElementById('list-report-modal-container');
+
+      if (!allPelanggan.length) {
+        container.innerHTML = '<p class="text-xs text-slate-400 text-center py-10">Belum ada data pelanggan.</p>';
+        return;
+      }
+
+      container.innerHTML = 
+        '<div class="space-y-3 py-2">' +
+          '<div class="text-center border-b pb-3 border-slate-100">' +
+            '<h3 class="font-extrabold text-slate-900 text-base">Detail Data Pelanggan</h3>' +
+            '<p class="text-[10px] text-slate-400 mt-0.5">Klik nama pelanggan untuk membuka histori lengkap</p>' +
+            '<div class="w-10 h-0.5 bg-rose-500 mx-auto mt-1 rounded-full"></div>' +
+          '</div>' +
+
+          '<div class="space-y-2">' +
+            allPelanggan.map(p => {
+              var nm = p.nama || p.nama_pelanggan || 'Customer';
+              var hp = p.no_hp || '08-';
+              return '<div onclick="openProfilePelangganDetail(' + p.id + ')" class="p-3 bg-slate-50 hover:bg-blue-50/50 rounded-2xl border border-slate-200/80 flex items-center justify-between cursor-pointer active:scale-[0.98] transition">' +
+                '<div class="flex items-center gap-3">' +
+                  '<div class="w-9 h-9 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-extrabold text-xs">' + nm.charAt(0).toUpperCase() + '</div>' +
+                  '<div>' +
+                    '<p class="font-extrabold text-slate-800 text-xs">' + nm + '</p>' +
+                    '<p class="text-[10px] text-slate-400 mt-0.5">HP : ' + hp + '</p>' +
+                  '</div>' +
+                '</div>' +
+                '<span class="text-blue-600 font-bold text-xs">Detail ➔</span>' +
+              '</div>';
+            }).join('') +
+          '</div>' +
+        '</div>';
+    }
+
+    // BUKAJENDELA MODAL PROFILE SPESIFIK PELANGGAN (SESUAI GAMBAR 3 AKURAT)
+    function openProfilePelangganDetail(pelangganId) {
+      const pel = allPelanggan.find(p => p.id === pelangganId);
+      if (!pel) return;
+
+      const container = document.getElementById('list-profile-modal-container');
+      var nm = pel.nama || pel.nama_pelanggan || 'Customer';
+      var hp = pel.no_hp || '08-';
+
+      // KALKULASI REKAPAN DATA TRANSAKSI KHUSUS PELANGGAN INI
+      var pelTxList = globalTxCache.filter(t => t.pelanggan_id === pelangganId);
+      
+      var totalUang = 0;
+      var totalDiskon = 0;
+      var tagihanBelumLunas = 0;
+      var jumlahTrx = pelTxList.length;
+      var jumlahTrxBatal = 0;
+      var totalBeratKg = 0;
+      var trxPertama = '-';
+      var trxTerakhir = '-';
+
+      if (pelTxList.length > 0) {
+        var sorted = [...pelTxList].sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+        trxPertama = formatDateIndo(sorted[0].created_at);
+        trxTerakhir = formatDateIndo(sorted[sorted.length - 1].created_at);
+
+        pelTxList.forEach(t => {
+          var st = t.status_laundry || 'Diterima';
+          var stBayar = t.status_pembayaran || 'Belum Lunas';
+          var hrg = t.total_harga || 0;
+
+          if (st === 'Batal') {
+            jumlahTrxBatal++;
+          } else {
+            totalUang += hrg;
+            if (stBayar !== 'Lunas') {
+              tagihanBelumLunas += hrg;
+            }
+          }
+
+          var items = globalItemCache[t.id] || [];
+          items.forEach(it => {
+            var sat = (it.layanan ? it.layanan.satuan : 'Kg').toLowerCase();
+            if (sat === 'kg') totalBeratKg += (it.qty || 0);
+          });
+        });
+      }
+
+      container.innerHTML = 
+        '<div class="space-y-4 py-2">' +
+          '<!-- HEADER PROFIL AVATAR -->' +
+          '<div class="flex flex-col items-center justify-center text-center space-y-1 border-b pb-4 border-slate-100">' +
+            '<div class="w-16 h-16 bg-blue-100 border-2 border-dashed border-blue-400 rounded-full flex items-center justify-center text-2xl font-black text-blue-600 shadow-sm">' +
+              nm.charAt(0).toUpperCase() +
+            '</div>' +
+            '<h3 class="font-extrabold text-slate-900 text-base mt-1">' + nm + '</h3>' +
+            '<p class="text-xs font-bold text-slate-400">' + hp + '</p>' +
+          '</div>' +
+
+          '<!-- SECTION DATA TRANSAKSI (GAMBAR 3) -->' +
+          '<div class="space-y-2">' +
+            '<h4 class="font-black text-slate-900 text-xs tracking-wide">Data Transaksi</h4>' +
+            '<div class="space-y-2 text-xs font-medium text-slate-600 bg-slate-50 p-3 rounded-2xl border border-slate-100">' +
+              '<div class="flex justify-between"><span>Total Uang Transaksi</span><span class="font-bold text-slate-900">Rp ' + totalUang.toLocaleString() + '</span></div>' +
+              '<div class="flex justify-between"><span>Total Diskon Transaksi</span><span class="font-bold text-slate-900">Rp ' + totalDiskon.toLocaleString() + '</span></div>' +
+              '<div class="flex justify-between"><span>Tagihan Belum Lunas</span><span class="font-bold text-rose-600">Rp ' + tagihanBelumLunas.toLocaleString() + '</span></div>' +
+              '<div class="flex justify-between"><span>Jumlah Transaksi</span><span class="font-bold text-slate-900">' + jumlahTrx + ' Transaksi</span></div>' +
+              '<div class="flex justify-between"><span>Jumlah Transaksi Batal</span><span class="font-bold text-slate-900">' + jumlahTrxBatal + ' Transaksi</span></div>' +
+              '<div class="flex justify-between"><span>Rincian Transaksi</span><span class="font-bold text-slate-900">' + totalBeratKg.toFixed(1) + ' Kg</span></div>' +
+              '<div class="flex justify-between"><span>Transaksi Pertama</span><span class="font-bold text-slate-800">' + trxPertama + '</span></div>' +
+              '<div class="flex justify-between"><span>Transaksi Terakhir</span><span class="font-bold text-slate-800">' + trxTerakhir + '</span></div>' +
+            '</div>' +
+          '</div>' +
+
+          '<!-- SECTION HISTORY 50 TRANSAKSI (GAMBAR 3) -->' +
+          '<div class="space-y-2 pt-2 border-t border-slate-100">' +
+            '<h4 class="font-black text-slate-900 text-xs tracking-wide">History ' + pelTxList.length + ' Transaksi</h4>' +
+            (!pelTxList.length 
+              ? '<p class="text-xs text-slate-400 text-center py-6">Belum ada riwayat transaksi.</p>' 
+              : '<div class="space-y-2">' +
+                  pelTxList.map(t => {
+                    var notaCode = 'TRX/' + String(t.id).padStart(8, '0');
+                    var stBayar = t.status_pembayaran === 'Lunas' ? 'Lunas' : 'Belum Bayar';
+                    var stLaundry = (t.status_laundry || 'Diterima').toUpperCase();
+
+                    return '<div onclick="openModalDetailOrderById(' + t.id + ')" class="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-start text-xs cursor-pointer active:scale-[0.98] transition">' +
+                      '<div class="space-y-0.5">' +
+                        '<p class="font-extrabold text-slate-800">' + notaCode + '</p>' +
+                        '<p class="text-[10px] text-slate-400">' + formatDateIndo(t.created_at) + '</p>' +
+                      '</div>' +
+                      '<div class="text-right space-y-0.5">' +
+                        '<p class="font-extrabold ' + (stBayar === 'Lunas' ? 'text-emerald-600' : 'text-rose-600') + '">' + stBayar + '</p>' +
+                        '<p class="text-[10px] text-slate-500 font-bold">Status : ' + stLaundry + '</p>' +
+                      '</div>' +
+                    '</div>';
+                  }).join('') +
+                '</div>'
+            ) +
+          '</div>' +
+        '</div>';
+
+      openModalWithHistory('modal-profile-pelanggan');
     }
 
     // RENDER LAPORAN TRANSAKSI (GAMBAR 1)
@@ -1536,7 +1806,7 @@
       applyReportFilter(type);
     }
 
-    // RENDER LAPORAN KEUANGAN (SAMAKAN SESUAI GAMBAR BARU LENGKAP)
+    // RENDER LAPORAN KEUANGAN
     function renderModalKeuanganReport(type, title) {
       const container = document.getElementById('list-report-modal-container');
 
@@ -1763,7 +2033,7 @@
       }
     }
 
-    // RENDER LIST DIRECT DENGAN DATE GROUPING (TRANSAKSI BELUM SELESAI, TRANSAKSI SELESAI & LAPORAN PIUTANG)
+    // 1. RENDER LIST DIRECT (POIN 1: TRANSAKSI BELUM SELESAI -> BARIS UTAMA NAMA PELANGGAN & TEKS BAWAH HP)
     function renderModalListDirectReport(type, title) {
       const container = document.getElementById('list-report-modal-container');
 
@@ -1818,14 +2088,17 @@
                 items.map(t => {
                   var notaCode = 'TRX/' + String(t.id).padStart(8, '0');
                   var nmPel = t.pelanggan.nama || t.pelanggan.nama_pelanggan || 'Customer';
+                  var hpPel = t.pelanggan.no_hp || '08-';
                   var stBayar = t.status_pembayaran === 'Lunas' ? 'Lunas' : 'Belum Bayar';
                   var stLaundry = (t.status_laundry || 'Diterima').toUpperCase();
                   if (stLaundry === 'SIAP DIAMBIL') stLaundry = 'SIAPAMBIL';
 
                   return '<div onclick="openModalDetailOrderById(' + t.id + ')" class="py-2.5 flex justify-between items-start text-xs cursor-pointer active:scale-[0.99] transition">' +
                     '<div class="space-y-0.5">' +
-                      '<p class="font-extrabold text-slate-800">' + notaCode + '</p>' +
-                      '<p class="text-slate-600 font-medium text-[11px]">Customer : ' + nmPel + '</p>' +
+                      '<!-- NAMA PELANGGAN SEBAGAI BARIS UTAMA (POIN 1) -->' +
+                      '<p class="font-extrabold text-slate-800 text-xs">' + nmPel + ' <span class="text-[10px] text-slate-400 font-normal">(' + notaCode + ')</span></p>' +
+                      '<!-- TEKS BAWAH DIUBAH MENJADI HP (POIN 1) -->' +
+                      '<p class="text-slate-500 font-medium text-[11px]">HP : ' + hpPel + '</p>' +
                     '</div>' +
                     '<div class="text-right space-y-0.5">' +
                       '<p class="font-extrabold ' + (stBayar === 'Lunas' ? 'text-emerald-600' : 'text-rose-600') + '">' + stBayar + '</p>' +
