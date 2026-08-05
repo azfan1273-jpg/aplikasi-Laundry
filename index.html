@@ -115,7 +115,10 @@
           <input id="auth_email" type="email" placeholder="contoh: owner@lndr.com" class="w-full p-3 border border-slate-200 rounded-xl mt-1 outline-none font-semibold focus:border-blue-500">
         </div>
         <div>
-          <label class="font-bold text-slate-700">Password</label>
+          <div class="flex justify-between items-center">
+            <label class="font-bold text-slate-700">Password</label>
+            <button type="button" onclick="openModalLupaPassword()" id="btn-forgot-pass" class="text-[10px] font-extrabold text-blue-600 hover:underline">Lupa Password?</button>
+          </div>
           <input id="auth_password" type="password" placeholder="••••••••" class="w-full p-3 border border-slate-200 rounded-xl mt-1 outline-none font-semibold focus:border-blue-500">
         </div>
 
@@ -128,6 +131,45 @@
             Belum punya akun? Daftar Toko Baru (Owner)
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL LUPA PASSWORD (KIRIM EMAIL) -->
+  <div id="modal-lupa-password" onclick="closeOnBackdrop(event, 'modal-lupa-password')" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4 hidden">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl" onclick="event.stopPropagation()">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-extrabold text-slate-900 text-sm">Reset Password</h3>
+        <button onclick="closeModalWithHistory('modal-lupa-password')" class="text-slate-400 font-bold">✕</button>
+      </div>
+      <p class="text-xs text-slate-500">Masukkan email akun Anda. Kami akan mengirimkan link untuk mengatur ulang password Anda.</p>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="font-bold text-slate-700">Email Akun</label>
+          <input id="forgot_email_input" type="email" placeholder="contoh: user@lndr.com" class="w-full p-3 border border-slate-200 rounded-xl mt-1 outline-none font-semibold focus:border-blue-500">
+        </div>
+        <button onclick="handleKirimResetPassword()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-2xl shadow-md text-xs active:scale-[0.98] transition">
+          📩 KIRIM LINK RESET
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL BUAT PASSWORD BARU (DARI LINK RESET EMAIL) -->
+  <div id="modal-update-password" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[120] flex items-center justify-center p-4 hidden">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl" onclick="event.stopPropagation()">
+      <div class="text-center space-y-1">
+        <h3 class="font-extrabold text-slate-900 text-base">Buat Password Baru</h3>
+        <p class="text-xs text-slate-400">Silahkan masukkan password baru untuk akun Anda</p>
+      </div>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="font-bold text-slate-700">Password Baru</label>
+          <input id="new_reset_password" type="password" placeholder="••••••••" class="w-full p-3 border border-slate-200 rounded-xl mt-1 outline-none font-semibold focus:border-blue-500">
+        </div>
+        <button onclick="handleSaveNewPassword()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 rounded-2xl shadow-md text-xs active:scale-[0.98] transition">
+          💾 SIMPAN PASSWORD BARU
+        </button>
       </div>
     </div>
   </div>
@@ -757,17 +799,20 @@
       const btnToggle = document.getElementById('btn-toggle-auth');
       const subTitle = document.getElementById('auth-subtitle');
       const containerNamaToko = document.getElementById('container_nama_toko');
+      const btnForgot = document.getElementById('btn-forgot-pass');
 
       if(isRegisterMode) {
         btnSubmit.innerText = "DAFTAR TOKO BARU (OWNER)";
         btnToggle.innerText = "Sudah punya akun? Login Kasir / Owner";
         subTitle.innerText = "Daftar sebagai Pemilik Toko Laundry Baru";
         containerNamaToko.classList.remove('hidden');
+        if(btnForgot) btnForgot.classList.add('hidden');
       } else {
         btnSubmit.innerText = "LOG IN";
         btnToggle.innerText = "Belum punya akun? Daftar Toko Baru (Owner)";
         subTitle.innerText = "Masuk ke akun LNDR Anda";
         containerNamaToko.classList.add('hidden');
+        if(btnForgot) btnForgot.classList.remove('hidden');
       }
     }
 
@@ -787,7 +832,6 @@
         if(error) {
           showToast("Gagal Daftar: " + error.message, "error");
         } else if (data && data.user) {
-          // Buat Toko Baru & Profile Owner secara eksplisit
           const resToko = await supabaseClient.from('toko').insert([{ owner_id: data.user.id, nama_toko: namaToko }]).select().single();
           if(resToko.data) {
             await supabaseClient.from('profiles').insert([{ id: data.user.id, toko_id: resToko.data.id, role: 'owner', nama_user: 'Owner' }]);
@@ -806,6 +850,51 @@
       }
     }
 
+    // FITUR LUPA PASSWORD & UPDATE PASSWORD
+    function openModalLupaPassword() {
+      document.getElementById('forgot_email_input').value = document.getElementById('auth_email').value || '';
+      openModalWithHistory('modal-lupa-password');
+    }
+
+    async function handleKirimResetPassword() {
+      const email = document.getElementById('forgot_email_input').value;
+      if (!email) {
+        showToast("Masukkan email Anda terlebih dahulu!", "error");
+        return;
+      }
+
+      const redirectUrl = window.location.origin + window.location.pathname;
+      const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl
+      });
+
+      if (error) {
+        showToast("Gagal mengirim email reset: " + error.message, "error");
+      } else {
+        showToast("Link reset password berhasil dikirim ke email!", "success");
+        closeModalWithHistory('modal-lupa-password');
+      }
+    }
+
+    async function handleSaveNewPassword() {
+      const newPassword = document.getElementById('new_reset_password').value;
+      if (!newPassword || newPassword.length < 6) {
+        showToast("Password minimal 6 karakter!", "error");
+        return;
+      }
+
+      const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
+
+      if (error) {
+        showToast("Gagal memperbarui password: " + error.message, "error");
+      } else {
+        showToast("Password berhasil diubah! Silahkan login kembali.", "success");
+        document.getElementById('modal-update-password').classList.add('hidden');
+        await supabaseClient.auth.signOut();
+        checkUserSession();
+      }
+    }
+
     async function handleLogout() {
       if(confirm("Apakah Anda yakin ingin keluar dari akun ini?")) {
         await supabaseClient.auth.signOut();
@@ -815,30 +904,33 @@
       }
     }
 
-    // 1. Dapatkan Sesi User & Profil
+    // 1. Dapatkan Sesi User & Profil (Perbaikan Penanganan User Dihapus)
     async function checkUserSession() {
       if(!supabaseClient) return;
+
+      // Cek apakah ada hash token penanda reset password di URL
+      if (window.location.hash && window.location.hash.includes('type=recovery')) {
+        document.getElementById('modal-update-password').classList.remove('hidden');
+      }
+
       const { data: { session } } = await supabaseClient.auth.getSession();
 
       if(session && session.user) {
         currentUser = session.user;
         
-        // Ambil/Buat Profile
         let resProf = await supabaseClient.from('profiles').select('*, toko(*)').eq('id', currentUser.id).maybeSingle();
         
-        // Jika profile belum ada di database, buatkan otomatis
+        // Jika session lokal ada tapi data profile di DB terhapus / tak ada, paksa logout
         if (!resProf.data) {
-          const resToko = await supabaseClient.from('toko').insert([{ owner_id: currentUser.id, nama_toko: 'LNDR Laundry' }]).select().single();
-          if (resToko.data) {
-            await supabaseClient.from('profiles').insert([{ id: currentUser.id, toko_id: resToko.data.id, role: 'owner', nama_user: 'Owner' }]);
-            resProf = await supabaseClient.from('profiles').select('*, toko(*)').eq('id', currentUser.id).single();
-          }
+          await supabaseClient.auth.signOut();
+          currentUser = null; currentProfile = null; currentToko = null;
+          document.getElementById('auth-screen').classList.remove('hidden');
+          showToast("Akun tidak ditemukan di server. Silahkan login kembali.", "error");
+          return;
         }
 
-        if (resProf && resProf.data) {
-          currentProfile = resProf.data;
-          currentToko = resProf.data.toko;
-        }
+        currentProfile = resProf.data;
+        currentToko = resProf.data.toko;
 
         document.getElementById('auth-screen').classList.add('hidden');
         
@@ -853,7 +945,6 @@
         document.getElementById('topbar-role-badge').innerText = badgeText;
         document.getElementById('setting-role-badge').innerText = badgeText;
 
-        // Pembatasan Tampilan Per Role
         const navReportBtn = document.getElementById('nav-report');
         const settingLayanan = document.getElementById('setting-owner-layanan');
         const settingKasir = document.getElementById('setting-owner-kasir');
@@ -900,12 +991,10 @@
       }
 
       try {
-        // 1. Buat client sementara agar session Owner tidak tertimpa/logout
         const tempSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
           auth: { persistSession: false }
         });
 
-        // 2. Daftarkan auth kasir baru
         const { data, error } = await tempSupabase.auth.signUp({ email, password });
 
         if (error) {
@@ -914,7 +1003,6 @@
         }
 
         if (data && data.user) {
-          // 3. Simpan profile kasir menggunakan client utama (Owner)
           const { error: profError } = await supabaseClient.from('profiles').upsert([{
             id: data.user.id,
             toko_id: currentToko.id,
