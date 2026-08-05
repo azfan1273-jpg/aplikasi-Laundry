@@ -460,7 +460,78 @@
             </div>
 
             <div id="list-kasir-container" class="space-y-1.5 pt-1"></div>
+            <!-- MENU PENGATURAN AKSES FITUR KASIR (MANAGER PERMISSIONS) -->
+          <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3">
+            <div class="flex justify-between items-center border-b pb-2 border-slate-200/60">
+              <div>
+                <p class="font-extrabold text-slate-800 text-xs">⚙️ Pengaturan Akses & Hak Kasir</p>
+                <p class="text-[10px] text-slate-400 mt-0.5">Atur izin fitur yang boleh diakses oleh Kasir / Manager</p>
+              </div>
+            </div>
+
+            <div class="space-y-2.5 text-xs pt-1">
+              <!-- PERMISSION 1: MANAGER FULL ACCESS -->
+              <div class="flex items-center justify-between p-2 bg-amber-50/80 rounded-xl border border-amber-200/60">
+                <div>
+                  <p class="font-black text-amber-950 text-xs">👑 Jadikan Kasir sebagai Manager</p>
+                  <p class="text-[9px] text-amber-700">Memberikan akses penuh ke seluruh fitur aplikasi</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="perm_is_manager" onchange="togglePermission('is_manager')" class="sr-only peer">
+                  <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                </label>
+              </div>
+
+              <!-- PERMISSION 2: LAPORAN & REPORT -->
+              <div class="flex items-center justify-between p-2 bg-white rounded-xl border border-slate-200">
+                <div>
+                  <p class="font-extrabold text-slate-800 text-xs">📊 Akses Menu Laporan & Report</p>
+                  <p class="text-[9px] text-slate-400">Kasir dapat melihat rekap omset & keuangan</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="perm_akses_laporan" onchange="togglePermission('akses_laporan')" class="sr-only peer">
+                  <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+
+              <!-- PERMISSION 3: KELOLA LAYANAN -->
+              <div class="flex items-center justify-between p-2 bg-white rounded-xl border border-slate-200">
+                <div>
+                  <p class="font-extrabold text-slate-800 text-xs">🧺 Akses Kelola Layanan & Harga</p>
+                  <p class="text-[9px] text-slate-400">Kasir dapat menambah/menghapus paket laundry</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="perm_akses_layanan" onchange="togglePermission('akses_layanan')" class="sr-only peer">
+                  <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+
+              <!-- PERMISSION 4: TAMBAH PENGELUARAN -->
+              <div class="flex items-center justify-between p-2 bg-white rounded-xl border border-slate-200">
+                <div>
+                  <p class="font-extrabold text-slate-800 text-xs">💸 Akses Catat Pengeluaran Toko</p>
+                  <p class="text-[9px] text-slate-400">Kasir dapat mencatat biaya operasional/sabun</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="perm_akses_pengeluaran" onchange="togglePermission('akses_pengeluaran')" class="sr-only peer">
+                  <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+
+              <!-- PERMISSION 5: EDIT & BATALKAN ORDER -->
+              <div class="flex items-center justify-between p-2 bg-white rounded-xl border border-slate-200">
+                <div>
+                  <p class="font-extrabold text-slate-800 text-xs">❌ Akses Edit / Batalkan Orderan</p>
+                  <p class="text-[9px] text-slate-400">Kasir dapat membatalkan transaksi atau mengedit order</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="perm_akses_edit_order" onchange="togglePermission('akses_edit_order')" class="sr-only peer">
+                  <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+            </div>
           </div>
+        </div>
 
           <!-- MENU 2: KELOLA LAYANAN -->
           <div onclick="closeModalWithHistory('modal-jendela-akun'); openModalKelolaLayanan();" class="p-3.5 bg-slate-50 hover:bg-blue-50/50 rounded-2xl border border-slate-200/80 flex items-center justify-between cursor-pointer active:scale-[0.98] transition">
@@ -1030,17 +1101,37 @@
         const settingKasir = document.getElementById('setting-owner-kasir');
         const fabPengeluaran = document.getElementById('fab-btn-pengeluaran');
 
+        var perms = getTokoPermissions();
+        var canReport = role === 'owner' || perms.is_manager || perms.akses_laporan;
+        var canLayanan = role === 'owner' || perms.is_manager || perms.akses_layanan;
+        var canPengeluaran = role === 'owner' || perms.is_manager || perms.akses_pengeluaran;
+
         if (role === 'kasir') {
-          if(navReportBtn) navReportBtn.style.display = 'none';
-          if(settingLayanan) settingLayanan.style.display = 'none';
-          if(settingKasir) settingKasir.style.display = 'none';
-          if(fabPengeluaran) fabPengeluaran.style.display = 'none';
+          if (navReportBtn) navReportBtn.style.display = canReport ? 'flex' : 'none';
+          if (settingLayanan) settingLayanan.style.display = canLayanan ? 'flex' : 'none';
+          if (settingKasir) settingKasir.style.display = 'none';
+          if (fabPengeluaran) fabPengeluaran.style.display = canPengeluaran ? 'flex' : 'none';
+          
+          const topbarHeader = document.getElementById('topbar-header-click');
+          if (topbarHeader) {
+            topbarHeader.onclick = function() {
+              showToast("Akses Analitik dikunci khusus Owner!", "error");
+            };
+          }
         } else {
-          if(navReportBtn) navReportBtn.style.display = 'flex';
-          if(settingLayanan) settingLayanan.style.display = 'flex';
-          if(settingKasir) settingKasir.style.display = 'flex';
-          if(fabPengeluaran) fabPengeluaran.style.display = 'flex';
+          if (navReportBtn) navReportBtn.style.display = 'flex';
+          if (settingLayanan) settingLayanan.style.display = 'flex';
+          if (settingKasir) settingKasir.style.display = 'flex';
+          if (fabPengeluaran) fabPengeluaran.style.display = 'flex';
+          
+          const topbarHeader = document.getElementById('topbar-header-click');
+          if (topbarHeader) {
+            topbarHeader.onclick = function() {
+              openModalJendelaAkunWithChart();
+            };
+          }
           loadDaftarKasirList();
+          loadPermissionSwitches(); // Memuat posisi saklar ON/OFF saat Owner login
         }
 
         loadDataHome();
@@ -2434,6 +2525,65 @@
           .subscribe();
       }
     };
+    // ==================== PENGATURAN AKSES KASIR (PERMISSIONS) ====================
+    function getTokoPermissions() {
+      if (currentToko && currentToko.permissions) {
+        return currentToko.permissions;
+      }
+      return {
+        akses_laporan: false,
+        akses_layanan: false,
+        akses_pengeluaran: false,
+        akses_edit_order: false,
+        is_manager: false
+      };
+    }
+
+    function loadPermissionSwitches() {
+      var perms = getTokoPermissions();
+      var elLaporan = document.getElementById('perm_akses_laporan');
+      var elLayanan = document.getElementById('perm_akses_layanan');
+      var elPengeluaran = document.getElementById('perm_akses_pengeluaran');
+      var elEdit = document.getElementById('perm_akses_edit_order');
+      var elManager = document.getElementById('perm_is_manager');
+
+      if(elLaporan) elLaporan.checked = perms.akses_laporan || false;
+      if(elLayanan) elLayanan.checked = perms.akses_layanan || false;
+      if(elPengeluaran) elPengeluaran.checked = perms.akses_pengeluaran || false;
+      if(elEdit) elEdit.checked = perms.akses_edit_order || false;
+      if(elManager) elManager.checked = perms.is_manager || false;
+    }
+
+    async function togglePermission(key) {
+      if (!currentToko) return;
+      var perms = getTokoPermissions();
+      
+      var checkbox = document.getElementById('perm_' + key);
+      if (!checkbox) return;
+      
+      perms[key] = checkbox.checked;
+
+      // Jika Manager di-ON-kan, otomatis centang semua akses
+      if (key === 'is_manager' && checkbox.checked) {
+        perms.akses_laporan = true;
+        perms.akses_layanan = true;
+        perms.akses_pengeluaran = true;
+        perms.akses_edit_order = true;
+        loadPermissionSwitches();
+      }
+
+      const { error } = await supabaseClient
+        .from('toko')
+        .update({ permissions: perms })
+        .eq('id', currentToko.id);
+
+      if (!error) {
+        currentToko.permissions = perms;
+        showToast("Izin akses kasir diperbarui! ⚙️", "success");
+      } else {
+        showToast("Gagal memperbarui izin akses.", "error");
+      }
+    }
   </script>
 </body>
 </html>
