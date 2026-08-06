@@ -1,295 +1,257 @@
 // ==========================================
-// KELOLA SUB-AKUN KASIR & AKSES
+// KELOLA PROFIL TOKO & SETTING OWNER
 // ==========================================
 
-function toggleFormTambahKasir() {
-  const form = document.getElementById('form-tambah-kasir');
-  if (form) form.classList.toggle('hidden');
+async function loadSettingsToForm() {
+  if (!currentToko) return;
+
+  const namaTokoInput = document.getElementById('setting_nama_toko');
+  const alamatInput = document.getElementById('setting_alamat_toko');
+  const noHpInput = document.getElementById('setting_nohp_toko');
+
+  if (namaTokoInput) namaTokoInput.value = currentToko.nama_toko || '';
+  if (alamatInput) alamatInput.value = currentToko.alamat || '';
+  if (noHpInput) noHpInput.value = currentToko.no_hp || '';
 }
 
-async function simpanKasirBaru() {
-  const emailInput = document.getElementById('new_kasir_email');
-  const passInput = document.getElementById('new_kasir_password');
+async function simpanProfilDanPassOwner() {
+  const namaTokoInput = document.getElementById('setting_nama_toko');
+  const alamatInput = document.getElementById('setting_alamat_toko');
+  const noHpInput = document.getElementById('setting_nohp_toko');
+  const passInput = document.getElementById('edit_owner_pass');
 
-  const email = emailInput ? emailInput.value.trim() : '';
-  const password = passInput ? passInput.value.trim() : '';
+  const namaToko = namaTokoInput ? namaTokoInput.value.trim() : '';
+  const alamat = alamatInput ? alamatInput.value.trim() : '';
+  const noHp = noHpInput ? noHpInput.value.trim() : '';
+  const newPass = passInput ? passInput.value.trim() : '';
 
-  if (!email || !password) {
-    showToast("Isi email dan password kasir!", "error");
-    return;
-  }
-
-  if (!currentToko) {
-    showToast("Data toko tidak ditemukan!", "error");
+  if (!currentToko || !supabaseClient) {
+    if (typeof showToast === 'function') showToast("Data toko belum siap!", "error");
     return;
   }
 
   try {
-    // Gunakan temporary client agar session Owner tidak ter-logout saat buat kasir
-    const tempSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: { persistSession: false }
-    });
+    // 1. Update Profile Toko
+    const { error: tokoErr } = await supabaseClient
+      .from('toko')
+      .update({
+        nama_toko: namaToko,
+        alamat: alamat,
+        no_hp: noHp
+      })
+      .eq('id', currentToko.id);
 
-    const { data, error } = await tempSupabase.auth.signUp({ 
-      email: email, 
-      password: password,
+    if (tokoErr) {
+      if (typeof showToast === 'function') showToast("Gagal simpan toko: " + tokoErr.message, "error");
+      return;
+    }
+
+    currentToko.nama_toko = namaToko;
+    currentToko.alamat = alamat;
+    currentToko.no_hp = noHp;
+
+    const topbarToko = document.getElementById('topbar-nama-toko');
+    if (topbarToko) topbarToko.innerText = namaToko || 'LNDR';
+
+    // 2. Update Password Owner jika diisi
+    if (newPass) {
+      if (newPass.length < 6) {
+        if (typeof showToast === 'function') showToast("Password minimal 6 karakter!", "error");
+        return;
+      }
+
+      const { error: passErr } = await supabaseClient.auth.updateUser({ password: newPass });
+      if (passErr) {
+        if (typeof showToast === 'function') showToast("Gagal ubah pass: " + passErr.message, "error");
+        return;
+      }
+      if (passInput) passInput.value = '';
+    }
+
+    if (typeof showToast === 'function') showToast("Pengaturan profil berhasil disimpan! 🎉", "success");
+
+  } catch (err) {
+    if (typeof showToast === 'function') showToast("Terjadi kesalahan: " + err.message, "error");
+  }
+}
+
+// ==========================================
+// KELOLA DAFTAR KASIR & HAK AKSES
+// ==========================================
+
+async function loadDaftarKasirList() {
+  const container = document.getElementById('list-kasir-container');
+  if (!container) return;
+
+  if (!currentToko || !supabaseClient) {
+    container.innerHTML = '<p class="text-xs text-slate-400 text-center py-2">Memuat data toko...</p>';
+    return;
+  }
+
+  try {
+    const { data: kasirList, error } = await supabaseClient
+      .from('profiles')
+      .select('*')
+      .eq('toko_id', currentToko.id)
+      .eq('role', 'kasir');
+
+    if (error || !kasirList || kasirList.length === 0) {
+      container.innerHTML = '<p class="text-xs text-slate-400 text-center py-2">Belum ada akun kasir terdaftar.</p>';
+      return;
+    }
+
+    container.innerHTML = kasirList.map(k => `
+      <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200 flex justify-between items-center text-xs">
+        <div>
+          <p class="font-extrabold text-slate-800">${k.nama_user || 'Kasir'}</p>
+          <p class="text-[10px] text-slate-400">${k.email || ''}</p>
+        </div>
+        <button onclick="hapusAkunKasir('${k.id}')" class="text-rose-500 font-bold text-xs hover:underline bg-rose-50 px-2 py-1 rounded-lg border border-rose-100">Hapus</button>
+      </div>
+    `).join('');
+
+  } catch (err) {
+    console.error("Error loadDaftarKasirList:", err);
+  }
+}
+
+async function tambahKasirBaru() {
+  const emailInput = document.getElementById('new_kasir_email');
+  const passInput = document.getElementById('new_kasir_pass');
+  const namaInput = document.getElementById('new_kasir_nama');
+
+  const email = emailInput ? emailInput.value.trim() : '';
+  const password = passInput ? passInput.value.trim() : '';
+  const nama = namaInput ? namaInput.value.trim() : '';
+
+  if (!email || !password || !nama) {
+    if (typeof showToast === 'function') showToast("Isi nama, email, dan password kasir!", "error");
+    return;
+  }
+
+  if (!currentToko || !supabaseClient) {
+    if (typeof showToast === 'function') showToast("Data toko belum siap!", "error");
+    return;
+  }
+
+  try {
+    // 1. Buat Auth User Kasir Baru
+    const { data: authData, error: authErr } = await supabaseClient.auth.signUp({
+      email,
+      password,
       options: {
         data: {
           toko_id: currentToko.id,
           role: 'kasir',
-          nama_user: 'Kasir ' + email.split('@')[0]
+          nama_user: nama
         }
       }
     });
 
-    if (error) {
-      showToast("Gagal mendaftarkan kasir: " + error.message, "error");
+    if (authErr) {
+      if (typeof showToast === 'function') showToast("Gagal menambah kasir: " + authErr.message, "error");
       return;
     }
 
-    if (data && data.user) {
-      showToast("Akun Kasir " + email + " Berhasil Dibuat! 🎉", "success");
-      if (emailInput) emailInput.value = '';
-      if (passInput) passInput.value = '';
-      
-      toggleFormTambahKasir();
-      
-      // Beri jeda 1 detik agar trigger Supabase selesai memproses
-      setTimeout(() => {
-        loadDaftarKasirList();
-      }, 1000);
-    }
+    if (typeof showToast === 'function') showToast("Akun kasir berhasil dibuat! 🎉", "success");
+
+    if (emailInput) emailInput.value = '';
+    if (passInput) passInput.value = '';
+    if (namaInput) namaInput.value = '';
+
+    await loadDaftarKasirList();
+
   } catch (err) {
-    showToast("Terjadi kesalahan: " + err.message, "error");
+    if (typeof showToast === 'function') showToast("Terjadi kesalahan: " + err.message, "error");
   }
 }
 
-async function loadDaftarKasirList() {
-  if (!currentToko || !supabaseClient) return;
+async function hapusAkunKasir(kasirId) {
+  if (!confirm("Apakah Anda yakin ingin menghapus akun kasir ini?")) return;
 
-  const container = document.getElementById('list-kasir-container');
-  if (!container) return;
+  if (!supabaseClient) return;
 
-  container.innerHTML = '<p class="text-[10px] text-slate-400 italic py-2">Memuat daftar kasir...</p>';
+  try {
+    const { error } = await supabaseClient
+      .from('profiles')
+      .delete()
+      .eq('id', kasirId);
 
-  const res = await supabaseClient
-    .from('profiles')
-    .select('*')
-    .eq('toko_id', currentToko.id)
-    .eq('role', 'kasir');
-
-  const data = res.data || [];
-
-  if (!data.length) {
-    container.innerHTML = '<p class="text-[10px] text-slate-400 italic py-2">Belum ada akun kasir terdaftar.</p>';
-  } else {
-    container.innerHTML = data.map(k => 
-      '<div class="flex justify-between items-center p-2.5 bg-white rounded-xl border border-indigo-100 text-[11px] shadow-sm">' +
-        '<div>' +
-          '<p class="font-extrabold text-slate-800">' + (k.nama_user || 'Kasir') + '</p>' +
-          '<p class="text-[9px] text-slate-400">ID: ' + k.id.substring(0, 8) + '</p>' +
-        '</div>' +
-        '<span class="text-[8px] bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 rounded-full uppercase">Aktif</span>' +
-      '</div>'
-    ).join('');
-  }
-}
-
-// ==========================================
-// PENGATURAN AKSES & HAK KASIR (PERMISSIONS)
-// ==========================================
-
-function getTokoPermissions() {
-  if (currentToko && currentToko.permissions) {
-    // Pastikan jika berbentuk string JSON, diparse dengan aman
-    if (typeof currentToko.permissions === 'string') {
-      try { return JSON.parse(currentToko.permissions); } catch(e) {}
+    if (error) {
+      if (typeof showToast === 'function') showToast("Gagal menghapus kasir: " + error.message, "error");
+      return;
     }
-    return currentToko.permissions;
+
+    if (typeof showToast === 'function') showToast("Akun kasir berhasil dihapus.", "info");
+    await loadDaftarKasirList();
+
+  } catch (err) {
+    if (typeof showToast === 'function') showToast("Terjadi kesalahan: " + err.message, "error");
   }
-  return {
-    akses_laporan: false,
-    akses_layanan: false,
-    akses_pengeluaran: false,
-    akses_edit_order: false,
-    is_manager: false
-  };
 }
 
-function loadPermissionSwitches() {
-  var perms = getTokoPermissions();
-  var elLaporan = document.getElementById('perm_akses_laporan');
-  var elLayanan = document.getElementById('perm_akses_layanan');
-  var elPengeluaran = document.getElementById('perm_akses_pengeluaran');
-  var elEdit = document.getElementById('perm_akses_edit_order');
-  var elManager = document.getElementById('perm_is_manager');
+// ==========================================
+// SWITCH HAK AKSES PERMISSIONS TOKO
+// ==========================================
 
-  if(elLaporan) elLaporan.checked = !!perms.akses_laporan;
-  if(elLayanan) elLayanan.checked = !!perms.akses_layanan;
-  if(elPengeluaran) elPengeluaran.checked = !!perms.akses_pengeluaran;
-  if(elEdit) elEdit.checked = !!perms.akses_edit_order;
-  if(elManager) elManager.checked = !!perms.is_manager;
+async function loadPermissionSwitches() {
+  if (!currentToko) return;
+
+  let perms = currentToko.permissions || {};
+  if (typeof perms === 'string') {
+    try { perms = JSON.parse(perms); } catch (e) { perms = {}; }
+  }
+
+  const switchManager = document.getElementById('switch_perm_manager');
+  const switchLaporan = document.getElementById('switch_perm_laporan');
+  const switchLayanan = document.getElementById('switch_perm_layanan');
+  const switchPengeluaran = document.getElementById('switch_perm_pengeluaran');
+  const switchEditOrder = document.getElementById('switch_perm_edit_order');
+
+  if (switchManager) switchManager.checked = !!perms.is_manager;
+  if (switchLaporan) switchLaporan.checked = !!perms.akses_laporan;
+  if (switchLayanan) switchLayanan.checked = !!perms.akses_layanan;
+  if (switchPengeluaran) switchPengeluaran.checked = !!perms.akses_pengeluaran;
+  if (switchEditOrder) switchEditOrder.checked = !!perms.akses_edit_order;
 }
 
-async function togglePermission(key) {
+async function simpanPermissionsToko() {
   if (!currentToko || !supabaseClient) return;
-  var perms = getTokoPermissions();
-  
-  var checkbox = document.getElementById('perm_' + key);
-  if (!checkbox) return;
-  
-  perms[key] = checkbox.checked;
 
-  // Jika diatur sebagai Manager, beri centang pada semua izin
-  if (key === 'is_manager' && checkbox.checked) {
-    perms.akses_laporan = true;
-    perms.akses_layanan = true;
-    perms.akses_pengeluaran = true;
-    perms.akses_edit_order = true;
-    loadPermissionSwitches();
-  }
+  const switchManager = document.getElementById('switch_perm_manager');
+  const switchLaporan = document.getElementById('switch_perm_laporan');
+  const switchLayanan = document.getElementById('switch_perm_layanan');
+  const switchPengeluaran = document.getElementById('switch_perm_pengeluaran');
+  const switchEditOrder = document.getElementById('switch_perm_edit_order');
 
-  const { error } = await supabaseClient
-    .from('toko')
-    .update({ permissions: perms })
-    .eq('id', currentToko.id);
+  const permissionsData = {
+    is_manager: switchManager ? switchManager.checked : false,
+    akses_laporan: switchLaporan ? switchLaporan.checked : false,
+    akses_layanan: switchLayanan ? switchLayanan.checked : false,
+    akses_pengeluaran: switchPengeluaran ? switchPengeluaran.checked : false,
+    akses_edit_order: switchEditOrder ? switchEditOrder.checked : false
+  };
 
-  if (!error) {
-    currentToko.permissions = perms;
-    showToast("Izin akses kasir berhasil diperbarui! ⚙️", "success");
-    applyUserPermissionsUI();
-  } else {
-    showToast("Gagal memperbarui izin akses: " + error.message, "error");
-  }
-}
-
-// ==========================================
-// TARGET OMSET & STRUK
-// ==========================================
-
-function updateTargetProgressBar(currentOmsetBulanIni) {
-  var targetVal = (currentToko && currentToko.target_omset) ? parseFloat(currentToko.target_omset) : 15000000;
-  var percent = Math.min(100, Math.round((currentOmsetBulanIni / targetVal) * 100));
-  
-  var badge = document.getElementById('target-percentage-badge');
-  var bar = document.getElementById('target-progress-bar');
-  var txtOmset = document.getElementById('display-omset-bulan-ini');
-  var txtTarget = document.getElementById('display-target-omset');
-
-  if(badge) badge.innerText = percent + '%';
-  if(bar) bar.style.width = percent + '%';
-  if(txtOmset) txtOmset.innerText = 'Rp ' + currentOmsetBulanIni.toLocaleString();
-  if(txtTarget) txtTarget.innerText = 'Rp ' + targetVal.toLocaleString();
-}
-
-async function simpanTargetOmset() {
-  var inputEl = document.getElementById('input_target_omset');
-  var val = inputEl ? parseFloat(inputEl.value) : 0;
-
-  if(isNaN(val) || val <= 0) {
-    showToast("Masukkan nominal target omset yang valid!", "error");
-    return;
-  }
-  if(!currentToko || !supabaseClient) return;
-
-  const { error } = await supabaseClient
-    .from('toko')
-    .update({ target_omset: val })
-    .eq('id', currentToko.id);
-
-  if(!error) {
-    currentToko.target_omset = val;
-    showToast("Target omset bulanan diperbarui! 🎯", "success");
-    if(inputEl) inputEl.value = '';
-    loadDataHome();
-  } else {
-    showToast("Gagal menyimpan target omset: " + error.message, "error");
-  }
-}
-
-function loadSettingsToForm() {
-  if(!currentToko) return;
-  var paperEl = document.getElementById('setting_paper_size');
-  var footerEl = document.getElementById('setting_struk_footer');
-  var waEl = document.getElementById('setting_wa_template');
-  var namaTokoEl = document.getElementById('edit_nama_toko');
-
-  if(paperEl) paperEl.value = currentToko.paper_size || '58mm';
-  if(footerEl) footerEl.value = currentToko.struk_footer || '';
-  if(waEl) waEl.value = currentToko.wa_template || '';
-  if(namaTokoEl) namaTokoEl.value = currentToko.nama_toko || '';
-}
-
-async function simpanPengaturanStruk() {
-  var size = document.getElementById('setting_paper_size').value;
-  var footer = document.getElementById('setting_struk_footer').value;
-  if(!currentToko || !supabaseClient) return;
-
-  const { error } = await supabaseClient
-    .from('toko')
-    .update({ paper_size: size, struk_footer: footer })
-    .eq('id', currentToko.id);
-
-  if(!error) {
-    currentToko.paper_size = size;
-    currentToko.struk_footer = footer;
-    showToast("Pengaturan struk tersimpan! 🖨️", "success");
-  } else {
-    showToast("Gagal menyimpan pengaturan struk.", "error");
-  }
-}
-
-async function simpanTemplateWA() {
-  var tmpl = document.getElementById('setting_wa_template').value;
-  if(!currentToko || !supabaseClient) return;
-
-  const { error } = await supabaseClient
-    .from('toko')
-    .update({ wa_template: tmpl })
-    .eq('id', currentToko.id);
-
-  if(!error) {
-    currentToko.wa_template = tmpl;
-    showToast("Template pesan WhatsApp tersimpan! 📲", "success");
-  } else {
-    showToast("Gagal menyimpan template WA.", "error");
-  }
-}
-
-async function simpanProfilDanPassOwner() {
-  var newNama = document.getElementById('edit_nama_toko').value;
-  var newPass = document.getElementById('edit_owner_pass').value;
-
-  if(!newNama) {
-    showToast("Nama toko tidak boleh kosong!", "error");
-    return;
-  }
-
-  if(currentToko && supabaseClient) {
+  try {
     const { error } = await supabaseClient
       .from('toko')
-      .update({ nama_toko: newNama })
+      .update({ permissions: permissionsData })
       .eq('id', currentToko.id);
 
-    if(!error) {
-      currentToko.nama_toko = newNama;
-      const topbarToko = document.getElementById('topbar-nama-toko');
-      if(topbarToko) topbarToko.innerText = newNama;
-      showToast("Profil Toko diperbarui! 🔑", "success");
+    if (error) {
+      if (typeof showToast === 'function') showToast("Gagal update izin: " + error.message, "error");
+      return;
     }
-  }
 
-  if(newPass && newPass.length >= 6 && supabaseClient) {
-    const { error: passErr } = await supabaseClient.auth.updateUser({ password: newPass });
-    if(!passErr) {
-      showToast("Password Owner berhasil diperbarui!", "success");
-      const passEl = document.getElementById('edit_owner_pass');
-      if(passEl) passEl.value = '';
-    } else {
-      showToast("Gagal ubah password: " + passErr.message, "error");
-    }
+    currentToko.permissions = permissionsData;
+    if (typeof applyUserPermissionsUI === 'function') applyUserPermissionsUI();
+    if (typeof showToast === 'function') showToast("Izin akses kasir berhasil diperbarui! 🔐", "success");
+
+  } catch (err) {
+    if (typeof showToast === 'function') showToast("Terjadi kesalahan: " + err.message, "error");
   }
 }
+
 // ==========================================
 // KELOLA LAYANAN & HARGA (DASHBOARD/MODAL)
 // ==========================================
@@ -298,8 +260,16 @@ async function renderKelolaLayananList() {
   const container = document.getElementById('list-kelola-layanan-container');
   if (!container) return;
 
-  if (!currentToko || typeof supabaseClient === 'undefined' || !supabaseClient) {
-    container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Data toko belum siap...</p>';
+  if (typeof supabaseClient === 'undefined' || !supabaseClient) {
+    container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Sistem belum siap...</p>';
+    return;
+  }
+
+  // Tentukan toko_id secara fleksibel (CurrentToko ATAU Profile)
+  const tokoId = (currentToko && currentToko.id) ? currentToko.id : (currentUserProfile ? currentUserProfile.toko_id : null);
+
+  if (!tokoId) {
+    container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Memuat data toko...</p>';
     return;
   }
 
@@ -309,7 +279,7 @@ async function renderKelolaLayananList() {
     const { data: layananList, error } = await supabaseClient
       .from('layanan')
       .select('*')
-      .eq('toko_id', currentToko.id)
+      .eq('toko_id', tokoId)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -355,7 +325,9 @@ async function tambahLayananBaru() {
     return;
   }
 
-  if (!currentToko || !supabaseClient) {
+  const tokoId = (currentToko && currentToko.id) ? currentToko.id : (currentUserProfile ? currentUserProfile.toko_id : null);
+
+  if (!tokoId || !supabaseClient) {
     if (typeof showToast === 'function') showToast("Data toko tidak ditemukan!", "error");
     return;
   }
@@ -364,7 +336,7 @@ async function tambahLayananBaru() {
     const { error } = await supabaseClient
       .from('layanan')
       .insert([{
-        toko_id: currentToko.id,
+        toko_id: tokoId,
         nama_layanan: nama,
         harga: harga,
         satuan: satuan,

@@ -23,41 +23,57 @@ function openModalJendelaAkunWithChart() {
 
 // --- OPEN MODAL KELOLA LAYANAN ---
 async function openModalKelolaLayanan() {
-  // 1. Cek Gembok Izin
-  if (typeof getTokoPermissions === 'function' && typeof currentUserProfile !== 'undefined' && currentUserProfile) {
-    const perms = getTokoPermissions();
-    if (currentUserProfile.role !== 'owner' && !perms.is_manager && !perms.akses_layanan) {
-      if (typeof showToast === 'function') showToast("Anda tidak memiliki izin mengelola layanan & harga!", "error");
-      return;
+  // 1. Pengecekan Izin Akses Kasir
+  if (typeof currentUserProfile !== 'undefined' && currentUserProfile) {
+    const isOwner = currentUserProfile.role === 'owner';
+    
+    if (!isOwner) {
+      let perms = { akses_layanan: false, is_manager: false };
+      
+      if (typeof getTokoPermissions === 'function') {
+        perms = getTokoPermissions();
+      }
+
+      // Jika bukan Owner, bukan Manager, dan tidak ada izin layanan -> Tampilkan Notif
+      if (!perms.is_manager && !perms.akses_layanan) {
+        if (typeof showToast === 'function') {
+          showToast("Anda tidak memiliki izin mengelola layanan & harga!", "error");
+        }
+        return;
+      }
     }
   }
 
-  // 2. Buka Modal Terlebih Dahulu agar Kasir Melihat Respons Langsung
+  // 2. Buka Modal
   const modal = document.getElementById('modal-kelola-layanan');
-  if (modal) modal.classList.remove('hidden');
-
-  // 3. Render List Layanan secara Aman
-  if (typeof renderKelolaLayananList === 'function') {
-    try {
-      await renderKelolaLayananList();
-    } catch (e) {
-      console.error("Error render kelola layanan:", e);
-    }
+  if (modal) {
+    modal.classList.remove('hidden');
   }
-}
 
-function closeModalKelolaLayanan() {
-  closeModalWithHistory('modal-kelola-layanan');
+  // 3. Render List Layanan
+  if (typeof renderKelolaLayananList === 'function') {
+    await renderKelolaLayananList();
+  }
 }
 
 // --- OPEN MODAL PENGELUARAN ---
 function openModalPengeluaran() {
-  // 1. Cek Gembok Izin
-  if (typeof getTokoPermissions === 'function' && typeof currentUserProfile !== 'undefined' && currentUserProfile) {
-    const perms = getTokoPermissions();
-    if (currentUserProfile.role !== 'owner' && !perms.is_manager && !perms.akses_pengeluaran) {
-      if (typeof showToast === 'function') showToast("Anda tidak memiliki izin mencatat pengeluaran!", "error");
-      return;
+  if (typeof currentUserProfile !== 'undefined' && currentUserProfile) {
+    const isOwner = currentUserProfile.role === 'owner';
+    
+    if (!isOwner) {
+      let perms = { akses_pengeluaran: false, is_manager: false };
+      
+      if (typeof getTokoPermissions === 'function') {
+        perms = getTokoPermissions();
+      }
+
+      if (!perms.is_manager && !perms.akses_pengeluaran) {
+        if (typeof showToast === 'function') {
+          showToast("Anda tidak memiliki izin mencatat pengeluaran!", "error");
+        }
+        return;
+      }
     }
   }
 
@@ -67,17 +83,6 @@ function openModalPengeluaran() {
   if (inputKet) inputKet.value = '';
 
   const modal = document.getElementById('modal-pengeluaran');
-  if (modal) modal.classList.remove('hidden');
-}
-
-function closeModalPengeluaran() {
-  closeModalWithHistory('modal-pengeluaran');
-}
-
-function openModalStatistik(tipe) {
-  const modal = document.getElementById('modal-rincian-statistik');
-  const title = document.getElementById('modal-stat-title');
-  if (title) title.innerText = "Rincian Order: " + tipe;
   if (modal) modal.classList.remove('hidden');
 }
 
