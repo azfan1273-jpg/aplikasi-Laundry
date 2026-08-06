@@ -308,7 +308,10 @@ function closeModalPilihLayanan() {
 // --- WRAPPER SIMPAN PELANGGAN & LAYANAN BARU ---
 function simpanCustomerBaru(e) {
   if (e && e.preventDefault) e.preventDefault();
-  if (typeof window.prosesSimpanCustomerBaru === 'function') {
+  // Langsung panggil fungsi dari js/custumer.js
+  if (typeof window.simpanCustomerBaruAsli === 'function') {
+    window.simpanCustomerBaruAsli(e);
+  } else if (typeof window.prosesSimpanCustomerBaru === 'function') {
     window.prosesSimpanCustomerBaru();
   } else if (typeof simpanCustomer === 'function') {
     simpanCustomer();
