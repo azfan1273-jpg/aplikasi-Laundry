@@ -545,3 +545,104 @@ window.fetchPengeluaran = fetchPengeluaran;
 document.addEventListener('DOMContentLoaded', () => {
   fetchPengeluaran();
 });
+
+// ==========================================================
+// TAMBAHAN FUNGSI PENGELUARAN (TIDAK MERUSAK KODE ATAS)
+// ==========================================================
+
+// 1. FUNGSI SIMPAN PENGELUARAN BARU
+async function simpanPengeluaranBaru(e) {
+  if (e && e.preventDefault) e.preventDefault();
+
+  console.log("-> Memproses Simpan Pengeluaran...");
+
+  // Cari input nominal & keterangan dari berbagai ID yang mungkin ada di HTML
+  const nominalInput = document.getElementById('new_nominal_pengeluaran') 
+                    || document.getElementById('pengeluaranNominal')
+                    || document.getElementById('nominal_pengeluaran')
+                    || document.getElementById('nominal')
+                    || document.querySelector('#modal-pengeluaran input[type="number"]')
+                    || document.querySelector('#modal-pengeluaran input[type="text"]');
+
+  const ketInput = document.getElementById('new_keterangan_pengeluaran') 
+                || document.getElementById('pengeluaranKeterangan')
+                || document.getElementById('keterangan_pengeluaran')
+                || document.getElementById('keterangan')
+                || document.querySelector('#modal-pengeluaran input[placeholder*="ket"]')
+                || document.querySelector('#modal-pengeluaran input[placeholder*="Ket"]');
+
+  let rawValue = nominalInput?.value || '';
+
+  // Bersihkan inputan: Hapus Rp, titik, koma, dan spasi
+  let cleanValue = rawValue.toString().replace(/[^0-9]/g, '');
+  let nominal = parseFloat(cleanValue);
+
+  if (isNaN(nominal) || nominal <= 0) {
+    alert('Harap masukkan nominal pengeluaran yang valid!');
+    return;
+  }
+
+  const ketValue = ketInput?.value?.trim() || 'Pengeluaran Toko';
+
+  // Cek koneksi Supabase
+  const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
+
+  if (!client) {
+    alert('Koneksi Supabase belum siap! Silakan refresh halaman.');
+    return;
+  }
+
+  try {
+    const userRes = await client.auth.getUser();
+    const userId = userRes?.data?.user?.id || null;
+
+    const payload = {
+      nominal: nominal,
+      keterangan: ketValue
+    };
+
+    if (userId) {
+      payload.user_id = userId;
+    }
+
+    const { data, error } = await client
+      .from('pengeluaran')
+      .insert([payload])
+      .select();
+
+    if (error) {
+      console.error('Error insert pengeluaran:', error);
+      alert('Gagal menyimpan pengeluaran: ' + error.message);
+      return;
+    }
+
+    alert('Pengeluaran sebesar Rp ' + nominal.toLocaleString('id-ID') + ' berhasil disimpan!');
+
+    // Reset input
+    if (nominalInput) nominalInput.value = '';
+    if (ketInput) ketInput.value = '';
+
+    // Sembunyikan modal pengeluaran
+    if (typeof closeModalWithHistory === 'function') {
+      closeModalWithHistory('modal-pengeluaran');
+    } else {
+      const modal = document.getElementById('modal-pengeluaran') || document.getElementById('form-pengeluaran-baru');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    // Reload Laporan
+    if (typeof loadReport === 'function') {
+      loadReport();
+    }
+
+  } catch (err) {
+    console.error('Catch simpan pengeluaran:', err);
+    alert('Terjadi kesalahan sistem: ' + err.message);
+  }
+}
+
+// 2. DAFTARKAN FUNGSI KE WINDOW GLOBAL
+window.simpanPengeluaranBaru = simpanPengeluaranBaru;
+window.loadReport = loadReport;
+window.switchReportSubTab = switchReportSubTab;
+window.openModalSubReport = openModalSubReport;
