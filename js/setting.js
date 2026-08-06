@@ -177,15 +177,31 @@ async function renderKelolaLayananList() {
 }
 
 // ==========================================
-// TIMPA FUNGSI tambahLayananBaru SAJA DI js/setting.js
+// FUNGSI SIMPAN LAYANAN BARU (PERBAIKAN FITUR)
 // ==========================================
 async function tambahLayananBaru(e) {
   if (e && e.preventDefault) e.preventDefault();
 
-  const namaInput = document.getElementById('new_nama_layanan');
-  const hargaInput = document.getElementById('new_harga_layanan');
-  const satuanInput = document.getElementById('new_satuan_layanan');
-  const estimasiInput = document.getElementById('new_estimasi_hari');
+  console.log("-> Memproses Simpan Layanan Baru...");
+
+  // Cari input berdasarkan ID atau posisi di modal layanan
+  const namaInput = document.getElementById('new_nama_layanan')
+                 || document.getElementById('nama_layanan')
+                 || document.querySelector('#modal-kelola-layanan input[type="text"]')
+                 || document.querySelector('#modal-layanan input[type="text"]');
+
+  const hargaInput = document.getElementById('new_harga_layanan')
+                  || document.getElementById('harga_layanan')
+                  || document.querySelector('input[placeholder*="5500"]')
+                  || document.querySelector('input[placeholder*="harga"]');
+
+  const satuanInput = document.getElementById('new_satuan_layanan')
+                   || document.getElementById('satuan_layanan')
+                   || document.querySelector('select');
+
+  const estimasiInput = document.getElementById('new_estimasi_hari')
+                     || document.getElementById('estimasi_hari')
+                     || document.querySelector('input[placeholder*="3"]');
 
   const nama_layanan = namaInput?.value?.trim();
   const harga = parseFloat(hargaInput?.value) || 0;
@@ -193,37 +209,27 @@ async function tambahLayananBaru(e) {
   const estimasi_hari = parseFloat(estimasiInput?.value) || 1;
 
   if (!nama_layanan || harga <= 0) {
-    alert('Harap isi Nama Layanan dan Harga yang valid!');
+    if (typeof showToast === 'function') showToast('Harap isi Nama Layanan & Harga yang valid!', 'error');
+    else alert('Harap isi Nama Layanan dan Harga yang valid!');
     return;
   }
 
   const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
 
   if (!client) {
-    alert('Koneksi Supabase belum siap. Harap refresh halaman!');
+    if (typeof showToast === 'function') showToast('Koneksi Supabase belum siap!', 'error');
+    else alert('Koneksi Supabase belum siap. Harap refresh halaman!');
     return;
   }
 
   try {
-    // 1. Ambil user_id dari sesi aktif
     const userRes = await client.auth.getUser();
     const userId = userRes?.data?.user?.id || null;
 
-    // 2. Ambil toko_id dari memori atau localStorage
     let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) 
                  ? currentToko.id 
                  : localStorage.getItem('toko_id');
 
-    // 3. Fallback: Ambil ID toko dari database jika toko_id belum ter-set
-    if (!tokoId) {
-      const { data: tokoData } = await client.from('toko').select('id').limit(1).maybeSingle();
-      if (tokoData && tokoData.id) {
-        tokoId = tokoData.id;
-        localStorage.setItem('toko_id', tokoId);
-      }
-    }
-
-    // 4. Susun Payload
     const payload = {
       nama_layanan: nama_layanan,
       harga: harga,
@@ -236,7 +242,8 @@ async function tambahLayananBaru(e) {
       payload.toko_id = tokoId;
     }
 
-    // 5. Insert ke Supabase
+    console.log("Sending payload layanan to Supabase:", payload);
+
     const { data, error } = await client
       .from('layanan')
       .insert([payload])
@@ -244,25 +251,44 @@ async function tambahLayananBaru(e) {
 
     if (error) {
       console.error('Error Insert Layanan:', error);
-      alert('Gagal menyimpan layanan: ' + error.message);
+      if (typeof showToast === 'function') showToast('Gagal menyimpan: ' + error.message, 'error');
+      else alert('Gagal menyimpan layanan: ' + error.message);
       return;
     }
 
-    alert('Layanan "' + nama_layanan + '" berhasil ditambahkan!');
+    if (typeof showToast === 'function') showToast('Layanan "' + nama_layanan + '" tersimpan!', 'success');
+    else alert('Layanan "' + nama_layanan + '" berhasil ditambahkan!');
 
     // Reset Form Input
     if (namaInput) namaInput.value = '';
     if (hargaInput) hargaInput.value = '';
     if (estimasiInput) estimasiInput.value = '';
 
-    // Refresh daftar layanan jika ada fungsinya
+    // Refresh daftar tampilan layanan
     if (typeof renderKelolaLayananList === 'function') renderKelolaLayananList();
+    if (typeof renderLayananPOS === 'function') renderLayananPOS();
 
   } catch (err) {
     console.error('Catch simpan layanan:', err);
-    alert('Terjadi kesalahan sistem: ' + err.message);
+    if (typeof showToast === 'function') showToast('Terjadi kesalahan sistem', 'error');
   }
 }
+
+// AUTOMATIC EVENT LISTENER UNTUK TOMBOL "Simpan Layanan Baru"
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('button') || e.target;
+  const txt = (btn.textContent || '').trim().toLowerCase();
+
+  if (txt.includes('simpan layanan baru') || txt.includes('simpan layanan')) {
+    e.preventDefault();
+    tambahLayananBaru(e);
+  }
+});
+
+// Register Global Window
+window.tambahLayananBaruAsli = tambahLayananBaru;
+window.tambahLayananBaru = tambahLayananBaru;
+window.hapusLayananBaru = hapusLayananBaru;
 
 // Hapus Layanan dari Supabase
 async function hapusLayananBaru(id) {
@@ -283,10 +309,6 @@ async function hapusLayananBaru(id) {
     console.error('Catch hapus layanan:', err);
   }
 }
-
-// ==========================================
-// FUNGSI SIMPAN & MUAT TARGET OMSET BULANAN
-// ==========================================
 
 // 1. Simpan Target Omset ke Penyimpanan Lokal
 // ==========================================
