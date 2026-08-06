@@ -561,22 +561,19 @@ async function fetchPengeluaran() {
   }
 }
 
-// 11. FUNGSI TARGET OMSET BULANAN
+// ==========================================
+// FIX TAMPILAN TARGET OMSET BULANAN
+// ==========================================
 function simpanTargetOmset(e) {
   if (e && e.preventDefault) e.preventDefault();
 
-  const inputs = document.querySelectorAll('input');
-  let targetInput = null;
+  // Ambil inputan nominal
+  const inputEl = document.getElementById('input-target-omset') 
+               || document.querySelector('input[value*="66"]') 
+               || document.querySelector('input[type="number"]')
+               || document.querySelector('input');
 
-  inputs.forEach(inp => {
-    if (inp.value == '15' || inp.value == '15000000' || inp.placeholder.includes('15') || (inp.parentElement && inp.parentElement.textContent.includes('TARGET OMSET'))) {
-      targetInput = inp;
-    }
-  });
-
-  if (!targetInput) targetInput = document.querySelector('input[type="number"]') || inputs[0];
-
-  let rawVal = targetInput ? targetInput.value : '15000000';
+  let rawVal = inputEl ? inputEl.value : '15000000';
   let cleanVal = rawVal.toString().replace(/[^0-9]/g, '');
   let nominal = parseFloat(cleanVal);
 
@@ -585,17 +582,22 @@ function simpanTargetOmset(e) {
     return;
   }
 
+  // Jika diisi angka kecil seperti "66", otomatis dikali jutaan
   if (nominal < 1000) nominal = nominal * 1000000;
 
+  // Simpan ke LocalStorage
   localStorage.setItem('target_omset_bulanan', nominal);
+
+  // Update Tampilan Seketika
   updateProgressTargetOmset();
 
-  alert('Target Omset Bulanan berhasil disimpan: Rp ' + nominal.toLocaleString('id-ID'));
+  alert('Target Omset Bulanan berhasil diperbarui: Rp ' + nominal.toLocaleString('id-ID'));
 }
 
 function updateProgressTargetOmset() {
   const targetSaved = parseFloat(localStorage.getItem('target_omset_bulanan')) || 15000000;
-  
+
+  // 1. Hitung Total Omset Bulan Ini dari Cache
   let omsetBulanIni = 0;
   const now = new Date();
   const txList = window.globalTxCache || [];
@@ -609,149 +611,43 @@ function updateProgressTargetOmset() {
     }
   });
 
-  document.querySelectorAll('p, span, div, td').forEach(el => {
-    if (el.children.length === 0) {
-      if (el.textContent.includes('Target:') || el.textContent.includes('Target :')) {
+  // 2. Hitung Persentase Progress
+  let persen = Math.min(Math.round((omsetBulanIni / targetSaved) * 100), 100);
+
+  // 3. Update Berdasarkan ID Spesifik (Jika Ada)
+  const elTarget = document.getElementById('display-target-omset') || document.getElementById('target-omset');
+  const elTercapai = document.getElementById('display-tercapai-omset') || document.getElementById('tercapai-omset');
+  const elPersen = document.getElementById('display-persen-omset') || document.getElementById('persen-omset');
+
+  if (elTarget) elTarget.innerText = 'Target: Rp ' + targetSaved.toLocaleString('id-ID');
+  if (elTercapai) elTercapai.innerText = 'Tercapai: Rp ' + omsetBulanIni.toLocaleString('id-ID');
+  if (elPersen) elPersen.innerText = persen + '%';
+
+  // 4. Fallback: Cari Elemen Berdasarkan Isi Teks (Jika ID Beda di HTML)
+  document.querySelectorAll('*').forEach(el => {
+    // Hanya periksa elemen yang langsung berisi teks saja (bukan pembungkus besar)
+    if (el.children.length === 0 && el.textContent) {
+      let txt = el.textContent.trim();
+
+      if (txt.includes('Target: Rp') || txt.includes('Target:Rp')) {
         el.textContent = 'Target: Rp ' + targetSaved.toLocaleString('id-ID');
-      }
-      if (el.textContent.includes('Tercapai:') || el.textContent.includes('Tercapai :')) {
+      } 
+      else if (txt.includes('Tercapai: Rp') || txt.includes('Tercapai:Rp')) {
         el.textContent = 'Tercapai: Rp ' + omsetBulanIni.toLocaleString('id-ID');
       }
+      else if (txt.endsWith('%') && txt.length <= 4 && el.parentElement && el.parentElement.textContent.includes('TARGET')) {
+        el.textContent = persen + '%';
+      }
     }
   });
 
-  let persen = Math.min(Math.round((omsetBulanIni / targetSaved) * 100), 100);
-  
-  document.querySelectorAll('div, span').forEach(el => {
-    if (el.textContent.trim().endsWith('%') && el.textContent.trim().length <= 4) {
-      el.textContent = persen + '%';
-    }
-  });
-}
-
-// 12. FUNGSI MODAL STATISTIK TRAFFIC KEUTANGAN
-function openModalStatistik(type) {
-  console.log("-> Membuka Modal Statistik:", type);
-
-  const container = document.getElementById('list-statistik-modal-container') 
-                 || document.getElementById('list-report-modal-container');
-
-  const titleMap = {
-    'omset': 'Statistik Omset 24 Jam',
-    'pendapatan': 'Statistik Pendapatan 24 Jam',
-    'pengeluaran': 'Statistik Pengeluaran 24 Jam',
-    'order': 'Statistik Order Hari Ini'
-  };
-
-  const titleText = titleMap[type] || 'Detail Statistik';
-
-  if (container) {
-    container.innerHTML = `
-      <div class="space-y-4 py-2">
-        <div class="text-center border-b pb-3 border-slate-100">
-          <h3 class="font-extrabold text-slate-900 text-base">${titleText}</h3>
-          <div class="w-10 h-0.5 bg-rose-500 mx-auto mt-1 rounded-full"></div>
-        </div>
-        <div class="p-4 bg-slate-50 border border-slate-200/80 rounded-2xl text-center space-y-2">
-          <p class="text-xs text-slate-500 font-medium">Pemantauan Lalu Lintas Realtime</p>
-          <div class="text-2xl font-black text-blue-600">📈 24 Jam</div>
-          <p class="text-[10px] text-slate-400">Data tercatat otomatis dari aktivitas transaksi toko.</p>
-        </div>
-      </div>
-    `;
-  }
-
-  const modal = document.getElementById('modal-statistik') 
-             || document.getElementById('modal-detail-laporan');
-
-  if (modal) {
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-    modal.style.display = 'flex';
-  } else if (typeof window.openModalWithHistory === 'function') {
-    window.openModalWithHistory('modal-detail-laporan');
+  // 5. Update Lebar Progress Bar
+  const progressBar = document.querySelector('.bg-emerald-300, .bg-emerald-400, .bg-emerald-500');
+  if (progressBar) {
+    progressBar.style.width = persen + '%';
   }
 }
 
-function closeModalStatistik() {
-  const modal = document.getElementById('modal-statistik') 
-             || document.getElementById('modal-detail-laporan');
-
-  if (modal) {
-    modal.classList.add('hidden');
-    modal.classList.remove('flex');
-    modal.style.display = 'none';
-  }
-}
-
-// 13. SISTEM PENUTUP MODAL & NAVIGASI KEMBALI
-function paksaTutupModalLaporan() {
-  const modalDetail = document.getElementById('modal-detail-laporan');
-  const modalPengeluaran = document.getElementById('modal-pengeluaran');
-  const modalStatistik = document.getElementById('modal-statistik');
-
-  if (modalDetail) {
-    modalDetail.classList.add('hidden');
-    modalDetail.classList.remove('flex');
-    modalDetail.style.display = 'none';
-  }
-
-  if (modalPengeluaran) {
-    modalPengeluaran.classList.add('hidden');
-    modalPengeluaran.classList.remove('flex');
-    modalPengeluaran.style.display = 'none';
-  }
-
-  if (modalStatistik) {
-    modalStatistik.classList.add('hidden');
-    modalStatistik.classList.remove('flex');
-    modalStatistik.style.display = 'none';
-  }
-
-  document.querySelectorAll('[id*="modal-report"]').forEach(m => {
-    m.classList.add('hidden');
-    m.style.display = 'none';
-  });
-}
-
-window.closeModalWithHistory = function(modalId) {
-  paksaTutupModalLaporan();
-};
-
-window.closeModal = function(modalId) {
-  paksaTutupModalLaporan();
-};
-
-document.addEventListener('click', function(e) {
-  const btn = e.target.closest('button') || e.target;
-  const txt = (btn.textContent || '').trim();
-
-  if (txt === '←' || txt === '✕' || txt === 'X' || btn.classList.contains('close-modal')) {
-    paksaTutupModalLaporan();
-  }
-
-  const modalDetail = document.getElementById('modal-detail-laporan');
-  if (modalDetail && e.target === modalDetail) {
-    paksaTutupModalLaporan();
-  }
-});
-
-// 14. EXPORT KE WINDOW SCOPE GLOBAL
-window.loadReport = loadReport;
-window.switchReportSubTab = switchReportSubTab;
-window.openModalSubReport = openModalSubReport;
-window.simpanPengeluaranBaru = simpanPengeluaranBaru;
-window.fetchPengeluaran = fetchPengeluaran;
-window.paksaTutupModalLaporan = paksaTutupModalLaporan;
-window.applyKeuanganFilter = applyKeuanganFilter;
-window.applyReportFilter = applyReportFilter;
-window.openProfilePelangganDetail = openProfilePelangganDetail;
+// Daftarkan ke scope Global
 window.simpanTargetOmset = simpanTargetOmset;
 window.updateProgressTargetOmset = updateProgressTargetOmset;
-window.openModalStatistik = openModalStatistik;
-window.closeModalStatistik = closeModalStatistik;
-
-document.addEventListener('DOMContentLoaded', () => {
-  fetchPengeluaran();
-  setTimeout(updateProgressTargetOmset, 500);
-});
