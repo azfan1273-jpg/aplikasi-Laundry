@@ -7,7 +7,25 @@ function openModalJendelaAkunWithChart() {
   const modal = document.getElementById('modal-jendela-akun');
   if (modal) {
     modal.classList.remove('hidden');
-    // Buka accordion kasir jika perlu atau render chart
+
+    // SET EMAIL USER DI HEADER MODAL
+    const accountModalEmail = document.getElementById('account-modal-email');
+    if (accountModalEmail) {
+      const currentUserEmail = localStorage.getItem('user_email') || 
+                               (typeof currentUser !== 'undefined' && currentUser ? currentUser.email : null) || 
+                               '';
+      
+      if (currentUserEmail) {
+        accountModalEmail.textContent = currentUserEmail;
+      } else if (typeof supabaseClient !== 'undefined') {
+        supabaseClient.auth.getUser().then(({ data }) => {
+          if (data && data.user) {
+            accountModalEmail.textContent = data.user.email;
+          }
+        });
+      }
+    }
+
     if (typeof renderTrafficChart === 'function') {
       try { renderTrafficChart(); } catch(e) { console.log(e); }
     }

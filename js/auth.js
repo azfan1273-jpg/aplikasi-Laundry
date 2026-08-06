@@ -386,5 +386,36 @@ async function triggerManualRefresh() {
 
 // EXECUTED AUTOMATICALLY WHEN PAGE LOADS
 document.addEventListener('DOMContentLoaded', () => {
-  checkUserSession();
+    checkUserSession();
+    updateAccountModalEmail();
+});
+
+// ==========================================
+// AUTO-FILL EMAIL DI HEADER MODAL JENDELA AKUN
+// ==========================================
+async function updateAccountModalEmail() {
+  const accountModalEmail = document.getElementById('account-modal-email');
+  if (!accountModalEmail) return;
+
+  // 1. Cek dari localStorage dulu
+  let email = localStorage.getItem('user_email');
+
+  // 2. Jika tidak ada di localStorage, ambil dari session Supabase
+  if (!email && typeof supabaseClient !== 'undefined') {
+    const { data } = await supabaseClient.auth.getUser();
+    if (data && data.user) {
+      email = data.user.email;
+      localStorage.setItem('user_email', email); // Simpan ke localStorage
+    }
+  }
+
+  // 3. Pasang email ke elemen HTML modal
+  if (email) {
+    accountModalEmail.textContent = email;
+  }
+}
+
+// Jalankan otomatis saat halaman selesai dimuat
+document.addEventListener('DOMContentLoaded', () => {
+  updateAccountModalEmail();
 });
