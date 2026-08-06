@@ -5,52 +5,39 @@
 // 1. MEMBUKA MODAL KELOLA AKUN & ANALITIK (DENGAN CEK HAK AKSES KASIR)
 async function openModalJendelaAkunWithChart() {
   try {
-    // Cek apakah user yang login adalah kasir
+    // 1. Ambil email aktif di layar saat ini
+    const topbarEmail = document.getElementById('topbar-user-email')?.textContent?.trim() || '';
+    const settingEmail = document.getElementById('setting-user-email')?.textContent?.trim() || '';
+    const activeEmail = topbarEmail || settingEmail;
+
+    // 2. Ambil role dari localStorage
     let userRole = localStorage.getItem('user_role');
-    
-    // Jika role belum ada di localStorage, cek dari Supabase Auth / Tabel Profiles
-    if (!userRole && typeof supabaseClient !== 'undefined') {
-      const { data: { user } } = await supabaseClient.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabaseClient
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single();
-        if (profile) {
-          userRole = profile.role;
-          localStorage.setItem('user_role', userRole);
-        }
-      }
+
+    // JIKA EMAIL ADALAH OWNER/ADMIN KITA LANGSUNG IZINKAN (By-pass sisa cache kasir)
+    const isOwnerEmail = activeEmail.includes('superadmin') || activeEmail.includes('owner') || activeEmail === 'superadmin.lndr@gmail.com';
+
+    if (isOwnerEmail) {
+      userRole = 'owner';
+      localStorage.setItem('user_role', 'owner'); // Reset cache role
     }
 
-    // JIKA KASIR, TOLAK AKSES KE KELOLA AKUN
-    if (userRole === 'kasir') {
+    // Jika role masih 'kasir', baru tampilkan pesan ditolak
+    if (userRole === 'kasir' && !isOwnerEmail) {
       if (typeof showToast === 'function') {
         showToast('Akses Ditolak: Menu Kelola Akun khusus Owner/Admin!', 'error');
       } else {
         alert('Akses Ditolak: Menu Kelola Akun khusus Owner/Admin!');
       }
-      return; // Batalkan pembukaan modal
+      return;
     }
 
-    // JIKA OWNER / ADMIN, LANJUTKAN BUKA MODAL
+    // 3. JIKA OWNER / ADMIN, BUKA MODAL KELOLA AKUN
     const modal = document.getElementById('modal-jendela-akun');
     if (!modal) return;
 
     modal.classList.remove('hidden');
 
     const accountModalEmail = document.getElementById('account-modal-email');
-    const topbarEmail = document.getElementById('topbar-user-email');
-    const settingEmail = document.getElementById('setting-user-email');
-
-    let activeEmail = '';
-    if (topbarEmail && topbarEmail.textContent && topbarEmail.textContent !== 'Memuat akun...') {
-      activeEmail = topbarEmail.textContent;
-    } else if (settingEmail && settingEmail.textContent && settingEmail.textContent !== 'Memuat...') {
-      activeEmail = settingEmail.textContent;
-    }
-
     if (accountModalEmail && activeEmail) {
       accountModalEmail.textContent = activeEmail;
     }
@@ -60,7 +47,7 @@ async function openModalJendelaAkunWithChart() {
     }
 
   } catch (err) {
-    console.error('Error cek akses kasir:', err);
+    console.error('Error cek akses kelola akun:', err);
   }
 }
 
