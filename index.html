@@ -281,10 +281,8 @@
         <div class="space-y-2.5 text-xs">
           <div class="p-2.5 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-center">
             <div>
-              <p class="text-slate-400 font-medium text-[10px]">Akun Aktif (Nama / Email)</p>
-              <!-- 🟢 EDIT FIX BUG 2: Menambahkan nama user selain email di tampilan panel setting -->
-              <p id="setting-user-name" class="font-extrabold text-slate-800 text-xs mt-0.5">Memuat...</p>
-              <p id="setting-user-email" class="text-[10px] text-slate-400 mt-0.5"></p>
+              <p class="text-slate-400 font-medium text-[10px]">Akun Aktif (Email)</p>
+              <p id="setting-user-email" class="font-extrabold text-slate-800 text-xs mt-0.5">Memuat...</p>
             </div>
             <span id="setting-role-badge" class="text-[9px] bg-amber-400 text-amber-950 font-black px-2 py-1 rounded-lg uppercase">Owner</span>
           </div>
@@ -324,14 +322,12 @@
   <!-- JENDELA AKUN (FULL SCREEN) -->
   <div id="modal-jendela-akun" onclick="closeOnBackdrop(event, 'modal-jendela-akun')" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-0 hidden">
     <div class="bg-white w-full h-full flex flex-col shadow-2xl" onclick="event.stopPropagation()">
-      
-      <!-- 🟢 EDIT FIX BUG 2: Header Modal Menggunakan Nama User (Bukan Mengunci Email) -->
       <div class="bg-blue-600 text-white p-4 flex justify-between items-center shrink-0 pt-safe shadow-sm">
         <div class="flex items-center gap-3">
           <button onclick="closeModalWithHistory('modal-jendela-akun')" class="text-white font-bold text-xl hover:opacity-80 active:scale-95 transition">←</button>
           <div>
-            <h3 id="account-modal-title" class="font-black text-base tracking-wide">Kelola Akun & Analitik</h3>
-            <p id="account-modal-email" class="text-[10px] text-blue-200 truncate max-w-[200px]">Memuat akun...</p>
+            <h3 class="font-black text-base tracking-wide">Kelola Akun & Analitik</h3>
+            <p id="account-modal-email" class="text-[10px] text-blue-200 truncate max-w-[200px]">Memuat email...</p>
           </div>
         </div>
         <button onclick="closeModalWithHistory('modal-jendela-akun')" class="w-8 h-8 bg-blue-700/60 rounded-full font-bold text-white text-xs flex items-center justify-center">✕</button>
@@ -391,7 +387,7 @@
                 <button onclick="toggleFormTambahKasir()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1 rounded-xl text-[11px] shadow-sm">+ Buat Kasir</button>
               </div>
 
-              <!-- 🟢 EDIT FIX BUG 1: Menambahkan Input Nama Kasir agar Pendaftaran Kasir Baru Berhasil -->
+              <!-- HANYA MENAMBAHKAN INPUT NAMA KASIR AGAR PENDAFTARAN KASIR TIDAK GAGAL -->
               <div id="form-tambah-kasir" class="space-y-2 pt-2 border-t border-indigo-200/60 hidden">
                 <p class="font-bold text-indigo-950 text-[11px]">Daftarkan Kasir Baru:</p>
                 <input id="new_kasir_nama" type="text" placeholder="Nama Kasir / Pegawai" class="w-full p-2.5 bg-white border rounded-xl text-xs outline-none font-semibold">
@@ -435,7 +431,6 @@
                 </label>
               </div>
 
-              <!-- 🟢 EDIT FIX BUG 3: Pengaturan Switch Izin Mengelola Layanan Bagi Kasir -->
               <div class="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200">
                 <div>
                   <p class="font-extrabold text-slate-800 text-xs">🧺 Akses Kelola Layanan & Harga</p>
@@ -632,16 +627,14 @@
     </div>
   </div>
 
-  <!-- 🟢 EDIT FIX BUG 3: Header Modal Layanan Menyesuaikan Hak Akses -->
   <div id="modal-kelola-layanan" onclick="closeOnBackdrop(event, 'modal-kelola-layanan')" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
     <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 max-h-[85vh] flex flex-col" onclick="event.stopPropagation()">
       <div class="flex justify-between items-center border-b pb-3 shrink-0">
-        <h3 id="modal-layanan-header-title" class="font-black text-slate-900 text-base">Kelola Daftar Layanan</h3>
+        <h3 class="font-black text-slate-900 text-base">Kelola Daftar Layanan</h3>
         <button onclick="closeModalKelolaLayanan()" class="w-8 h-8 bg-slate-100 rounded-full font-bold text-slate-500">✕</button>
       </div>
 
-      <!-- Form Tambah Layanan ini disembunyikan via JS jika yang login adalah Kasir tanpa izin -->
-      <div id="form-tambah-layanan-container" class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2.5 text-xs shrink-0">
+      <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2.5 text-xs shrink-0">
         <p class="font-extrabold text-slate-700">➕ Tambah Layanan Baru</p>
         <input id="new_nama_layanan" type="text" placeholder="Nama Layanan (Contoh: Cuci Kiloan Express)" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl outline-none font-bold">
         <div class="grid grid-cols-2 gap-2">
