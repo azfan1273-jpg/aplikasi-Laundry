@@ -6,18 +6,22 @@ let currentToko = null;
 let isRegisterMode = false;
 
 // ==========================================
-// CEK SESSION SAAT APLIKASI PERTAMA DIKLIKS
+// CEK SESSION SAAT APLIKASI DI-LOAD
 // ==========================================
 async function checkUserSession() {
-  if (!supabaseClient) return;
+  if (typeof supabaseClient === 'undefined' || !supabaseClient) {
+    console.warn("Supabase client belum siap.");
+    showAuthScreen(true);
+    return;
+  }
 
   try {
-    const { data: { session } } = await supabaseClient.auth.getSession();
+    const { data: { session }, error } = await supabaseClient.auth.getSession();
 
-    if (session && session.user) {
-      await loadUserProfile(session.user);
-    } else {
+    if (error || !session || !session.user) {
       showAuthScreen(true);
+    } else {
+      await loadUserProfile(session.user);
     }
   } catch (err) {
     console.error("Error checkUserSession:", err);
@@ -32,42 +36,42 @@ async function loadUserProfile(authUser) {
       .from('profiles')
       .select('*')
       .eq('id', authUser.id)
-      .single();
+      .maybeSingle();
 
     if (profErr || !profile) {
-      console.warn("Profile tidak ditemukan, mencoba ulang...");
+      console.warn("Profile tidak ditemukan atau bermasalah:", profErr);
       showAuthScreen(true);
       return;
     }
 
     currentUserProfile = profile;
 
-    // 2. Tarik data Toko berdasarkan toko_id di profile
+    // 2. Tarik data Toko berdasarkan toko_id
     if (profile.toko_id) {
-      const { data: toko, error: tokoErr } = await supabaseClient
+      const { data: toko } = await supabaseClient
         .from('toko')
         .select('*')
         .eq('id', profile.toko_id)
-        .single();
+        .maybeSingle();
 
-      if (!tokoErr && toko) {
+      if (toko) {
         currentToko = toko;
       }
     }
 
-    // Update Tampilan Topbar & UI
+    // Update UI Header & Topbar
     const topbarEmail = document.getElementById('topbar-user-email');
     const topbarToko = document.getElementById('topbar-nama-toko');
     const settingEmail = document.getElementById('setting-user-email');
 
-    if (topbarEmail) topbarEmail.innerText = authUser.email;
-    if (settingEmail) settingEmail.innerText = authUser.email;
+    if (topbarEmail) topbarEmail.innerText = authUser.email || '';
+    if (settingEmail) settingEmail.innerText = authUser.email || '';
     if (topbarToko && currentToko) topbarToko.innerText = currentToko.nama_toko || 'LNDR';
 
     showAuthScreen(false);
     applyUserPermissionsUI();
 
-    // Load data awal dashboard
+    // Load data dashboard
     if (typeof loadDataHome === 'function') loadDataHome();
     if (typeof loadSettingsToForm === 'function') loadSettingsToForm();
 
@@ -127,19 +131,19 @@ async function handleAuthSubmit() {
   const namaToko = namaTokoInput ? namaTokoInput.value.trim() : '';
 
   if (!email || !password) {
-    showToast("Isi email dan password!", "error");
+    if (typeof showToast === 'function') showToast("Isi email dan password!", "error");
+    else alert("Isi email dan password!");
     return;
   }
 
   if (isRegisterMode) {
-    // REGISTRASI OWNER & TOKO BARU
     if (!namaToko) {
-      showToast("Isi Nama Toko Laundry Anda!", "error");
+      if (typeof showToast === 'function') showToast("Isi Nama Toko Laundry Anda!", "error");
+      else alert("Isi Nama Toko Laundry Anda!");
       return;
     }
 
     try {
-      // 1. Buat Toko Baru di database
       const { data: newToko, error: tokoErr } = await supabaseClient
         .from('toko')
         .insert([{ 
@@ -156,12 +160,11 @@ async function handleAuthSubmit() {
         .single();
 
       if (tokoErr) {
-        showToast("Gagal membuat toko: " + tokoErr.message, "error");
+        if (typeof showToast === 'function') showToast("Gagal membuat toko: " + tokoErr.message, "error");
         return;
       }
 
-      // 2. SignUp User Owner ke Auth Supabase dengan metadata
-      const { data: authData, error: authErr } = await supabaseClient.auth.signUp({
+      const { error: authErr } = await supabaseClient.auth.signUp({
         email,
         password,
         options: {
@@ -174,19 +177,19 @@ async function handleAuthSubmit() {
       });
 
       if (authErr) {
-        showToast("Gagal mendaftar: " + authErr.message, "error");
+        if (typeof showToast === 'function') showToast("Gagal mendaftar: " + authErr.message, "error");
         return;
       }
 
-      showToast("Pendaftaran Toko Berhasil! Silahkan Login. 🎉", "success");
+      if (typeof showToast === 'function') showToast("Pendaftaran Toko Berhasil! Silahkan Login. 🎉", "success");
       toggleAuthMode();
 
     } catch (err) {
-      showToast("Terjadi kesalahan: " + err.message, "error");
+      if (typeof showToast === 'function') showToast("Terjadi kesalahan: " + err.message, "error");
     }
 
   } else {
-    // LOGIN KASIR / OWNER
+    // PROSES LOGIN
     try {
       const { data, error } = await supabaseClient.auth.signInWithPassword({
         email,
@@ -194,15 +197,16 @@ async function handleAuthSubmit() {
       });
 
       if (error) {
-        showToast("Login gagal: " + error.message, "error");
+        if (typeof showToast === 'function') showToast("Login gagal: " + error.message, "error");
+        else alert("Login gagal: " + error.message);
         return;
       }
 
-      showToast("Login Berhasil! Selamat Datang. 👋", "success");
+      if (typeof showToast === 'function') showToast("Login Berhasil! Selamat Datang. 👋", "success");
       await loadUserProfile(data.user);
 
     } catch (err) {
-      showToast("Terjadi kesalahan: " + err.message, "error");
+      if (typeof showToast === 'function') showToast("Terjadi kesalahan: " + err.message, "error");
     }
   }
 }
@@ -212,13 +216,13 @@ async function handleAuthSubmit() {
 // ==========================================
 async function handleLogout() {
   if (confirm("Apakah Anda yakin ingin keluar dari akun ini?")) {
-    if (supabaseClient) {
+    if (typeof supabaseClient !== 'undefined' && supabaseClient) {
       await supabaseClient.auth.signOut();
     }
     currentUserProfile = null;
     currentToko = null;
     showAuthScreen(true);
-    showToast("Anda telah keluar.", "info");
+    if (typeof showToast === 'function') showToast("Anda telah keluar.", "info");
   }
 }
 
@@ -235,16 +239,16 @@ async function handleKirimResetPassword() {
   const email = emailInput ? emailInput.value.trim() : '';
 
   if (!email) {
-    showToast("Masukkan email Anda!", "error");
+    if (typeof showToast === 'function') showToast("Masukkan email Anda!", "error");
     return;
   }
 
   const { error } = await supabaseClient.auth.resetPasswordForEmail(email);
   if (!error) {
-    showToast("Link reset password telah dikirim ke email Anda! 📩", "success");
-    closeModalWithHistory('modal-lupa-password');
+    if (typeof showToast === 'function') showToast("Link reset password telah dikirim ke email Anda! 📩", "success");
+    if (typeof closeModalWithHistory === 'function') closeModalWithHistory('modal-lupa-password');
   } else {
-    showToast("Gagal mengirim link: " + error.message, "error");
+    if (typeof showToast === 'function') showToast("Gagal mengirim link: " + error.message, "error");
   }
 }
 
@@ -253,18 +257,18 @@ async function handleSaveNewPassword() {
   const newPassword = passInput ? passInput.value.trim() : '';
 
   if (!newPassword || newPassword.length < 6) {
-    showToast("Password minimal 6 karakter!", "error");
+    if (typeof showToast === 'function') showToast("Password minimal 6 karakter!", "error");
     return;
   }
 
   const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
   if (!error) {
-    showToast("Password berhasil diperbarui! Silahkan login.", "success");
+    if (typeof showToast === 'function') showToast("Password berhasil diperbarui! Silahkan login.", "success");
     const modal = document.getElementById('modal-update-password');
     if (modal) modal.classList.add('hidden');
     handleLogout();
   } else {
-    showToast("Gagal memperbarui password: " + error.message, "error");
+    if (typeof showToast === 'function') showToast("Gagal memperbarui password: " + error.message, "error");
   }
 }
 
@@ -295,7 +299,7 @@ function getTokoPermissions() {
 }
 
 // ==========================================
-// TERAPKAN IZIN AKSES UI (OWNER VS KASIR)
+// TERAPKAN IZIN AKSES UI
 // ==========================================
 function applyUserPermissionsUI() {
   if (!currentUserProfile) return;
@@ -315,10 +319,8 @@ function applyUserPermissionsUI() {
   const navReport = document.getElementById('nav-report');
 
   if (!isOwner) {
-    // Sembunyikan Kelola Kasir dari Kasir
     if (ownerSectionKasir) ownerSectionKasir.style.display = 'none';
 
-    // Jika Manager = Buka Semua, jika Bukan = Cek per-fitur
     const canLaporan = perms.is_manager || perms.akses_laporan;
     const canLayanan = perms.is_manager || perms.akses_layanan;
     const canPengeluaran = perms.is_manager || perms.akses_pengeluaran;
@@ -327,7 +329,6 @@ function applyUserPermissionsUI() {
     if (fabPengeluaran) fabPengeluaran.style.display = canPengeluaran ? 'flex' : 'none';
     if (navReport) navReport.style.display = canLaporan ? 'flex' : 'none';
   } else {
-    // Owner Akses Penuh
     if (ownerSectionLayanan) ownerSectionLayanan.style.display = 'flex';
     if (ownerSectionKasir) ownerSectionKasir.style.display = 'flex';
     if (fabPengeluaran) fabPengeluaran.style.display = 'flex';
@@ -336,7 +337,7 @@ function applyUserPermissionsUI() {
 }
 
 // ==========================================
-// REFRESH MANUAL REALTIME (SYC PERMISSION & DATA)
+// REFRESH MANUAL REALTIME
 // ==========================================
 async function triggerManualRefresh() {
   const icon = document.getElementById('refresh-icon');
@@ -344,22 +345,20 @@ async function triggerManualRefresh() {
 
   try {
     if (typeof supabaseClient !== 'undefined' && supabaseClient && currentUserProfile) {
-      // 1. Refresh Profile User
       const { data: profData } = await supabaseClient
         .from('profiles')
         .select('*')
         .eq('id', currentUserProfile.id)
-        .single();
+        .maybeSingle();
       
       if (profData) currentUserProfile = profData;
 
-      // 2. Refresh Data Toko & Permissions
       if (currentUserProfile && currentUserProfile.toko_id) {
         const { data: tokoData } = await supabaseClient
           .from('toko')
           .select('*')
           .eq('id', currentUserProfile.toko_id)
-          .single();
+          .maybeSingle();
 
         if (tokoData) {
           currentToko = tokoData;
@@ -368,17 +367,14 @@ async function triggerManualRefresh() {
       }
     }
 
-    // 3. Reload Data Dashboard Home
     if (typeof loadDataHome === 'function') {
       await loadDataHome();
     }
 
-    showToast("Data & Izin Akses Berhasil Diperbarui! 🔄", "info");
+    if (typeof showToast === 'function') showToast("Data & Izin Akses Berhasil Diperbarui! 🔄", "info");
   } catch (err) {
     console.error("Error refresh:", err);
-    showToast("Gagal memperbarui data.", "error");
   } finally {
-    // PASTI DIPANGGIL: Matikan animasi muter dalam kondisi apapun!
     if (icon) {
       setTimeout(() => {
         icon.classList.remove('spinning');
@@ -386,3 +382,8 @@ async function triggerManualRefresh() {
     }
   }
 }
+
+// EXECUTED AUTOMATICALLY WHEN PAGE LOADS
+document.addEventListener('DOMContentLoaded', () => {
+  checkUserSession();
+});
