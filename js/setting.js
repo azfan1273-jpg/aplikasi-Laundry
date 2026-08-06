@@ -144,36 +144,11 @@ function renderKelolaLayananList() {
   }
 }
 
-// Variable Global Filter Kategori Layanan (Default: kiloan)
-window.currentCategoryLayanan = window.currentCategoryLayanan || 'kiloan';
-
-// FUNGSI GANTI TAB KATEGORI
-function switchCategoryLayanan(cat) {
-  window.currentCategoryLayanan = cat;
-  
-  // Toggle style tombol tab
-  const btnKiloan = document.getElementById('tab-layanan-kiloan');
-  const btnSatuan = document.getElementById('tab-layanan-satuan');
-
-  if (btnKiloan && btnSatuan) {
-    if (cat === 'kiloan') {
-      btnKiloan.className = 'flex-1 py-1.5 text-center font-extrabold text-xs rounded-xl bg-blue-600 text-white shadow-sm transition';
-      btnSatuan.className = 'flex-1 py-1.5 text-center font-extrabold text-xs rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 transition';
-    } else {
-      btnSatuan.className = 'flex-1 py-1.5 text-center font-extrabold text-xs rounded-xl bg-blue-600 text-white shadow-sm transition';
-      btnKiloan.className = 'flex-1 py-1.5 text-center font-extrabold text-xs rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 transition';
-    }
-  }
-
-  // Render ulang list
-  renderLayananPOS();
-}
-
 // ==========================================
-// RENDER DAFTAR LAYANAN DENGAN BUNGKUS TAB (KILOAN & SATUAN)
+// RENDER DAFTAR LAYANAN TERBUNGKUS GRUP (KILOAN & SATUAN IN ONE VIEW)
 // ==========================================
 async function renderLayananPOS(keyword = '') {
-  console.log("-> Memuat daftar layanan POS terpisah Kiloan/Satuan...");
+  console.log("-> Memuat daftar layanan terbungkus grup Kiloan & Satuan...");
 
   let container = document.getElementById('list-layanan-container')
                || document.querySelector('#modal-layanan .scroll-area')
@@ -205,7 +180,7 @@ async function renderLayananPOS(keyword = '') {
 
     let rawData = listLayanan || [];
 
-    // BACA URUTAN CUSTOM DARI LOCALSTORAGE
+    // BACA URUTAN TERSIMPAN DARI LOCALSTORAGE
     const savedOrderJson = localStorage.getItem('layanan_custom_order');
     if (savedOrderJson) {
       try {
@@ -226,7 +201,7 @@ async function renderLayananPOS(keyword = '') {
 
     window.allLayananCache = rawData;
 
-    // 1. FILTER BERDASARKAN SEARCH KEYWORD
+    // FILTER SEARCH KEYWORD
     let filtered = window.allLayananCache;
     if (keyword) {
       filtered = filtered.filter(item => 
@@ -234,51 +209,34 @@ async function renderLayananPOS(keyword = '') {
       );
     }
 
-    // 2. FILTER BERDASARKAN KATEGORI (KILOAN VS SATUAN)
-    const activeCat = window.currentCategoryLayanan || 'kiloan';
-    filtered = filtered.filter(item => {
+    // MEMISAHKAN LAYANAN MENJADI 2 GRUP
+    const listKiloan = filtered.filter(item => {
       const sat = (item.satuan || 'kg').toLowerCase().trim();
-      if (activeCat === 'kiloan') {
-        return sat === 'kg' || sat === 'kilo' || sat === 'kiloan';
-      } else {
-        return sat !== 'kg' && sat !== 'kilo' && sat !== 'kiloan';
-      }
+      return sat === 'kg' || sat === 'kilo' || sat === 'kiloan';
     });
 
-    // HEADER TAB DOCKING KATEGORI
-    const tabHeaderHTML = `
-      <div class="flex gap-2 p-1 bg-slate-100 rounded-2xl mb-3">
-        <button type="button" id="tab-layanan-kiloan" onclick="switchCategoryLayanan('kiloan')" class="flex-1 py-1.5 text-center font-extrabold text-xs rounded-xl ${activeCat === 'kiloan' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'} transition">
-          🧺 Layanan Kiloan
-        </button>
-        <button type="button" id="tab-layanan-satuan" onclick="switchCategoryLayanan('satuan')" class="flex-1 py-1.5 text-center font-extrabold text-xs rounded-xl ${activeCat === 'satuan' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'} transition">
-          👔 Layanan Satuan
-        </button>
-      </div>
-    `;
+    const listSatuan = filtered.filter(item => {
+      const sat = (item.satuan || 'kg').toLowerCase().trim();
+      return sat !== 'kg' && sat !== 'kilo' && sat !== 'kiloan';
+    });
 
-    if (!filtered || filtered.length === 0) {
-      container.innerHTML = tabHeaderHTML + `<p class="text-xs text-slate-400 text-center py-6 italic">Tidak ada layanan ${activeCat === 'kiloan' ? 'Kiloan' : 'Satuan'} ditemukan.</p>`;
-      return;
-    }
-
-    // RENDER LIST ITEM
-    const listItemsHTML = filtered.map((item, idx) => `
-      <div data-id="${item.id}" class="layanan-item p-3 bg-white rounded-2xl border border-slate-200 text-xs mb-2 flex justify-between items-center shadow-sm hover:border-blue-400 transition-all">
+    // FUNGSI TEMPLATE RENDER DARI SATU ITEM
+    const renderSingleItem = (item) => `
+      <div data-id="${item.id}" class="layanan-item p-2.5 bg-white rounded-xl border border-slate-100 text-xs flex justify-between items-center hover:border-blue-300 transition-all">
         <div class="flex items-center gap-2">
           <!-- TOMBOL REORDER -->
           <div class="flex flex-col gap-0.5">
-            <button type="button" onclick="geserPosisiLayanan(${item.id}, 'up')" class="w-6 h-5 bg-slate-100 hover:bg-blue-100 text-slate-600 hover:text-blue-600 rounded flex items-center justify-center font-bold text-[10px] active:scale-90 transition" title="Naikkan Ke Atas">
+            <button type="button" onclick="geserPosisiLayanan(${item.id}, 'up')" class="w-5 h-4 bg-slate-100 hover:bg-blue-100 text-slate-600 hover:text-blue-600 rounded flex items-center justify-center font-bold text-[9px] active:scale-90 transition">
               ▲
             </button>
-            <button type="button" onclick="geserPosisiLayanan(${item.id}, 'down')" class="w-6 h-5 bg-slate-100 hover:bg-blue-100 text-slate-600 hover:text-blue-600 rounded flex items-center justify-center font-bold text-[10px] active:scale-90 transition" title="Turunkan Ke Bawah">
+            <button type="button" onclick="geserPosisiLayanan(${item.id}, 'down')" class="w-5 h-4 bg-slate-100 hover:bg-blue-100 text-slate-600 hover:text-blue-600 rounded flex items-center justify-center font-bold text-[9px] active:scale-90 transition">
               ▼
             </button>
           </div>
 
           <div>
             <p class="font-extrabold text-slate-800 text-xs">${item.nama_layanan}</p>
-            <p class="text-[10px] text-slate-500 mt-0.5">
+            <p class="text-[10px] text-slate-400 mt-0.5">
               Rp ${(item.harga || 0).toLocaleString('id-ID')} / ${item.satuan || 'Kg'} • Est: ${item.estimasi_hari || 1} Hari
             </p>
           </div>
@@ -293,9 +251,45 @@ async function renderLayananPOS(keyword = '') {
           </button>
         </div>
       </div>
-    `).join('');
+    `;
 
-    container.innerHTML = tabHeaderHTML + listItemsHTML;
+    let htmlOutput = '';
+
+    // BUNGKUSAN GRUP 1: LAYANAN KILOAN
+    if (listKiloan.length > 0) {
+      htmlOutput += `
+        <div class="p-3 bg-slate-50/80 rounded-2xl border-2 border-slate-200/80 mb-4 space-y-2">
+          <div class="flex items-center gap-1.5 pb-1 border-b border-slate-200">
+            <span class="text-sm">🧺</span>
+            <h4 class="font-black text-xs text-slate-700 tracking-wide uppercase">Layanan Kiloan</h4>
+          </div>
+          <div class="space-y-2">
+            ${listKiloan.map(renderSingleItem).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    // BUNGKUSAN GRUP 2: LAYANAN SATUAN
+    if (listSatuan.length > 0) {
+      htmlOutput += `
+        <div class="p-3 bg-slate-50/80 rounded-2xl border-2 border-slate-200/80 mb-2 space-y-2">
+          <div class="flex items-center gap-1.5 pb-1 border-b border-slate-200">
+            <span class="text-sm">👔</span>
+            <h4 class="font-black text-xs text-slate-700 tracking-wide uppercase">Layanan Satuan</h4>
+          </div>
+          <div class="space-y-2">
+            ${listSatuan.map(renderSingleItem).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    if (!htmlOutput) {
+      htmlOutput = '<p class="text-xs text-slate-400 text-center py-6 italic">Tidak ada layanan ditemukan.</p>';
+    }
+
+    container.innerHTML = htmlOutput;
 
   } catch (err) {
     console.error('Error renderLayananPOS:', err);
