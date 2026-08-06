@@ -1,81 +1,106 @@
 /* Style Laundry App */
+
 /* ISOLASI ROOT DARI AUTO-REFRESH SENSITIVE GESTURE */
-    html, body { 
-      height: 100vh;
-      height: -webkit-fill-available;
-      width: 100vw;
-      overflow: hidden !important; 
-      overscroll-behavior: none !important;
-      overscroll-behavior-y: none !important;
-      -webkit-tap-highlight-color: transparent; 
-      touch-action: pan-y !important;
-    }
+html, body { 
+  height: 100vh;
+  height: -webkit-fill-available;
+  width: 100vw;
+  overflow: hidden !important; 
+  overscroll-behavior: none !important;
+  overscroll-behavior-y: none !important;
+  -webkit-tap-highlight-color: transparent; 
+  touch-action: pan-y !important;
+}
 
-    /* DOCKING MENU TAB */
-    .page-section { display: none !important; height: 100%; }
-    .page-section.active { display: flex !important; flex-direction: column; }
-    .tab-order-btn.active, .tab-report-btn.active { background-color: #2563eb; color: #ffffff; font-weight: 700; }
+/* DOCKING MENU TAB */
+.page-section { 
+  display: none !important; 
+  height: 100%; 
+}
 
-    /* UTILITY SCROLL AREA */
-    .scroll-area, 
-    #list-layanan-container, 
-    #list-pelanggan-container, 
-    #list-home, 
-    #list-order-status,
-    #list-report,
-    #list-kelola-layanan-container,
-    #list-stat-modal-container,
-    #list-report-modal-container,
-    #list-profile-modal-container {
-      overflow-y: auto !important;
-      -webkit-overflow-scrolling: touch !important;
-      touch-action: pan-y !important;
-      overscroll-behavior: contain !important;
-      overscroll-behavior-y: contain !important;
-    }
+.page-section.active { 
+  display: flex !important; 
+  flex-direction: column; 
+}
 
-    /* ANIMASI SPIN REFRESH */
-    .spinning { animation: spin 0.6s linear infinite; }
-    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.tab-order-btn.active, 
+.tab-report-btn.active { 
+  background-color: #2563eb; 
+  color: #ffffff; 
+  font-weight: 700; 
+}
 
-    /* STYLE TOAST NOTIFIKASI */
-    #toast-container {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 9999;
-      width: 90%;
-      max-width: 400px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      pointer-events: none;
-    }
+/* UTILITY SCROLL AREA */
+.scroll-area, 
+#list-layanan-container, 
+#list-pelanggan-container, 
+#list-home, 
+#list-order-status,
+#list-report,
+#list-kelola-layanan-container,
+#list-stat-modal-container,
+#list-report-modal-container,
+#list-profile-modal-container {
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-y !important;
+  overscroll-behavior: contain !important;
+  overscroll-behavior-y: contain !important;
+}
 
-    .toast {
-      background-color: #1e293b;
-      color: white;
-      padding: 12px 20px;
-      border-radius: 16px;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
-      font-size: 13px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      opacity: 0;
-      transform: translateY(-20px);
-      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-      pointer-events: auto;
-    }
+/* ANIMASI SPIN REFRESH */
+.spinning { 
+  animation: spin 0.6s linear infinite; 
+}
 
-    .toast.show { opacity: 1; transform: translateY(0); }
-    .toast-success { border-left: 4px solid #10b981; }
-    .toast-error { border-left: 4px solid #ef4444; }
-    .toast-info { border-left: 4px solid #3b82f6; }
-    .toast-icon { font-size: 18px; }
+@keyframes spin { 
+  from { transform: rotate(0deg); } 
+  to { transform: rotate(360deg); } 
+}
 
-    /* ROTASI ARROW DROPDOWN */
-    .rotate-180 { transform: rotate(180deg); }
-  </style>
+/* STYLE TOAST NOTIFIKASI */
+#toast-container {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  width: 90%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.toast {
+  background-color: #1e293b;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: auto;
+}
+
+.toast.show { 
+  opacity: 1; 
+  transform: translateY(0); 
+}
+
+.toast-success { border-left: 4px solid #10b981; }
+.toast-error { border-left: 4px solid #ef4444; }
+.toast-info { border-left: 4px solid #3b82f6; }
+.toast-icon { font-size: 18px; }
+
+/* ROTASI ARROW DROPDOWN */
+.rotate-180 { 
+  transform: rotate(180deg); 
+}
