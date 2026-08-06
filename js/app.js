@@ -1,5 +1,5 @@
 // ==========================================
-// FILE: js/app.js (Bagian Proteksi Kasir)
+// FILE: js/app.js (Sistem Utama & Proteksi)
 // ==========================================
 
 // 1. MEMBUKA MODAL KELOLA AKUN & ANALITIK (DENGAN CEK HAK AKSES KASIR)
@@ -162,7 +162,7 @@ function handleMenuClick(modalFunction) {
     closeJendelaNavigasiBaru();
     setTimeout(() => {
         if (typeof modalFunction === 'function') modalFunction();
-    }, 550);
+    }, 600);
 }
 
 // Kompatibilitas jika ada elemen lama yang masih memanggil toggleFabMenu
@@ -193,13 +193,8 @@ function switchTab(tabName) {
   }
 }
 
-// Inisialisasi saat file loaded
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('App JS terload dengan aman.');
-});
-
 // ==========================================
-// FUNGSI BARU: SEMBUNYIKAN TOMBOL KELOLA AKUN UNTUK KASIR
+// 6. HAK AKSES KASIR
 // ==========================================
 function terapkanHakAksesKasir() {
   const userRole = localStorage.getItem('user_role');
@@ -214,13 +209,8 @@ function terapkanHakAksesKasir() {
   }
 }
 
-// Jalankan otomatis saat halaman selesai dimuat
-document.addEventListener('DOMContentLoaded', () => {
-  setTimeout(terapkanHakAksesKasir, 500);
-});
-
 // ==========================================
-// FUNGSI MEMBUKA MODAL PENGELUARAN
+// 7. FUNGSI MODAL PENGELUARAN
 // ==========================================
 function openModalPengeluaran() {
   const modal = document.getElementById('modal-pengeluaran');
@@ -238,52 +228,67 @@ function closeModalPengeluaran() {
   }
 }
 
-// Fallback aman untuk membuka Modal POS Transaksi
+// ==========================================
+// 8. FUNGSI MODAL POS (TRANSAKSI BARU)
+// ==========================================
 function bukaModalPOS() {
-  const modalPos = document.getElementById('modal-pos') || 
+  const modalPos = document.getElementById('modalPOS') || 
+                   document.getElementById('modal-pos') || 
                    document.getElementById('modal-transaksi') || 
                    document.getElementById('modal-order-baru');
                    
   if (modalPos) {
     modalPos.classList.remove('hidden');
+    modalPos.classList.add('flex');
   } else if (typeof openModalPOS === 'function') {
     openModalPOS();
   } else if (typeof openModalOrderBaru === 'function') {
     openModalOrderBaru();
   } else {
-    // Jika ID modal bernama lain, coba hapus class hidden pada elemen modal utama
     const anyModal = document.querySelector('[id*="modal-pos"], [id*="modal-order"]');
-    if (anyModal) anyModal.classList.remove('hidden');
+    if (anyModal) {
+      anyModal.classList.remove('hidden');
+      anyModal.classList.add('flex');
+    }
   }
 }
 
 function tutupModalPOS() {
-  const modal = document.getElementById('modal-pos') || document.getElementById('modal-transaksi') || document.getElementById('modalPOS');
+  const modal = document.getElementById('modalPOS') || 
+                document.getElementById('modal-pos') || 
+                document.getElementById('modal-transaksi');
   if (modal) {
     modal.classList.add('hidden');
     modal.classList.remove('flex');
   }
 }
 
-// --- LOGIKA TOMBOL MODAL POS ---
+// --- LOGIKA TOMBOL INTERNAL MODAL POS ---
 
 function handleCariPelanggan(e) {
-  if (e) e.stopPropagation();
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
   console.log('Tombol Cari Pelanggan diklik');
   alert('Membuka pilihan pelanggan...');
 }
 
 function handleTambahLayanan(e) {
-  if (e) e.stopPropagation();
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
   console.log('Tombol Tambah Layanan diklik');
   alert('Membuka katalog layanan...');
 }
 
-// Inisialisasi Listener Langsung (Tanpa menunggu DOMContentLoaded jika DOM sudah ready)
+// Inisialisasi Listener
 function initPOSListeners() {
   const btnClosePOS = document.getElementById('btnClosePOS');
   if (btnClosePOS) {
     btnClosePOS.onclick = (e) => {
+      e.preventDefault();
       e.stopPropagation();
       tutupModalPOS();
     };
@@ -300,16 +305,16 @@ function initPOSListeners() {
   }
 }
 
-// Jalankan saat fungsi bukaModalPOS dipanggil agar listener SELALU aktif
+// Pembungkus bukaModalPOS untuk menjamin event listener selalu aktif saat modal dibuka
 const originalBukaModalPOS = bukaModalPOS;
 bukaModalPOS = function() {
   if (typeof originalBukaModalPOS === 'function') originalBukaModalPOS();
   initPOSListeners();
 };
 
-// Jalankan juga saat dokumen selesai dimuat
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initPOSListeners);
-} else {
+// Inisialisasi Saat Halaman Pertama Load
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('App JS terload dengan aman.');
+  setTimeout(terapkanHakAksesKasir, 500);
   initPOSListeners();
-}
+});
