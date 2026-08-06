@@ -526,33 +526,49 @@
     </div>
   </div>
 
-  <!-- FLOATING ACTION BUTTON (MENU MELAYANG KE ATAS) -->
-  <div id="fab-backdrop" onclick="toggleFabMenu()" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 opacity-0 pointer-events-none transition-opacity duration-300"></div>
+ <!-- ========================================== -->
+  <!-- CONTAINTER UTAMA TRANSAKSI ANIMASI (FIXED) -->
+  <!-- ========================================== -->
+  <div id="transaksi-animator-container" class="fixed inset-0 z-50 pointer-events-none">
+    
+    <!-- Backdrop Gelap (Muncul saat Jendela Navigasi Terbuka) -->
+    <div id="transaksi-backdrop" class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm opacity-0 transition-opacity duration-500 ease-in-out"></div>
 
-  <div id="fab-container" class="fixed bottom-20 right-6 z-50">
-    <div class="relative flex flex-col items-center">
-      
-      <!-- MENU UNGU MELAYANG KE ATAS -->
-      <div id="fab-side-menu" class="absolute bottom-20 flex flex-col items-end gap-2.5 whitespace-nowrap transition-all duration-300 opacity-0 pointer-events-none translate-y-4">
-        <button onclick="toggleFabMenu(); openModalPOS();" class="flex items-center gap-2 bg-white text-slate-800 text-xs font-extrabold py-2.5 px-4 rounded-2xl shadow-xl border border-slate-200 active:scale-95">
-          <span>🛒 Transaksi Baru</span>
-        </button>
-
-        <button onclick="toggleFabMenu(); openModalPilihPelanggan(); toggleFormCustomerBaru();" class="flex items-center gap-2 bg-white text-slate-800 text-xs font-extrabold py-2.5 px-4 rounded-2xl shadow-xl border border-slate-200 active:scale-95">
-          <span>👤 Customer Baru</span>
-        </button>
-
-        <button id="fab-btn-pengeluaran" onclick="toggleFabMenu(); openModalPengeluaran();" class="flex items-center gap-2 bg-white text-slate-800 text-xs font-extrabold py-2.5 px-4 rounded-2xl shadow-xl border border-slate-200 active:scale-95">
-          <span>💸 Tambah Pengeluaran</span>
-        </button>
-      </div>
-
-      <!-- TOMBOL UTAMA (+) -->
-      <button id="fab-main-btn" onclick="toggleFabMenu()" class="w-16 h-16 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-2xl flex items-center justify-center text-2xl font-black transition-transform duration-200 active:scale-90 border-2 border-white">
-        <span id="fab-icon" class="transition-transform duration-300">➕</span>
-      </button>
-
+    <!-- Jendela Navigasi Baru (Isi Menu seperti Transaksi Baru, Customer, dll) -->
+    <div id="jendela-navigasi-baru" class="absolute inset-x-0 top-24 bottom-0 bg-slate-50 rounded-t-3xl translate-y-full transition-transform duration-500 ease-in-out p-5 shadow-2xl pointer-events-auto overflow-y-auto">
+        <div class="flex justify-between items-center border-b pb-3 mb-4">
+            <h3 class="font-extrabold text-slate-900 text-sm">Pilih Tindakan</h3>
+            <p class="text-xs text-slate-400">Silahkan pilih menu dibawah</p>
+        </div>
+        
+        <!-- ISI MENU (Sama seperti isi FAB Lama) -->
+        <div class="space-y-3 text-xs">
+            <button onclick="handleMenuClick(openModalPOS)" class="w-full flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 shadow-sm active:scale-[0.98] transition">
+                <span class="font-bold text-slate-700">🛒 Buat Transaksi Laundry Baru</span>
+                <span class="text-blue-600">➜</span>
+            </button>
+            <button onclick="handleMenuClick(openModalPilihPelanggan)" class="w-full flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 shadow-sm active:scale-[0.98] transition">
+                <span class="font-bold text-slate-700">👤 Daftarkan Customer Baru</span>
+                <span class="text-blue-600">➜</span>
+            </button>
+            <button onclick="handleMenuClick(openModalPengeluaran)" class="w-full flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 shadow-sm active:scale-[0.98] transition">
+                <span class="font-bold text-slate-700">💸 Catat Pengeluaran Toko</span>
+                <span class="text-blue-600">➜</span>
+            </button>
+        </div>
     </div>
+
+    <!-- TOMBOL BISA BERUBAH BENTUK & MELUNCUR (TOM-BOL INI YANG KITA ANIMASIKAN VIA JS) -->
+    <!-- Posisi awal: Persegi panjang di bawah -->
+    <button id="btn-transaksi-animasi" onclick="mulaiAnimasiTransaksi()" class="absolute pointer-events-auto bg-blue-600 text-white font-black shadow-2xl border-2 border-white flex items-center justify-center uppercase tracking-wider active:scale-[0.98] transition-all duration-500 ease-in-out" 
+      style="bottom: 80px; left: 16px; right: 16px; height: 56px; border-radius: 16px; font-size: 14px; width: auto; transform: translateX(0); transform-origin: center;">
+      
+      <!-- Teks Awal -->
+      <span id="teks-btn-transaksi">MENU TRANSAKSI</span>
+      
+      <!-- Ikon Silang (Muncul saat di atas) -->
+      <span id="ikon-btn-close" class="absolute opacity-0 text-xl font-bold transition-opacity duration-300">✕</span>
+    </button>
   </div>
 
   <!-- MODALS -->

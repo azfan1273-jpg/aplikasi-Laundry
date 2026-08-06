@@ -93,39 +93,91 @@ function closeOnBackdrop(event, modalId) {
   }
 }
 
-// 4. ANIMASI TOGGLE TOMBOL FAB (+) MELAYANG KE ATAS
+// ==========================================
+// 4. ADVANCED UI ANIMATION: TRANSAKSI LAUNCHER
+// ==========================================
+let isJendelaNavigasiOpen = false;
+
+async function mulaiAnimasiTransaksi() {
+    const container = document.getElementById('transaksi-animator-container');
+    const tombol = document.getElementById('btn-transaksi-animasi');
+    const teksBtn = document.getElementById('teks-btn-transaksi');
+    const ikonClose = document.getElementById('ikon-btn-close');
+    const backdrop = document.getElementById('transaksi-backdrop');
+    const jendelaNav = document.getElementById('jendela-navigasi-baru');
+
+    if (!tombol || !container) return;
+
+    if (!isJendelaNavigasiOpen) {
+        // PROSES BUKA (MELUNCUR KE ATAS & JADI BULAT)
+        isJendelaNavigasiOpen = true;
+        tombol.style.pointerEvents = 'none';
+
+        if (teksBtn) teksBtn.style.opacity = '0';
+        if (backdrop) backdrop.classList.remove('opacity-0');
+        if (jendelaNav) jendelaNav.classList.remove('translate-y-full');
+
+        const targetTop = 24; 
+        const currentBottom = parseInt(tombol.style.bottom) || 80; 
+        const windowHeight = window.innerHeight;
+        const tombolHeight = parseInt(tombol.style.height) || 56; 
+
+        const translateY = -(windowHeight - currentBottom - targetTop - (tombolHeight / 2));
+
+        tombol.style.transform = `translateY(${translateY}px)`;
+        tombol.style.width = '56px';
+        tombol.style.borderRadius = '50%';
+        tombol.style.left = 'calc(50% - 28px)';
+        tombol.style.right = 'auto';
+
+        setTimeout(() => {
+            if (ikonClose) ikonClose.style.opacity = '1';
+            tombol.style.pointerEvents = 'auto';
+        }, 500);
+
+    } else {
+        closeJendelaNavigasiBaru();
+    }
+}
+
+function closeJendelaNavigasiBaru() {
+    const tombol = document.getElementById('btn-transaksi-animasi');
+    const teksBtn = document.getElementById('teks-btn-transaksi');
+    const ikonClose = document.getElementById('ikon-btn-close');
+    const backdrop = document.getElementById('transaksi-backdrop');
+    const jendelaNav = document.getElementById('jendela-navigasi-baru');
+
+    if (!tombol) return;
+
+    isJendelaNavigasiOpen = false;
+    tombol.style.pointerEvents = 'none';
+
+    if (ikonClose) ikonClose.style.opacity = '0';
+    if (jendelaNav) jendelaNav.classList.add('translate-y-full');
+    if (backdrop) backdrop.classList.add('opacity-0');
+
+    tombol.style.transform = 'translateY(0)';
+    tombol.style.width = 'auto';
+    tombol.style.left = '16px';
+    tombol.style.right = '16px';
+    tombol.style.borderRadius = '16px';
+
+    setTimeout(() => {
+        if (teksBtn) teksBtn.style.opacity = '1';
+        tombol.style.pointerEvents = 'auto';
+    }, 500);
+}
+
+function handleMenuClick(modalFunction) {
+    closeJendelaNavigasiBaru();
+    setTimeout(() => {
+        if (typeof modalFunction === 'function') modalFunction();
+    }, 550);
+}
+
+// Kompatibilitas jika ada elemen lama yang masih memanggil toggleFabMenu
 function toggleFabMenu() {
-  const backdrop = document.getElementById('fab-backdrop');
-  const sideMenu = document.getElementById('fab-side-menu');
-  const icon = document.getElementById('fab-icon');
-
-  if (!sideMenu) return;
-
-  const isHidden = sideMenu.classList.contains('opacity-0') || sideMenu.classList.contains('pointer-events-none');
-
-  if (isHidden) {
-    // BUKA MENU
-    sideMenu.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
-    sideMenu.classList.add('opacity-100', 'pointer-events-auto', 'translate-y-0');
-
-    if (backdrop) {
-      backdrop.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
-      backdrop.classList.add('opacity-100', 'pointer-events-auto');
-    }
-
-    if (icon) icon.style.transform = 'rotate(45deg)';
-  } else {
-    // TUTUP MENU
-    sideMenu.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4');
-    sideMenu.classList.remove('opacity-100', 'pointer-events-auto', 'translate-y-0');
-
-    if (backdrop) {
-      backdrop.classList.add('hidden', 'opacity-0', 'pointer-events-none');
-      backdrop.classList.remove('opacity-100', 'pointer-events-auto');
-    }
-
-    if (icon) icon.style.transform = 'rotate(0deg)';
-  }
+    mulaiAnimasiTransaksi();
 }
 
 // 5. NAVIGASI TAB UTAMA (BERANDA, ORDER, REPORT, SETTING)
