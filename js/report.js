@@ -670,3 +670,113 @@ window.simpanPengeluaranBaru = simpanPengeluaranBaru;
 window.loadReport = loadReport;
 window.switchReportSubTab = switchReportSubTab;
 window.openModalSubReport = openModalSubReport;
+
+// ==========================================
+// FUNGSI PENUTUP MODAL & TOMBOL KEMBALI
+// ==========================================
+
+// 1. Fungsi Umum Menutup Modal Detail Laporan
+function closeModalReport(modalId) {
+  // Ambil ID modal yang spesifik atau fallback ke modal detail utama
+  const idToClose = modalId || 'modal-detail-laporan';
+  const modal = document.getElementById(idToClose);
+
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    modal.style.display = 'none';
+  } else {
+    // Tutup modal apapun yang sedang terbuka
+    document.querySelectorAll('.modal, [id*="modal"]').forEach(m => {
+      if (!m.classList.contains('hidden')) {
+        m.classList.add('hidden');
+        m.style.display = 'none';
+      }
+    });
+  }
+}
+
+// 2. Override & Fallback closeModalWithHistory agar Tombol X & Panah Kembali Berfungsi
+if (typeof window.closeModalWithHistory !== 'function') {
+  window.closeModalWithHistory = function(modalId) {
+    closeModalReport(modalId);
+  };
+} else {
+  // Simpan fungsi lama
+  const originalCloseModal = window.closeModalWithHistory;
+  window.closeModalWithHistory = function(modalId) {
+    try {
+      originalCloseModal(modalId);
+    } catch (err) {
+      console.warn("Fallback trigger closeModalReport");
+    }
+    closeModalReport(modalId);
+  };
+}
+
+// 3. Pasang Event Listener Klik Area Luar Modal (Backdrop Close)
+document.addEventListener('click', function(e) {
+  const modalContainer = document.getElementById('modal-detail-laporan');
+  if (modalContainer && !modalContainer.classList.contains('hidden')) {
+    // Jika yang diklik adalah background luar (bukan isi card modal-nya)
+    if (e.target === modalContainer) {
+      closeModalReport('modal-detail-laporan');
+    }
+  }
+});
+
+// Register ke scope global window
+window.closeModalReport = closeModalReport;
+
+// ==========================================
+// HANDLE PENUTUP MODAL DARI JAVASCRIPT
+// ==========================================
+
+// 1. Buat fungsi penutup universal
+function paksaTutupModalLaporan() {
+  const modal = document.getElementById('modal-detail-laporan') 
+             || document.getElementById('modal-pengeluaran');
+
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    modal.style.display = 'none';
+  }
+
+  // Backup: Sembunyikan semua modal yang sedang terbuka
+  document.querySelectorAll('[id*="modal"]').forEach(m => {
+    if (m.id.includes('report') || m.id.includes('laporan') || m.id.includes('detail')) {
+      m.classList.add('hidden');
+      m.style.display = 'none';
+    }
+  });
+}
+
+// 2. Hubungkan fungsi penutup asli ke fungsi penutup universal
+window.closeModalWithHistory = function(modalId) {
+  paksaTutupModalLaporan();
+};
+
+window.closeModal = function(modalId) {
+  paksaTutupModalLaporan();
+};
+
+// 3. Tangkap klik pada tombol dengan ikon Silang (X) atau Panah (<-) di dalam modal
+document.addEventListener('click', function(e) {
+  // Cek apakah elemen yang diklik adalah tombol close / ikon kembali
+  const target = e.target;
+  
+  if (target.closest('[onclick*="closeModal"]') || 
+      target.closest('.close-modal') || 
+      target.textContent.trim() === '✕' || 
+      target.textContent.trim() === '←' ||
+      target.textContent.trim() === 'X') {
+    paksaTutupModalLaporan();
+  }
+
+  // Cek jika area latar luar modal diklik (Backdrop Close)
+  const modalDetail = document.getElementById('modal-detail-laporan');
+  if (modalDetail && e.target === modalDetail) {
+    paksaTutupModalLaporan();
+  }
+});
