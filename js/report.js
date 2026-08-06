@@ -1,5 +1,5 @@
 // ==========================================
-// FILE: js/report.js (VERSI UTUH & FINAL)
+// FILE: js/report.js (VERSI FULL & FINAL)
 // ==========================================
 
 // 1. DEKLARASI GLOBAL CACHE & FALLBACK MODAL
@@ -71,6 +71,7 @@ async function loadReport() {
   if(elBatal) elBatal.innerText = countBatal;
 
   renderReportSubContent();
+  updateProgressTargetOmset();
 }
 
 // 3. NAVIGASI SUB-TAB LAPORAN
@@ -131,7 +132,7 @@ function renderReportCard(title, icon, desc, type) {
   '</div>';
 }
 
-// 4. MEMBUKA & MERENDER SUB-REPORT (PEMUATAN SELALU TERISI)
+// 4. MEMBUKA & MERENDER SUB-REPORT
 function openModalSubReport(title, type) {
   const container = document.getElementById('list-report-modal-container');
 
@@ -158,7 +159,6 @@ function openModalSubReport(title, type) {
     }
   }
 
-  // Buka Modal
   const modal = document.getElementById('modal-detail-laporan');
   if (modal) {
     modal.classList.remove('hidden');
@@ -561,72 +561,75 @@ async function fetchPengeluaran() {
   }
 }
 
-// 11. SISTEM PENUTUP MODAL & NAVIGASI KEMBALI
-function paksaTutupModalLaporan() {
-  const modalDetail = document.getElementById('modal-detail-laporan');
-  const modalPengeluaran = document.getElementById('modal-pengeluaran');
+// 11. FUNGSI TARGET OMSET BULANAN
+function simpanTargetOmset(e) {
+  if (e && e.preventDefault) e.preventDefault();
 
-  if (modalDetail) {
-    modalDetail.classList.add('hidden');
-    modalDetail.classList.remove('flex');
-    modalDetail.style.display = 'none';
+  const inputs = document.querySelectorAll('input');
+  let targetInput = null;
+
+  inputs.forEach(inp => {
+    if (inp.value == '15' || inp.value == '15000000' || inp.placeholder.includes('15') || (inp.parentElement && inp.parentElement.textContent.includes('TARGET OMSET'))) {
+      targetInput = inp;
+    }
+  });
+
+  if (!targetInput) targetInput = document.querySelector('input[type="number"]') || inputs[0];
+
+  let rawVal = targetInput ? targetInput.value : '15000000';
+  let cleanVal = rawVal.toString().replace(/[^0-9]/g, '');
+  let nominal = parseFloat(cleanVal);
+
+  if (isNaN(nominal) || nominal <= 0) {
+    alert('Harap masukkan nominal target yang valid!');
+    return;
   }
 
-  if (modalPengeluaran) {
-    modalPengeluaran.classList.add('hidden');
-    modalPengeluaran.classList.remove('flex');
-    modalPengeluaran.style.display = 'none';
-  }
+  if (nominal < 1000) nominal = nominal * 1000000;
 
-  document.querySelectorAll('[id*="modal-report"]').forEach(m => {
-    m.classList.add('hidden');
-    m.style.display = 'none';
+  localStorage.setItem('target_omset_bulanan', nominal);
+  updateProgressTargetOmset();
+
+  alert('Target Omset Bulanan berhasil disimpan: Rp ' + nominal.toLocaleString('id-ID'));
+}
+
+function updateProgressTargetOmset() {
+  const targetSaved = parseFloat(localStorage.getItem('target_omset_bulanan')) || 15000000;
+  
+  let omsetBulanIni = 0;
+  const now = new Date();
+  const txList = window.globalTxCache || [];
+
+  txList.forEach(t => {
+    const tgl = t.created_at ? new Date(t.created_at) : null;
+    if (tgl && tgl.getMonth() === now.getMonth() && tgl.getFullYear() === now.getFullYear()) {
+      if (t.status_laundry !== 'Batal') {
+        omsetBulanIni += (t.total_harga || 0);
+      }
+    }
+  });
+
+  document.querySelectorAll('p, span, div, td').forEach(el => {
+    if (el.children.length === 0) {
+      if (el.textContent.includes('Target:') || el.textContent.includes('Target :')) {
+        el.textContent = 'Target: Rp ' + targetSaved.toLocaleString('id-ID');
+      }
+      if (el.textContent.includes('Tercapai:') || el.textContent.includes('Tercapai :')) {
+        el.textContent = 'Tercapai: Rp ' + omsetBulanIni.toLocaleString('id-ID');
+      }
+    }
+  });
+
+  let persen = Math.min(Math.round((omsetBulanIni / targetSaved) * 100), 100);
+  
+  document.querySelectorAll('div, span').forEach(el => {
+    if (el.textContent.trim().endsWith('%') && el.textContent.trim().length <= 4) {
+      el.textContent = persen + '%';
+    }
   });
 }
 
-// Override Handler Bawaan HTML
-window.closeModalWithHistory = function(modalId) {
-  paksaTutupModalLaporan();
-};
-
-window.closeModal = function(modalId) {
-  paksaTutupModalLaporan();
-};
-
-// Event Listener Klik Tombol (←, ✕, Backdrop Luar Modal)
-document.addEventListener('click', function(e) {
-  const btn = e.target.closest('button') || e.target;
-  const txt = (btn.textContent || '').trim();
-
-  if (txt === '←' || txt === '✕' || txt === 'X' || btn.classList.contains('close-modal')) {
-    paksaTutupModalLaporan();
-  }
-
-  const modalDetail = document.getElementById('modal-detail-laporan');
-  if (modalDetail && e.target === modalDetail) {
-    paksaTutupModalLaporan();
-  }
-});
-
-// 12. EXPORT KE WINDOW SCOPE GLOBAL
-window.loadReport = loadReport;
-window.switchReportSubTab = switchReportSubTab;
-window.openModalSubReport = openModalSubReport;
-window.simpanPengeluaranBaru = simpanPengeluaranBaru;
-window.fetchPengeluaran = fetchPengeluaran;
-window.paksaTutupModalLaporan = paksaTutupModalLaporan;
-window.applyKeuanganFilter = applyKeuanganFilter;
-window.applyReportFilter = applyReportFilter;
-window.openProfilePelangganDetail = openProfilePelangganDetail;
-
-document.addEventListener('DOMContentLoaded', () => {
-  fetchPengeluaran();
-});
-
-// ==========================================
-// FUNGSI MODAL STATISTIK / TRAFFIC KEUTANGAN
-// ==========================================
-
+// 12. FUNGSI MODAL STATISTIK TRAFFIC KEUTANGAN
 function openModalStatistik(type) {
   console.log("-> Membuka Modal Statistik:", type);
 
@@ -658,7 +661,6 @@ function openModalStatistik(type) {
     `;
   }
 
-  // Buka modal statistik jika ada ID-nya, atau fallback ke modal detail utama
   const modal = document.getElementById('modal-statistik') 
              || document.getElementById('modal-detail-laporan');
 
@@ -682,6 +684,74 @@ function closeModalStatistik() {
   }
 }
 
-// Daftarkan ke Global Window Scope
+// 13. SISTEM PENUTUP MODAL & NAVIGASI KEMBALI
+function paksaTutupModalLaporan() {
+  const modalDetail = document.getElementById('modal-detail-laporan');
+  const modalPengeluaran = document.getElementById('modal-pengeluaran');
+  const modalStatistik = document.getElementById('modal-statistik');
+
+  if (modalDetail) {
+    modalDetail.classList.add('hidden');
+    modalDetail.classList.remove('flex');
+    modalDetail.style.display = 'none';
+  }
+
+  if (modalPengeluaran) {
+    modalPengeluaran.classList.add('hidden');
+    modalPengeluaran.classList.remove('flex');
+    modalPengeluaran.style.display = 'none';
+  }
+
+  if (modalStatistik) {
+    modalStatistik.classList.add('hidden');
+    modalStatistik.classList.remove('flex');
+    modalStatistik.style.display = 'none';
+  }
+
+  document.querySelectorAll('[id*="modal-report"]').forEach(m => {
+    m.classList.add('hidden');
+    m.style.display = 'none';
+  });
+}
+
+window.closeModalWithHistory = function(modalId) {
+  paksaTutupModalLaporan();
+};
+
+window.closeModal = function(modalId) {
+  paksaTutupModalLaporan();
+};
+
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('button') || e.target;
+  const txt = (btn.textContent || '').trim();
+
+  if (txt === '←' || txt === '✕' || txt === 'X' || btn.classList.contains('close-modal')) {
+    paksaTutupModalLaporan();
+  }
+
+  const modalDetail = document.getElementById('modal-detail-laporan');
+  if (modalDetail && e.target === modalDetail) {
+    paksaTutupModalLaporan();
+  }
+});
+
+// 14. EXPORT KE WINDOW SCOPE GLOBAL
+window.loadReport = loadReport;
+window.switchReportSubTab = switchReportSubTab;
+window.openModalSubReport = openModalSubReport;
+window.simpanPengeluaranBaru = simpanPengeluaranBaru;
+window.fetchPengeluaran = fetchPengeluaran;
+window.paksaTutupModalLaporan = paksaTutupModalLaporan;
+window.applyKeuanganFilter = applyKeuanganFilter;
+window.applyReportFilter = applyReportFilter;
+window.openProfilePelangganDetail = openProfilePelangganDetail;
+window.simpanTargetOmset = simpanTargetOmset;
+window.updateProgressTargetOmset = updateProgressTargetOmset;
 window.openModalStatistik = openModalStatistik;
 window.closeModalStatistik = closeModalStatistik;
+
+document.addEventListener('DOMContentLoaded', () => {
+  fetchPengeluaran();
+  setTimeout(updateProgressTargetOmset, 500);
+});
