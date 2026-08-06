@@ -1,115 +1,87 @@
 // ==========================================
-// UTILITY KONTROL MODAL & BACKDROP
+// FIX BUG 2 & 3: Modal Header & Hak Akses
 // ==========================================
 
-function closeModalWithHistory(modalId) {
-  const modal = document.getElementById(modalId);
-  if (modal) modal.classList.add('hidden');
-}
+/**
+ * FIX BUG 2: Membuka Modal Kasir dengan Header Nama User (Bukan Email)
+ */
+function bukaModalEditKasir(id, nama, email) {
+  const modalElement = document.getElementById('modalKasir');
+  const modalTitle = document.getElementById('modalKasirTitle');
+  const inputNama = document.getElementById('modalKasirNama');
+  const inputEmail = document.getElementById('modalKasirEmail');
 
-function closeOnBackdrop(event, modalId) {
-  if (event.target.id === modalId) {
-    closeModalWithHistory(modalId);
+  // FIX HEADER: Tampilkan NAMA pada judul modal, bukan Email
+  if (modalTitle) {
+    modalTitle.textContent = "Detail Kasir: " + (nama || "Kasir");
+  }
+
+  // Isi input body form modal
+  if (inputNama) inputNama.value = nama || '';
+  if (inputEmail) inputEmail.value = email || '';
+
+  // Tampilkan Modal (Bootstrap/Vanilla)
+  if (modalElement) {
+    modalElement.classList.add('show');
+    modalElement.style.display = 'block';
   }
 }
 
-async function openModalJendelaAkunWithChart() {
-  const modal = document.getElementById('modal-jendela-akun');
-  if (modal) modal.classList.remove('hidden');
+/**
+ * Fungsi untuk menutup Modal Kasir & Reset Header
+ */
+function tutupModalKasir() {
+  const modalElement = document.getElementById('modalKasir');
+  const modalTitle = document.getElementById('modalKasirTitle');
 
-  // Paksa update email dan role saat modal terbuka
-  if (typeof supabaseClient !== 'undefined' && supabaseClient) {
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    if (session && session.user) {
-      const emailVal = session.user.email || (currentUserProfile ? currentUserProfile.email : '');
-      
-      // Update elemen tempat penulisan email
-      const settingEmail = document.getElementById('setting-user-email');
-      const subHeaderEmail = document.querySelector('#modal-jendela-akun .text-blue-100'); // Subtitle di header biru
-      
-      if (settingEmail) settingEmail.innerText = emailVal;
-      if (subHeaderEmail) subHeaderEmail.innerText = emailVal;
-    }
+  if (modalElement) {
+    modalElement.classList.remove('show');
+    modalElement.style.display = 'none';
   }
 
-  if (typeof loadDaftarKasirList === 'function') loadDaftarKasirList();
-  if (typeof loadPermissionSwitches === 'function') loadPermissionSwitches();
-  if (typeof loadSettingsToForm === 'function') loadSettingsToForm();
+  // Reset Judul Modal ke Default
+  if (modalTitle) {
+    modalTitle.textContent = "Detail Kasir";
+  }
 }
 
-// --- OPEN MODAL KELOLA LAYANAN ---
-async function openModalKelolaLayanan() {
-  // 1. Pengecekan Izin Akses Kasir
-  if (typeof currentUserProfile !== 'undefined' && currentUserProfile) {
-    const isOwner = currentUserProfile.role === 'owner';
+/**
+ * FIX BUG 3: Pengaturan Modal Layanan / Izin Akses untuk Kasir
+ */
+function aturIzinAksesModalLayanan() {
+  // Ambil role user aktif dari localStorage
+  const userRole = localStorage.getItem('user_role') || 'kasir';
+
+  const btnTambahLayanan = document.getElementById('btnTambahLayanan');
+  const actionAksiLayanan = document.querySelectorAll('.aksi-layanan-admin');
+  const modalTitleLayanan = document.getElementById('modalLayananTitle');
+
+  if (userRole === 'kasir') {
+    // Sembunyikan tombol kelola / tambah layanan untuk Kasir
+    if (btnTambahLayanan) btnTambahLayanan.style.display = 'none';
     
-    if (!isOwner) {
-      let perms = { akses_layanan: false, is_manager: false };
-      
-      if (typeof getTokoPermissions === 'function') {
-        perms = getTokoPermissions();
-      }
+    actionAksiLayanan.forEach(el => {
+      el.style.display = 'none';
+    });
 
-      // Jika bukan Owner, bukan Manager, dan tidak ada izin layanan -> Tampilkan Notif
-      if (!perms.is_manager && !perms.akses_layanan) {
-        if (typeof showToast === 'function') {
-          showToast("Anda tidak memiliki izin mengelola layanan & harga!", "error");
-        }
-        return;
-      }
+    if (modalTitleLayanan) {
+      modalTitleLayanan.textContent = "Daftar Layanan (Mode Baca)";
     }
-  }
-
-  // 2. Buka Modal
-  const modal = document.getElementById('modal-kelola-layanan');
-  if (modal) {
-    modal.classList.remove('hidden');
-  }
-
-  // 3. Render List Layanan
-  if (typeof renderKelolaLayananList === 'function') {
-    await renderKelolaLayananList();
-  }
-}
-
-// --- OPEN MODAL PENGELUARAN ---
-function openModalPengeluaran() {
-  if (typeof currentUserProfile !== 'undefined' && currentUserProfile) {
-    const isOwner = currentUserProfile.role === 'owner';
+  } else {
+    // Tampilkan penuh jika yang login adalah Admin
+    if (btnTambahLayanan) btnTambahLayanan.style.display = 'inline-block';
     
-    if (!isOwner) {
-      let perms = { akses_pengeluaran: false, is_manager: false };
-      
-      if (typeof getTokoPermissions === 'function') {
-        perms = getTokoPermissions();
-      }
+    actionAksiLayanan.forEach(el => {
+      el.style.display = 'block';
+    });
 
-      if (!perms.is_manager && !perms.akses_pengeluaran) {
-        if (typeof showToast === 'function') {
-          showToast("Anda tidak memiliki izin mencatat pengeluaran!", "error");
-        }
-        return;
-      }
+    if (modalTitleLayanan) {
+      modalTitleLayanan.textContent = "Kelola Layanan & Pricing";
     }
   }
-
-  const inputNominal = document.getElementById('input_nominal_pengeluaran');
-  const inputKet = document.getElementById('input_keterangan_pengeluaran');
-  if (inputNominal) inputNominal.value = '';
-  if (inputKet) inputKet.value = '';
-
-  const modal = document.getElementById('modal-pengeluaran');
-  if (modal) modal.classList.remove('hidden');
 }
 
-// --- OPEN MODAL POS / TRANSAKSI BARU ---
-function openModalPOS() {
-  if (typeof resetPOSState === 'function') resetPOSState();
-  
-  const modal = document.getElementById('modal-pos');
-  if (modal) modal.classList.remove('hidden');
-}
-
-function closeModalPOS() {
-  closeModalWithHistory('modal-pos');
-}
+// Jalankan pengecekan izin modal saat dokumen selesai dimuat
+document.addEventListener('DOMContentLoaded', function () {
+  aturIzinAksesModalLayanan();
+});
