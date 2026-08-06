@@ -383,34 +383,42 @@ function renderModalListDirectReport(type, title) {
 }
 
 // ==========================================
-// FUNGSI SIMPAN PENGELUARAN BARU (FIXED ID)
+// FUNGSI SIMPAN PENGELUARAN BARU (FIXED PARSING)
 // ==========================================
 async function simpanPengeluaranBaru(e) {
   if (e && e.preventDefault) e.preventDefault();
 
   console.log("-> Tombol Simpan Pengeluaran Diklik!");
 
-  // Cari input nominal & keterangan dari berbagai kemungkinan ID di HTML
+  // Cari input nominal & keterangan dari berbagai ID yang mungkin ada di HTML
   const nominalInput = document.getElementById('new_nominal_pengeluaran') 
                     || document.getElementById('pengeluaranNominal')
                     || document.getElementById('nominal_pengeluaran')
                     || document.getElementById('nominal')
-                    || document.querySelector('input[type="number"]');
+                    || document.querySelector('#modal-pengeluaran input[type="number"]')
+                    || document.querySelector('#modal-pengeluaran input[type="text"]');
 
   const ketInput = document.getElementById('new_keterangan_pengeluaran') 
                 || document.getElementById('pengeluaranKeterangan')
                 || document.getElementById('keterangan_pengeluaran')
                 || document.getElementById('keterangan')
-                || document.querySelector('input[placeholder*="Keterangan"]')
-                || document.querySelector('input[placeholder*="keterangan"]');
+                || document.querySelector('#modal-pengeluaran input[placeholder*="ket"]')
+                || document.querySelector('#modal-pengeluaran input[placeholder*="Ket"]');
 
-  const nominal = nominalInput?.value?.trim();
-  const keterangan = ketInput?.value?.trim() || 'Pengeluaran';
+  let rawValue = nominalInput?.value || '';
 
-  if (!nominal || isNaN(nominal) || parseFloat(nominal) <= 0) {
+  // Bersihkan inputan: Hapus Rp, titik, koma, dan spasi
+  let cleanValue = rawValue.toString().replace(/[^0-9]/g, '');
+  let nominal = parseFloat(cleanValue);
+
+  console.log("Nominal Asli:", rawValue, "-> Hasil Clean:", nominal);
+
+  if (isNaN(nominal) || nominal <= 0) {
     alert('Harap masukkan nominal pengeluaran yang valid!');
     return;
   }
+
+  const ketValue = ketInput?.value?.trim() || 'Pengeluaran';
 
   // Cek koneksi Supabase
   const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
@@ -425,8 +433,8 @@ async function simpanPengeluaranBaru(e) {
     const userId = userRes?.data?.user?.id || null;
 
     const payload = {
-      nominal: parseFloat(nominal),
-      keterangan: keterangan
+      nominal: nominal,
+      keterangan: ketValue
     };
 
     if (userId) {
@@ -444,7 +452,7 @@ async function simpanPengeluaranBaru(e) {
       return;
     }
 
-    alert('Pengeluaran sebesar Rp ' + parseInt(nominal).toLocaleString('id-ID') + ' berhasil disimpan!');
+    alert('Pengeluaran sebesar Rp ' + nominal.toLocaleString('id-ID') + ' berhasil disimpan!');
 
     // Reset input
     if (nominalInput) nominalInput.value = '';
