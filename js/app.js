@@ -247,3 +247,22 @@ function closeModalPengeluaran() {
     modal.classList.add('hidden');
   }
 }
+
+// Fallback aman untuk membuka Modal POS Transaksi
+function bukaModalPOS() {
+  const modalPos = document.getElementById('modal-pos') || 
+                   document.getElementById('modal-transaksi') || 
+                   document.getElementById('modal-order-baru');
+                   
+  if (modalPos) {
+    modalPos.classList.remove('hidden');
+  } else if (typeof openModalPOS === 'function') {
+    openModalPOS();
+  } else if (typeof openModalOrderBaru === 'function') {
+    openModalOrderBaru();
+  } else {
+    // Jika ID modal bernama lain, coba hapus class hidden pada elemen modal utama
+    const anyModal = document.querySelector('[id*="modal-pos"], [id*="modal-order"]');
+    if (anyModal) anyModal.classList.remove('hidden');
+  }
+}

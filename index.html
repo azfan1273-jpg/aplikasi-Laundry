@@ -527,15 +527,15 @@
   </div>
 
  <!-- ========================================== -->
-  <!-- CONTAINTER UTAMA TRANSAKSI ANIMASI (FIXED) -->
+  <!-- LAUNCHER TRANSAKSI ANIMASI (GRID 2x2) -->
   <!-- ========================================== -->
   <div id="transaksi-animator-container" class="fixed inset-0 z-50 pointer-events-none">
     
-    <!-- Backdrop Gelap (Muncul saat Jendela Navigasi Terbuka) -->
-    <div id="transaksi-backdrop" class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm opacity-0 transition-opacity duration-500 ease-in-out"></div>
+    <!-- Backdrop Gelap -->
+    <div id="transaksi-backdrop" onclick="closeJendelaNavigasiBaru()" class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm opacity-0 transition-opacity duration-300 ease-in-out pointer-events-none"></div>
 
-    <!-- JENDELA NAVIGASI BARU (GRID 2 KOLOM) -->
-    <div id="jendela-navigasi-baru" class="absolute inset-x-0 top-24 bottom-0 bg-slate-50/95 backdrop-blur-md rounded-t-3xl translate-y-full transition-transform duration-500 ease-in-out p-5 shadow-2xl pointer-events-auto overflow-y-auto">
+    <!-- Jendela Menu 2x2 -->
+    <div id="jendela-navigasi-baru" class="absolute inset-x-0 top-24 bottom-0 bg-slate-50/95 backdrop-blur-md rounded-t-3xl translate-y-full transition-transform duration-300 ease-in-out p-5 shadow-2xl pointer-events-auto overflow-y-auto">
         <div class="flex justify-between items-center border-b pb-3 mb-5">
             <div>
               <h3 class="font-extrabold text-slate-900 text-sm">Pilih Action / Tindakan</h3>
@@ -544,65 +544,46 @@
             <span class="text-[10px] bg-blue-100 text-blue-700 font-bold px-2.5 py-1 rounded-xl">LNDR POS</span>
         </div>
         
-        <!-- GRID 2x2 DENGAN FUNGSI YANG BENAR -->
+        <!-- GRID 2 KOLOM -->
         <div class="grid grid-cols-2 gap-3.5">
             
-            <!-- 1. Tambah Transaksi (Membuka Modal POS) -->
-            <button onclick="handleMenuClick(openModalPOS)" class="flex flex-col items-center justify-center p-4 bg-white rounded-2xl border border-slate-200/80 shadow-sm active:scale-95 transition hover:border-blue-400 text-center gap-2 group">
+            <!-- 1. Tambah Transaksi -->
+            <button onclick="handleMenuClick(bukaModalPOS)" class="flex flex-col items-center justify-center p-4 bg-white rounded-2xl border border-slate-200/80 shadow-sm active:scale-95 transition hover:border-blue-400 text-center gap-2 group">
                 <div class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-xl group-hover:bg-blue-600 transition">🛒</div>
                 <span class="font-extrabold text-slate-800 text-xs">Tambah Transaksi</span>
             </button>
 
-            <!-- 2. Batalkan Transaksi (Bisa diarahkan ke tab order atau fitur pembatalan) -->
-            <button onclick="handleMenuClick(() => { switchTab('order'); filterOrderTab('Antrian'); })" class="flex flex-col items-center justify-center p-4 bg-white rounded-2xl border border-slate-200/80 shadow-sm active:scale-95 transition hover:border-rose-400 text-center gap-2 group">
+            <!-- 2. Batalkan Transaksi -->
+            <button onclick="handleMenuClick(() => switchTab('order'))" class="flex flex-col items-center justify-center p-4 bg-white rounded-2xl border border-slate-200/80 shadow-sm active:scale-95 transition hover:border-rose-400 text-center gap-2 group">
                 <div class="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center text-xl group-hover:bg-rose-600 transition">❌</div>
                 <span class="font-extrabold text-slate-800 text-xs">Batalkan Transaksi</span>
             </button>
 
-            <!-- 3. Catat Pengeluaran (Membuka Modal Pengeluaran yang benar: openModalPengeluaran) -->
+            <!-- 3. Catat Pengeluaran -->
             <button onclick="handleMenuClick(openModalPengeluaran)" class="flex flex-col items-center justify-center p-4 bg-white rounded-2xl border border-slate-200/80 shadow-sm active:scale-95 transition hover:border-amber-400 text-center gap-2 group">
                 <div class="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-xl group-hover:bg-amber-600 transition">💸</div>
                 <span class="font-extrabold text-slate-800 text-xs">Catat Pengeluaran</span>
             </button>
 
-            <!-- 4. Reward Pelanggan (Membuka Modal Pilih Pelanggan) -->
-            <button onclick="handleMenuClick(openModalPilihPelanggan)" class="flex flex-col items-center justify-center p-4 bg-white rounded-2xl border border-slate-200/80 shadow-sm active:scale-95 transition hover:border-emerald-400 text-center gap-2 group">
+            <!-- 4. Reward Pelanggan -->
+            <button onclick="handleMenuClick(() => { if(typeof openModalPilihPelanggan === 'function') openModalPilihPelanggan(); else switchTab('order'); })" class="flex flex-col items-center justify-center p-4 bg-white rounded-2xl border border-slate-200/80 shadow-sm active:scale-95 transition hover:border-emerald-400 text-center gap-2 group">
                 <div class="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-xl group-hover:bg-emerald-600 transition">🎁</div>
                 <span class="font-extrabold text-slate-800 text-xs">Reward Pelanggan</span>
             </button>
 
         </div>
     </div>
-        
-        <!-- ISI MENU (Sama seperti isi FAB Lama) -->
-        <div class="space-y-3 text-xs">
-            <button onclick="handleMenuClick(openModalPOS)" class="w-full flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 shadow-sm active:scale-[0.98] transition">
-                <span class="font-bold text-slate-700">🛒 Buat Transaksi Laundry Baru</span>
-                <span class="text-blue-600">➜</span>
-            </button>
-            <button onclick="handleMenuClick(openModalPilihPelanggan)" class="w-full flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 shadow-sm active:scale-[0.98] transition">
-                <span class="font-bold text-slate-700">👤 Daftarkan Customer Baru</span>
-                <span class="text-blue-600">➜</span>
-            </button>
-            <button onclick="handleMenuClick(openModalPengeluaran)" class="w-full flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 shadow-sm active:scale-[0.98] transition">
-                <span class="font-bold text-slate-700">💸 Catat Pengeluaran Toko</span>
-                <span class="text-blue-600">➜</span>
-            </button>
-        </div>
-    </div>
 
-    <!-- TOMBOL BISA BERUBAH BENTUK & MELUNCUR (TOM-BOL INI YANG KITA ANIMASIKAN VIA JS) -->
-    <!-- Posisi awal: Persegi panjang di bawah -->
-    <button id="btn-transaksi-animasi" onclick="mulaiAnimasiTransaksi()" class="absolute pointer-events-auto bg-blue-600 text-white font-black shadow-2xl border-2 border-white flex items-center justify-center uppercase tracking-wider active:scale-[0.98] transition-all duration-500 ease-in-out" 
-      style="bottom: 80px; left: 16px; right: 16px; height: 56px; border-radius: 16px; font-size: 14px; width: auto; transform: translateX(0); transform-origin: center;">
-      
-      <!-- Teks Awal -->
+    <!-- Tombol Utama Biru (Meluncur) -->
+    <button id="btn-transaksi-animasi" onclick="mulaiAnimasiTransaksi()" class="absolute pointer-events-auto bg-blue-600 hover:bg-blue-700 text-white font-black shadow-2xl border-2 border-white flex items-center justify-center uppercase tracking-wider active:scale-[0.98] transition-all duration-300 ease-in-out" 
+      style="bottom: 72px; left: 16px; right: 16px; height: 52px; border-radius: 16px; font-size: 14px; width: auto;">
       <span id="teks-btn-transaksi">MENU TRANSAKSI</span>
-      
-      <!-- Ikon Silang (Muncul saat di atas) -->
-      <span id="ikon-btn-close" class="absolute opacity-0 text-xl font-bold transition-opacity duration-300">✕</span>
+      <span id="ikon-btn-close" class="absolute opacity-0 text-xl font-bold transition-opacity duration-200">✕</span>
     </button>
+
   </div>
+        
+        
 
   <!-- MODALS -->
   <div id="modal-detail-laporan" onclick="closeOnBackdrop(event, 'modal-detail-laporan')" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
