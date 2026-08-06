@@ -1,55 +1,66 @@
-// Fungsi untuk menyimpan customer baru
+// 1. Fungsi untuk menampilkan / menyembunyikan form input customer baru
+function toggleFormCustomerBaru() {
+    const form = document.getElementById('formCustomerBaru') || document.getElementById('formAddCustomer');
+    if (form) {
+        if (form.style.display === 'none' || form.style.display === '') {
+            form.style.display = 'block';
+        } else {
+            form.style.display = 'none';
+        }
+    } else {
+        // Jika elemen form tidak ketemu dengan ID, coba toggle class hidden
+        console.log("Form pemicu toggleFormCustomerBaru diklik");
+    }
+}
+
+// 2. Fungsi untuk menyimpan data ke database Supabase
 async function saveCustomer(e) {
     if (e) e.preventDefault();
 
-    // 1. Ambil nilai dari inputan form
-    const nameInput = document.getElementById('customerName');
-    const phoneInput = document.getElementById('customerPhone');
+    // Ambil nilai dari inputan
+    const nameInput = document.getElementById('customerName') || document.querySelector('input[placeholder*="Nama"]');
+    const phoneInput = document.getElementById('customerPhone') || document.querySelector('input[placeholder*="Hp"]');
 
     if (!nameInput || !phoneInput) {
-        alert("Error: Elemen input tidak ditemukan di halaman!");
+        alert("Input nama atau nomor HP tidak ditemukan!");
         return;
     }
 
-    const name = nameInput.value.trim();
-    const phone = phoneInput.value.trim();
+    const nama = nameInput.value.trim();
+    const no_hp = phoneInput.value.trim();
 
-    if (!name || !phone) {
+    if (!nama || !no_hp) {
         alert("Nama dan No HP wajib diisi!");
         return;
     }
 
-    console.log("Memproses simpan customer:", { name, phone });
+    console.log("Mengirim data ke Supabase:", { nama, no_hp });
 
     try {
-        // 2. Kirim data HANYA nama dan phone ke tabel customers
+        // Tembak ke tabel 'pelanggan' dengan kolom 'nama' dan 'no_hp'
         const { data, error } = await supabase
-            .from('customers')
+            .from('pelanggan')
             .insert([
                 { 
-                    nama: name, 
-                    phone: phone 
+                    nama: nama, 
+                    no_hp: no_hp 
                 }
             ]);
 
         if (error) {
             console.error("Error Supabase:", error);
-            alert("Gagal menyimpan ke database: " + error.message);
+            alert("Gagal menyimpan: " + error.message);
             return;
         }
 
-        alert("Berhasil! Customer " + name + " telah tersimpan.");
+        alert("Berhasil! Pelanggan " + nama + " berhasil disimpan.");
         
-        // Bersihkan inputan
+        // Reset inputan
         nameInput.value = '';
         phoneInput.value = '';
         
-        // Refresh / tutup modal jika ada
-        if (typeof hideModal === 'function') {
-            hideModal('modalCustomer');
-        } else {
-            location.reload();
-        }
+        // Refresh halaman otomatis agar data terbaru muncul
+        location.reload();
 
     } catch (err) {
         console.error("System Error:", err);
@@ -57,5 +68,6 @@ async function saveCustomer(e) {
     }
 }
 
-// Pasang fungsi ke window supaya bisa dipanggil dari HTML
+// Pastikan fungsi terdaftar di window browser
+window.toggleFormCustomerBaru = toggleFormCustomerBaru;
 window.saveCustomer = saveCustomer;
