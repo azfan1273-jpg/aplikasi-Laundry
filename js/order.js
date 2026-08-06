@@ -119,8 +119,18 @@ function openModalDetailOrderById(id) {
 function closeModalDetailOrder() { closeModalWithHistory('modal-detail-order'); }
 
 function openModalEditOrder() {
-  if(!activeOrderDetail) return;
-  var perms = getTokoPermissions();
+// --- KODE GEMBOK TAMBAHAN ---
+  const perms = getTokoPermissions();
+  if (currentUserProfile && currentUserProfile.role !== 'owner' && !perms.is_manager && !perms.akses_edit_order) {
+    showToast("Kasir tidak diizinkan mengubah/edit data order!", "error");
+    return;
+  }
+  // ----------------------------
+
+  // ... (isi kode lama openModalEditOrder di bawahnya) ...  
+  
+    if(!activeOrderDetail) return;
+    var perms = getTokoPermissions();
   if(currentProfile && currentProfile.role === 'kasir' && !perms.is_manager && !perms.akses_edit_order) {
     showToast("Izin edit/batal order dikunci oleh Owner!", "error");
     return;
@@ -175,8 +185,18 @@ async function actionLanjutProses() {
 }
 
 async function actionBatalkanOrder() {
-  if(!activeOrderDetail) return;
-  var perms = getTokoPermissions();
+// --- KODE GEMBOK TAMBAHAN ---
+  const perms = getTokoPermissions();
+  if (currentUserProfile && currentUserProfile.role !== 'owner' && !perms.is_manager && !perms.akses_edit_order) {
+    showToast("Kasir tidak diizinkan membatalkan order!", "error");
+    return;
+  }
+  // ----------------------------
+
+  // ... (isi kode lama actionBatalkanOrder di bawahnya) ...
+
+    if(!activeOrderDetail) return;
+    var perms = getTokoPermissions();
   if(currentProfile && currentProfile.role === 'kasir' && !perms.is_manager && !perms.akses_edit_order) {
     showToast("Izin pembatalan order dikunci oleh Owner!", "error");
     return;

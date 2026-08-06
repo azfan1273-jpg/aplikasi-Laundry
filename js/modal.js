@@ -116,17 +116,37 @@ function toggleFabMenu() {
 }
 
 function openModalPengeluaran() {
-  document.getElementById('input_keterangan_pengeluaran').value = '';
-  document.getElementById('input_nominal_pengeluaran').value = '';
+// --- KODE GEMBOK TAMBAHAN ---
+  const perms = getTokoPermissions();
+  if (currentUserProfile && currentUserProfile.role !== 'owner' && !perms.is_manager && !perms.akses_pengeluaran) {
+    showToast("Anda tidak memiliki izin mencatat pengeluaran!", "error");
+    return;
+  }
+  // ----------------------------
+
+  // ... (isi kode lama openModalPengeluaran di bawahnya biarkan saja) ...
+
+    document.getElementById('input_keterangan_pengeluaran').value = '';
+    document.getElementById('input_nominal_pengeluaran').value = '';
   openModalWithHistory('modal-pengeluaran');
 }
 function closeModalPengeluaran() { closeModalWithHistory('modal-pengeluaran'); }
 
 function openModalPOS() { resetPOSState(); openModalWithHistory('modal-pos'); }
 function closeModalPOS() { closeModalWithHistory('modal-pos'); }
-
+// --- KODE GEMBOK TAMBAHAN ---
 function openModalKelolaLayanan() {
-  openModalWithHistory('modal-kelola-layanan');
-  renderKelolaLayananList();
+
+    const perms = getTokoPermissions();
+  if (currentUserProfile && currentUserProfile.role !== 'owner' && !perms.is_manager && !perms.akses_layanan) {
+    showToast("Anda tidak memiliki izin mengelola layanan & harga!", "error");
+    return;
+  }
+  // ----------------------------
+
+  // ... (isi kode lama openModalKelolaLayanan di bawahnya biarkan saja) ...
+
+    openModalWithHistory('modal-kelola-layanan');
+    renderKelolaLayananList();
 }
 function closeModalKelolaLayanan() { closeModalWithHistory('modal-kelola-layanan'); }

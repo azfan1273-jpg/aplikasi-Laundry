@@ -121,27 +121,35 @@ function applyUserPermissionsUI() {
   if (roleBadge) roleBadge.innerText = isOwner ? 'Owner' : 'Kasir';
   if (settingRoleBadge) settingRoleBadge.innerText = isOwner ? 'Owner' : 'Kasir';
 
-  // Sembunyikan area Owner khusus dari Kasir
+  // Dapatkan permissions terbaru
+  const perms = getTokoPermissions();
+
   const ownerSectionLayanan = document.getElementById('setting-owner-layanan');
   const ownerSectionKasir = document.getElementById('setting-owner-kasir');
   const fabPengeluaran = document.getElementById('fab-btn-pengeluaran');
+  const navReport = document.getElementById('nav-report');
 
   if (!isOwner) {
-    // Jika Kasir, cek permissions dari toko
-    const perms = getTokoPermissions();
+    // Sembunyikan Kelola Kasir dari Kasir
+    if (ownerSectionKasir) ownerSectionKasir.style.display = 'none';
 
-    if (ownerSectionLayanan) ownerSectionLayanan.style.display = perms.akses_layanan ? 'flex' : 'none';
-    if (ownerSectionKasir) ownerSectionKasir.style.display = 'none'; // Kasir tidak boleh kelola kasir lain
-    if (fabPengeluaran) fabPengeluaran.style.display = perms.akses_pengeluaran ? 'flex' : 'none';
-
-    // Pengaturan Nav Bar Laporan
-    const navReport = document.getElementById('nav-report');
-    if (navReport) navReport.style.display = (perms.akses_laporan || perms.is_manager) ? 'flex' : 'none';
+    // Jika BUKAN Manager, cek izin satu per satu
+    if (!perms.is_manager) {
+      if (ownerSectionLayanan) ownerSectionLayanan.style.display = perms.akses_layanan ? 'flex' : 'none';
+      if (fabPengeluaran) fabPengeluaran.style.display = perms.akses_pengeluaran ? 'flex' : 'none';
+      if (navReport) navReport.style.display = perms.akses_laporan ? 'flex' : 'none';
+    } else {
+      // Jika dijadikan Manager, tampilkan semua
+      if (ownerSectionLayanan) ownerSectionLayanan.style.display = 'flex';
+      if (fabPengeluaran) fabPengeluaran.style.display = 'flex';
+      if (navReport) navReport.style.display = 'flex';
+    }
   } else {
-    // Jika Owner, tampilkan semua
+    // Owner punya akses ke seluruh fitur
     if (ownerSectionLayanan) ownerSectionLayanan.style.display = 'flex';
     if (ownerSectionKasir) ownerSectionKasir.style.display = 'flex';
     if (fabPengeluaran) fabPengeluaran.style.display = 'flex';
+    if (navReport) navReport.style.display = 'flex';
   }
 }
 
@@ -220,5 +228,45 @@ async function checkUserSession() {
   } else {
     currentUser = null; currentProfile = null; currentToko = null;
     document.getElementById('auth-screen').classList.remove('hidden');
+  }
+}
+// ==========================================
+// REFRESH MANUAL UNTUK SYNC PERMISSION REALTIME
+// ==========================================
+async function triggerManualRefresh() {
+  const icon = document.getElementById('refresh-icon');
+  if (icon) icon.classList.add('spinning');
+
+  try {
+    if (typeof supabaseClient !== 'undefined' && supabaseClient && currentUserProfile) {
+      // Pull data toko terbaru dari Supabase untuk update izin/permissions
+      const { data: tokoData } = await supabaseClient
+        .from('toko')
+        .select('*')
+        .eq('id', currentUserProfile.toko_id)
+        .single();
+
+      if (tokoData) {
+        currentToko = tokoData;
+        
+        // Terapkan ulang sembunyi/tampil tombol sesuai izin terbaru
+        if (typeof applyUserPermissionsUI === 'function') {
+          applyUserPermissionsUI();
+        }
+      }
+    }
+
+    // Reload data halaman
+    if (typeof loadDataHome === 'function') {
+      await loadDataHome();
+    }
+
+    showToast("Data & Izin Akses diperbarui! 🔄", "info");
+  } catch (err) {
+    console.error("Error refresh:", err);
+  } finally {
+    if (icon) {
+      setTimeout(() => icon.classList.remove('spinning'), 600);
+    }
   }
 }

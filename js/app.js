@@ -1,6 +1,20 @@
 console.log("App.js berhasil dibaca");
 function switchTab(tabName, pushHistory = true) {
-  if(tabName === 'report' && currentProfile && currentProfile.role === 'kasir') {
+function switchTab(tab) {
+  // --- KODE GEMBOK TAMBAHAN (Mulai) ---
+  if (tab === 'report') {
+    const perms = getTokoPermissions();
+    if (currentUserProfile && currentUserProfile.role !== 'owner' && !perms.is_manager && !perms.akses_laporan) {
+      showToast("Akses Menu Laporan dibatasi oleh Owner!", "error");
+      return; // Stop, jangan lanjut buka tab
+    }
+  }
+  // --- KODE GEMBOK TAMBAHAN (Selesai) ---
+
+  // ... (biarkan semua kode lama switchTab di bawah sini tetap seperti semula) ...
+}
+
+    if(tabName === 'report' && currentProfile && currentProfile.role === 'kasir') {
     var perms = getTokoPermissions();
     if(!perms.is_manager && !perms.akses_laporan) {
       showToast("Akses Laporan dikunci khusus Owner!", "error");
@@ -8,6 +22,7 @@ function switchTab(tabName, pushHistory = true) {
     }
   }
 
+  
   currentActiveTab = tabName;
 
   const fabContainer = document.getElementById('fab-container');
