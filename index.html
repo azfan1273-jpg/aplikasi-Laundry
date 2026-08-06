@@ -791,57 +791,59 @@
     </div>
   </div>
 
+  <!-- MODAL POS TRANSAKSI -->
   <div id="modalPOS" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
-  <div class="bg-white rounded-2xl w-full max-w-lg p-6 relative shadow-xl">
-    
-    <!-- 1. Tombol Close (X) -> Tambahkan id="btnClosePOS" -->
-    <button id="btnClosePOS" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 transition">
-      ✕
-    </button>
-
-    <h2 class="text-xl font-bold mb-4">Buat Order Transaksi</h2>
-
-    <!-- Section Pelanggan -->
-    <div class="bg-gray-50 p-4 rounded-xl mb-4 flex items-center justify-between border border-gray-100">
-      <div>
-        <p class="text-xs text-gray-500 font-medium">Pelanggan</p>
-        <p id="selectedCustomerName" class="text-sm font-semibold text-gray-400 italic">Silahkan Pilih Customer Terlebih Dahulu.</p>
-      </div>
-      <!-- 2. Tombol Cari -> Tambahkan id="btnSearchCustomer" -->
-      <button id="btnSearchCustomer" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition">
-        CARI
+    <div class="bg-white rounded-2xl w-full max-w-lg p-6 relative shadow-xl">
+      
+      <!-- 1. Tombol Close (X) -->
+      <button type="button" id="btnClosePOS" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 transition">
+        ✕
       </button>
-    </div>
 
-    <!-- Section Daftar Layanan / Keranjang -->
-    <div class="bg-gray-50 p-4 rounded-xl mb-6 border border-gray-100">
-      <div class="flex justify-between items-center mb-3">
-        <p class="text-xs text-gray-500 font-medium">Daftar Layanan (Keranjang)</p>
-        <!-- 3. Tombol + Tambah Layanan -> Tambahkan id="btnAddService" -->
-        <button id="btnAddService" class="bg-cyan-100 hover:bg-cyan-200 text-cyan-800 text-xs font-semibold px-3 py-1.5 rounded-lg transition">
-          + Tambah Layanan
+      <h2 class="text-xl font-bold mb-4">Buat Order Transaksi</h2>
+
+      <!-- Section Pelanggan -->
+      <div class="bg-gray-50 p-4 rounded-xl mb-4 flex items-center justify-between border border-gray-100">
+        <div>
+          <p class="text-xs text-gray-500 font-medium">Pelanggan</p>
+          <p id="selectedCustomerName" class="text-sm font-semibold text-gray-400 italic">Silahkan Pilih Customer Terlebih Dahulu.</p>
+        </div>
+        <!-- 2. Tombol Cari -->
+        <button type="button" id="btnSearchCustomer" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition">
+          CARI
         </button>
       </div>
-      
-      <!-- Container Keranjang -->
-      <div id="cartItemsContainer">
-        <p class="text-xs text-gray-400 text-center py-4 italic">Belum ada layanan yang ditambahkan.</p>
-      </div>
-    </div>
 
-    <!-- Section Total Price & Tombol Pesan -->
-    <div class="flex justify-between items-center pt-2 border-t border-gray-100">
-      <div>
-        <p class="text-[10px] text-gray-400 uppercase tracking-wider font-bold">TOTAL PRICE</p>
-        <p id="totalPricePOS" class="text-xl font-extrabold text-gray-800">Rp 0</p>
+      <!-- Section Daftar Layanan / Keranjang -->
+      <div class="bg-gray-50 p-4 rounded-xl mb-6 border border-gray-100">
+        <div class="flex justify-between items-center mb-3">
+          <p class="text-xs text-gray-500 font-medium">Daftar Layanan (Keranjang)</p>
+          <!-- 3. Tombol + Tambah Layanan -->
+          <button type="button" id="btnAddService" class="bg-cyan-100 hover:bg-cyan-200 text-cyan-800 text-xs font-semibold px-3 py-1.5 rounded-lg transition">
+            + Tambah Layanan
+          </button>
+        </div>
+        
+        <!-- Container Keranjang -->
+        <div id="cartItemsContainer">
+          <p class="text-xs text-gray-400 text-center py-4 italic">Belum ada layanan yang ditambahkan.</p>
+        </div>
       </div>
-      <button id="btnSubmitPOS" class="bg-red-500 hover:bg-red-600 text-white font-bold px-6 py-2.5 rounded-xl shadow-md transition">
-        PESAN
-      </button>
-    </div>
 
+      <!-- Section Total Price & Tombol Pesan -->
+      <div class="flex justify-between items-center pt-2 border-t border-gray-100">
+        <div>
+          <p class="text-[10px] text-gray-400 uppercase tracking-wider font-bold">TOTAL PRICE</p>
+          <p id="totalPricePOS" class="text-xl font-extrabold text-gray-800">Rp 0</p>
+        </div>
+        <!-- 4. Tombol PESAN -->
+        <button type="button" id="btnSubmitPOS" class="bg-red-500 hover:bg-red-600 text-white font-bold px-6 py-2.5 rounded-xl shadow-md transition">
+          PESAN
+        </button>
+      </div>
+
+    </div>
   </div>
-</div>
 
   <div id="modal-pelanggan" onclick="closeOnBackdrop(event, 'modal-pelanggan')" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
     <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 max-h-[85vh] flex flex-col" onclick="event.stopPropagation()">

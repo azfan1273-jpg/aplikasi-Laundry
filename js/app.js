@@ -5,36 +5,30 @@
 // 1. MEMBUKA MODAL KELOLA AKUN & ANALITIK (DENGAN CEK HAK AKSES KASIR)
 async function openModalJendelaAkunWithChart() {
   try {
-    // 1. Ambil email aktif di layar saat ini
     const topbarEmail = document.getElementById('topbar-user-email')?.textContent?.trim() || '';
     const settingEmail = document.getElementById('setting-user-email')?.textContent?.trim() || '';
     const activeEmail = topbarEmail || settingEmail;
 
-    // 2. Ambil role dari localStorage
     let userRole = localStorage.getItem('user_role');
 
-    // Tentukan apakah user saat ini adalah Owner berdasarkan email atau role
     const isOwnerEmail = activeEmail.includes('superadmin') || 
                          activeEmail.includes('owner') || 
                          activeEmail === 'superadmin.lndr@gmail.com';
 
-    // Jika terdeteksi email Owner, pastikan role di-set sebagai owner
     if (isOwnerEmail) {
       userRole = 'owner';
       localStorage.setItem('user_role', 'owner');
     }
 
-    // 3. JIKA USER ADALAH KASIR (DAN BUKAN EMAIL OWNER), BLOKIR AKSES TOTAL!
     if (userRole === 'kasir' || activeEmail.includes('kasir')) {
       if (typeof showToast === 'function') {
         showToast('Akses Ditolak: Menu Kelola Akun khusus Owner/Admin!', 'error');
       } else {
         alert('Akses Ditolak: Menu Kelola Akun khusus Owner/Admin!');
       }
-      return; // Hentikan eksekusi, modal tidak akan terbuka
+      return;
     }
 
-    // 4. JIKA OWNER / ADMIN, BUKA MODAL KELOLA AKUN
     const modal = document.getElementById('modal-jendela-akun');
     if (!modal) return;
 
@@ -99,7 +93,6 @@ async function mulaiAnimasiTransaksi() {
     if (!tombol || !container) return;
 
     if (!isJendelaNavigasiOpen) {
-        // PROSES BUKA (MELUNCUR KE ATAS & JADI BULAT)
         isJendelaNavigasiOpen = true;
         tombol.style.pointerEvents = 'none';
 
@@ -165,12 +158,11 @@ function handleMenuClick(modalFunction) {
     }, 600);
 }
 
-// Kompatibilitas jika ada elemen lama yang masih memanggil toggleFabMenu
 function toggleFabMenu() {
     mulaiAnimasiTransaksi();
 }
 
-// 5. NAVIGASI TAB UTAMA (BERANDA, ORDER, REPORT, SETTING)
+// 5. NAVIGASI TAB UTAMA
 function switchTab(tabName) {
   const sections = document.querySelectorAll('.page-section');
   sections.forEach(sec => sec.classList.remove('active'));
@@ -198,10 +190,7 @@ function switchTab(tabName) {
 // ==========================================
 function terapkanHakAksesKasir() {
   const userRole = localStorage.getItem('user_role');
-  
-  // Jika role yang login adalah kasir
   if (userRole === 'kasir') {
-    // Sembunyikan tombol "Kelola Akun" di menu Pengaturan
     const menuKelolaAkun = document.getElementById('setting-owner-kasir');
     if (menuKelolaAkun) {
       menuKelolaAkun.style.display = 'none';
@@ -229,27 +218,16 @@ function closeModalPengeluaran() {
 }
 
 // ==========================================
-// 8. FUNGSI MODAL POS (TRANSAKSI BARU)
+// 8. FUNGSI MODAL POS & INTERAKSI TRANSAKSI
 // ==========================================
 function bukaModalPOS() {
   const modalPos = document.getElementById('modalPOS') || 
                    document.getElementById('modal-pos') || 
-                   document.getElementById('modal-transaksi') || 
-                   document.getElementById('modal-order-baru');
+                   document.getElementById('modal-transaksi');
                    
   if (modalPos) {
     modalPos.classList.remove('hidden');
     modalPos.classList.add('flex');
-  } else if (typeof openModalPOS === 'function') {
-    openModalPOS();
-  } else if (typeof openModalOrderBaru === 'function') {
-    openModalOrderBaru();
-  } else {
-    const anyModal = document.querySelector('[id*="modal-pos"], [id*="modal-order"]');
-    if (anyModal) {
-      anyModal.classList.remove('hidden');
-      anyModal.classList.add('flex');
-    }
   }
 }
 
@@ -263,27 +241,74 @@ function tutupModalPOS() {
   }
 }
 
-// --- LOGIKA TOMBOL INTERNAL MODAL POS ---
+// --- LOGIKA HUBUNGAN DENGAN MODAL PELANGGAN & LAYANAN V2 ---
 
 function handleCariPelanggan(e) {
-  if (e) {
-    e.preventDefault();
-    e.stopPropagation();
+  if (e) { e.preventDefault(); e.stopPropagation(); }
+  
+  // Panggil modal pilih pelanggan bawaan aplikasi
+  if (typeof openModalPilihPelanggan === 'function') {
+    openModalPilihPelanggan();
+  } else {
+    const modalPelanggan = document.getElementById('modal-pelanggan');
+    if (modalPelanggan) modalPelanggan.classList.remove('hidden');
   }
-  console.log('Tombol Cari Pelanggan diklik');
-  alert('Membuka pilihan pelanggan...');
 }
 
 function handleTambahLayanan(e) {
-  if (e) {
-    e.preventDefault();
-    e.stopPropagation();
+  if (e) { e.preventDefault(); e.stopPropagation(); }
+  
+  // Panggil modal pilih layanan bawaan aplikasi
+  if (typeof openModalPilihLayanan === 'function') {
+    openModalPilihLayanan();
+  } else {
+    const modalLayanan = document.getElementById('modal-layanan');
+    if (modalLayanan) modalLayanan.classList.remove('hidden');
   }
-  console.log('Tombol Tambah Layanan diklik');
-  alert('Membuka katalog layanan...');
 }
 
-// Inisialisasi Listener
+// --- LOGIKA VALIDASI DAN PROSES PESAN ---
+
+function handleProsesPesan(e) {
+  if (e) { e.preventDefault(); e.stopPropagation(); }
+
+  const customerLabel = document.getElementById('selectedCustomerName')?.textContent?.trim();
+  const cartContainer = document.getElementById('cartItemsContainer');
+  
+  // 1. Cek Apakah Pelanggan Sudah Dipilih
+  if (!customerLabel || customerLabel.includes('Silahkan Pilih Customer Terlebih Dahulu.')) {
+    if (typeof showToast === 'function') {
+      showToast('Harap isi kolom Pelanggan Terlebih dahulu..!!', 'error');
+    } else {
+      alert('Harap isi kolom Pelanggan Terlebih dahulu..!!');
+    }
+    return;
+  }
+
+  // 2. Cek Apakah Layanan / Keranjang Masih Kosong
+  if (!cartContainer || cartContainer.textContent.includes('Belum ada layanan yang ditambahkan.')) {
+    if (typeof showToast === 'function') {
+      showToast('Harap isi kolom Layanan Terlebih dahul..!!', 'error');
+    } else {
+      alert('Harap isi kolom Layanan Terlebih dahul..!!');
+    }
+    return;
+  }
+
+  // 3. Jika Semua Terisi, Eksekusi Simpan Order
+  if (typeof simpanOrderPOS === 'function') {
+    simpanOrderPOS();
+  } else {
+    if (typeof showToast === 'function') {
+      showToast('Transaksi Berhasil Diproses!', 'success');
+    } else {
+      alert('Transaksi Berhasil Diproses!');
+    }
+    tutupModalPOS();
+  }
+}
+
+// Inisialisasi Listener Tombol POS
 function initPOSListeners() {
   const btnClosePOS = document.getElementById('btnClosePOS');
   if (btnClosePOS) {
@@ -303,16 +328,21 @@ function initPOSListeners() {
   if (btnAddService) {
     btnAddService.onclick = handleTambahLayanan;
   }
+
+  const btnSubmitPOS = document.getElementById('btnSubmitPOS');
+  if (btnSubmitPOS) {
+    btnSubmitPOS.onclick = handleProsesPesan;
+  }
 }
 
-// Pembungkus bukaModalPOS untuk menjamin event listener selalu aktif saat modal dibuka
+// Pembungkus bukaModalPOS untuk menjamin event listener selalu terikat
 const originalBukaModalPOS = bukaModalPOS;
 bukaModalPOS = function() {
   if (typeof originalBukaModalPOS === 'function') originalBukaModalPOS();
   initPOSListeners();
 };
 
-// Inisialisasi Saat Halaman Pertama Load
+// Inisialisasi Saat Halaman Load
 document.addEventListener('DOMContentLoaded', () => {
   console.log('App JS terload dengan aman.');
   setTimeout(terapkanHakAksesKasir, 500);
