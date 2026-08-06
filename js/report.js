@@ -476,3 +476,72 @@ async function simpanPengeluaranBaru(e) {
 }
 
 window.simpanPengeluaranBaru = simpanPengeluaranBaru;
+
+// ==========================================
+// FUNGSI MEMUAT & MENAMPILKAN DAFAR PENGELUARAN
+// ==========================================
+async function fetchPengeluaran() {
+  const container = document.getElementById('list-pengeluaran-container') 
+                 || document.getElementById('report-pengeluaran-list')
+                 || document.getElementById('list-pengeluaran');
+
+  if (!container) {
+    console.log("Container list pengeluaran tidak ditemukan di HTML.");
+    return;
+  }
+
+  const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
+
+  if (!client) return;
+
+  try {
+    // Ambil data dari tabel pengeluaran
+    const { data, error } = await client
+      .from('pengeluaran')
+      .select('*')
+      .order('id', { ascending: false }); // Urutkan dari yang terbaru
+
+    if (error) {
+      console.error('Error fetch pengeluaran:', error);
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      container.innerHTML = `
+        <div class="text-center py-4 text-slate-400 text-xs italic">
+          Belum ada catatan pengeluaran.
+        </div>`;
+      return;
+    }
+
+    // Render data ke tampilan HTML
+    container.innerHTML = data.map(item => {
+      const nominalFormatted = parseFloat(item.nominal || 0).toLocaleString('id-ID');
+      const ket = item.keterangan || 'Pengeluaran';
+      
+      return `
+        <div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100 mb-2">
+          <div>
+            <p class="font-bold text-slate-800 text-xs">${escapeHtml(ket)}</p>
+            <p class="text-[10px] text-slate-400">${item.created_at ? new Date(item.created_at).toLocaleDateString('id-ID') : '-'}</p>
+          </div>
+          <span class="font-extrabold text-red-500 text-xs">- Rp ${nominalFormatted}</span>
+        </div>
+      `;
+    }).join('');
+
+  } catch (err) {
+    console.error('Catch fetch pengeluaran:', err);
+  }
+}
+
+// Update fungsi simpanPengeluaranBaru agar memanggil fetchPengeluaran() di akhir
+// Pastikan di dalam fungsi simpanPengeluaranBaru kamu panggil:
+// await fetchPengeluaran();
+
+// Panggil saat halaman laporan dibuka
+window.fetchPengeluaran = fetchPengeluaran;
+
+document.addEventListener('DOMContentLoaded', () => {
+  fetchPengeluaran();
+});
