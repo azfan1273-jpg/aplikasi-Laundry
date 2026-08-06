@@ -25,12 +25,22 @@ async function simpanKasirBaru() {
   }
 
   try {
-    // 1. Buat client temporary agar session Owner tidak tertimpa/logout saat membuat akun kasir baru
+    // Kirim toko_id & role lewat user_metadata saat SignUp
     const tempSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
       auth: { persistSession: false }
     });
 
-    const { data, error } = await tempSupabase.auth.signUp({ email, password });
+    const { data, error } = await tempSupabase.auth.signUp({ 
+      email, 
+      password,
+      options: {
+        data: {
+          toko_id: currentToko.id,
+          role: 'kasir',
+          nama_user: 'Kasir ' + email.split('@')[0]
+        }
+      }
+    });
 
     if (error) {
       showToast("Gagal mendaftarkan kasir: " + error.message, "error");
@@ -38,32 +48,12 @@ async function simpanKasirBaru() {
     }
 
     if (data && data.user) {
-      // Give time for DB trigger to create profile row if any, or upsert directly
-      await new Promise(resolve => setTimeout(resolve, 800));
-
-      const newKasirNama = 'Kasir ' + email.split('@')[0];
-
-      // 2. Gunakan UPSERT agar jika row profil belum ada, akan otomatis dibuatkan
-      const { error: profError } = await supabaseClient
-        .from('profiles')
-        .upsert([{
-          id: data.user.id,
-          toko_id: currentToko.id,
-          role: 'kasir',
-          nama_user: newKasirNama
-        }], { onConflict: 'id' });
-
-      if (profError) {
-        showToast("Gagal menyambungkan profil kasir: " + profError.message, "error");
-        return;
-      }
-
       showToast("Akun Kasir " + email + " Berhasil Dibuat! 🎉", "success");
       if (emailInput) emailInput.value = '';
       if (passInput) passInput.value = '';
       
       toggleFormTambahKasir();
-      await loadDaftarKasirList();
+      setTimeout(() => loadDaftarKasirList(), 1000);
     }
   } catch (err) {
     showToast("Terjadi kesalahan: " + err.message, "error");

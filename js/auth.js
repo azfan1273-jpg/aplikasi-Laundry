@@ -112,47 +112,36 @@ async function handleLogout() {
 
 // UPDATE DYNAMIC ROLE PERMISSIONS ACCORDING TO OWNER & KASIR
 function applyUserPermissionsUI() {
-  if (!currentProfile) return;
+  if (!currentUserProfile) return;
 
-  var role = currentProfile.role;
-  var perms = getTokoPermissions();
+  const isOwner = currentUserProfile.role === 'owner';
+  const roleBadge = document.getElementById('topbar-role-badge');
+  const settingRoleBadge = document.getElementById('setting-role-badge');
 
-  var isManagerOrOwner = (role === 'owner') || perms.is_manager;
+  if (roleBadge) roleBadge.innerText = isOwner ? 'Owner' : 'Kasir';
+  if (settingRoleBadge) settingRoleBadge.innerText = isOwner ? 'Owner' : 'Kasir';
 
-  var canReport = isManagerOrOwner || perms.akses_laporan;
-  var canLayanan = isManagerOrOwner || perms.akses_layanan;
-  var canPengeluaran = isManagerOrOwner || perms.akses_pengeluaran;
-
-  const navReportBtn = document.getElementById('nav-report');
-  const settingLayanan = document.getElementById('setting-owner-layanan');
-  const settingKasir = document.getElementById('setting-owner-kasir');
+  // Sembunyikan area Owner khusus dari Kasir
+  const ownerSectionLayanan = document.getElementById('setting-owner-layanan');
+  const ownerSectionKasir = document.getElementById('setting-owner-kasir');
   const fabPengeluaran = document.getElementById('fab-btn-pengeluaran');
 
-  if (role === 'kasir') {
-    if (navReportBtn) navReportBtn.style.display = canReport ? 'flex' : 'none';
-    if (settingLayanan) settingLayanan.style.display = canLayanan ? 'flex' : 'none';
-    if (settingKasir) settingKasir.style.display = 'none';
-    if (fabPengeluaran) fabPengeluaran.style.display = canPengeluaran ? 'flex' : 'none';
+  if (!isOwner) {
+    // Jika Kasir, cek permissions dari toko
+    const perms = getTokoPermissions();
 
-    if (currentActiveTab === 'report' && !canReport) {
-      switchTab('home');
-      showToast("Akses Laporan dikunci oleh Owner!", "error");
-    }
+    if (ownerSectionLayanan) ownerSectionLayanan.style.display = perms.akses_layanan ? 'flex' : 'none';
+    if (ownerSectionKasir) ownerSectionKasir.style.display = 'none'; // Kasir tidak boleh kelola kasir lain
+    if (fabPengeluaran) fabPengeluaran.style.display = perms.akses_pengeluaran ? 'flex' : 'none';
 
-    const topbarHeader = document.getElementById('topbar-header-click');
-    if (topbarHeader) {
-      topbarHeader.onclick = function() { showToast("Akses Analitik dikunci khusus Owner!", "error"); };
-    }
+    // Pengaturan Nav Bar Laporan
+    const navReport = document.getElementById('nav-report');
+    if (navReport) navReport.style.display = (perms.akses_laporan || perms.is_manager) ? 'flex' : 'none';
   } else {
-    if (navReportBtn) navReportBtn.style.display = 'flex';
-    if (settingLayanan) settingLayanan.style.display = 'flex';
-    if (settingKasir) settingKasir.style.display = 'flex';
+    // Jika Owner, tampilkan semua
+    if (ownerSectionLayanan) ownerSectionLayanan.style.display = 'flex';
+    if (ownerSectionKasir) ownerSectionKasir.style.display = 'flex';
     if (fabPengeluaran) fabPengeluaran.style.display = 'flex';
-
-    const topbarHeader = document.getElementById('topbar-header-click');
-    if (topbarHeader) {
-      topbarHeader.onclick = function() { openModalJendelaAkunWithChart(); };
-    }
   }
 }
 
