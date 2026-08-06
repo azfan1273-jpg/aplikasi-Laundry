@@ -132,64 +132,114 @@ async function renderDaftarKasir() {
   }
 }
 
-// Render Daftar Layanan di Modal Kelola Layanan
-async function renderKelolaLayananList() {
+// 1. Sembunyikan "Daftar Layanan Saat Ini" di Gambar 1 (Modal Kelola Layanan)
+function renderKelolaLayananList() {
   const container = document.getElementById('list-kelola-layanan-container');
-  const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
-
-  if (!container || !client) return;
-
-  try {
-    container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4 italic">Memuat layanan...</p>';
-
-    let query = client.from('layanan').select('*').order('id', { ascending: false });
-    if (typeof currentToko !== 'undefined' && currentToko?.id) {
-      query = query.eq('toko_id', currentToko.id);
-    }
-
-    const { data: listLayanan, error } = await query;
-
-    if (error) throw error;
-
-    if (!listLayanan || listLayanan.length === 0) {
-      container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4 italic">Belum ada data layanan.</p>';
-      return;
-    }
-
+  if (container) {
     container.innerHTML = '';
-    listLayanan.forEach((item) => {
-      const div = document.createElement('div');
-      div.className = 'flex justify-between items-center p-3 bg-white rounded-xl border border-slate-200 text-xs mb-2 shadow-sm';
-      div.innerHTML = `
-        <div>
-          <p class="font-bold text-slate-800">${item.nama_layanan}</p>
-          <p class="text-[10px] text-slate-500">Rp ${(item.harga || 0).toLocaleString('id-ID')} / ${item.satuan || 'Kg'} • Estimasi: ${item.estimasi_hari || 1} Hari</p>
-        </div>
-        <button type="button" onclick="hapusLayananBaru(${item.id})" class="text-rose-500 hover:text-rose-700 font-bold text-xs bg-rose-50 px-2.5 py-1 rounded-lg">Hapus</button>
-      `;
-      container.appendChild(div);
-    });
-
-  } catch (err) {
-    console.error('Error renderKelolaLayananList:', err);
-    container.innerHTML = '<p class="text-xs text-rose-500 text-center py-4">Gagal memuat layanan.</p>';
+    // Sembunyikan pembungkusnya jika ada
+    if (container.parentElement) {
+      container.parentElement.style.display = 'none';
+    }
   }
 }
 
-// ==========================================
+// 2. Render Daftar Layanan di Gambar 2 (Modal Pilih Layanan POS)
+async function renderLayananPOS(keyword = '') {
+  console.log("-> Memuat daftar layanan di Modal Pilih Layanan...");
+
+  // Cari container list di Modal Pilih Layanan (Gambar 2)
+  let container = document.getElementById('list-layanan-container')
+               || document.querySelector('#modal-layanan .scroll-area')
+               || document.querySelector('#modal-layanan .space-y-2');
+
+  // Fallback jika container belum ter-set ID khusus
+  if (!container) {
+    const allP = document.querySelectorAll('#modal-layanan p, #modal-layanan div');
+    allP.forEach(el => {
+      if (el.textContent.includes('Memuat layanan')) {
+        container = el.parentElement;
+      }
+    });
+  }
+
+  if (!container) return;
+
+  const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
+  if (!client) return;
+
+  try {
+    let query = client.from('layanan').select('*').order('id', { ascending: false });
+    let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) ? currentToko.id : localStorage.getItem('toko_id');
+    if (tokoId) {
+      query = query.eq('toko_id', tokoId);
+    }
+
+    const { data: listLayanan, error } = await query;
+    if (error) throw error;
+
+    window.allLayananCache = listLayanan || [];
+
+    let filtered = window.allLayananCache;
+    if (keyword) {
+      filtered = filtered.filter(item => 
+        (item.nama_layanan || '').toLowerCase().includes(keyword.toLowerCase())
+      );
+    }
+
+    if (!filtered || filtered.length === 0) {
+      container.innerHTML = '<p class="text-xs text-slate-400 text-center py-6 italic">Belum ada layanan tersedia.</p>';
+      return;
+    }
+
+    container.innerHTML = filtered.map(item => `
+      <div class="p-3 bg-white rounded-2xl border border-slate-200 text-xs mb-2 flex justify-between items-center shadow-sm hover:border-blue-400 transition">
+        <div>
+          <p class="font-extrabold text-slate-800 text-xs">${item.nama_layanan}</p>
+          <p class="text-[10px] text-slate-500 mt-0.5">
+            Rp ${(item.harga || 0).toLocaleString('id-ID')} / ${item.satuan || 'Kg'} • Est: ${item.estimasi_hari || 1} Hari
+          </p>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <button type="button" onclick="pilihLayananKeKeranjang(${item.id}, '${item.nama_layanan}', ${item.harga}, '${item.satuan}')" class="bg-blue-600 text-white font-bold text-[11px] px-3 py-1.5 rounded-xl shadow-sm hover:bg-blue-700 active:scale-95 transition">
+            + Pilih
+          </button>
+          <button type="button" onclick="hapusLayananBaru(${item.id})" class="text-rose-500 hover:text-rose-700 font-bold text-[11px] bg-rose-50 px-2 py-1.5 rounded-xl transition" title="Hapus Layanan">
+            🗑️
+          </button>
+        </div>
+      </div>
+    `).join('');
+
+  } catch (err) {
+    console.error('Error renderLayananPOS:', err);
+    if (container) container.innerHTML = '<p class="text-xs text-rose-500 text-center py-4">Gagal memuat daftar layanan.</p>';
+  }
+}
+
+// Fungsi Memilih Layanan ke Transaksi
+function pilihLayananKeKeranjang(id, nama, harga, satuan) {
+  if (typeof window.tambahKeKeranjang === 'function') {
+    window.tambahKeKeranjang({ id, nama_layanan: nama, harga, satuan, qty: 1 });
+  } else if (typeof window.selectLayanan === 'function') {
+    window.selectLayanan(id, nama, harga, satuan);
+  } else {
+    if (typeof showToast === 'function') showToast(`Layanan ${nama} dipilih!`, 'success');
+  }
+
+  // Tutup Modal Pilih Layanan
+  if (typeof closeModalPilihLayanan === 'function') {
+    closeModalPilihLayanan();
+  }
+}
+
 // FUNGSI UTAMA: SIMPAN LAYANAN BARU
-// ==========================================
 async function prosesSimpanLayananBaru(e) {
   if (e && e.preventDefault) e.preventDefault();
 
   console.log("-> Memproses Simpan Layanan Baru...");
 
-  // Container Modal
-  const modal = document.getElementById('modal-kelola-layanan') 
-             || document.getElementById('modal-layanan') 
-             || document;
-
-  // Deteksi Input Secara Urut (Urutan Form: 1. Nama, 2. Harga, 3. Estimasi)
+  const modal = document.getElementById('modal-kelola-layanan') || document;
   const inputs = Array.from(modal.querySelectorAll('input'));
   const selectEl = modal.querySelector('select');
 
@@ -198,7 +248,6 @@ async function prosesSimpanLayananBaru(e) {
   let satuanInput = document.getElementById('new_satuan_layanan') || document.getElementById('satuan_layanan') || selectEl;
   let estimasiInput = document.getElementById('new_estimasi_hari') || document.getElementById('estimasi_hari');
 
-  // Fallback jika ID HTML tidak cocok (ambil berdasarkan urutan elemen)
   if (!namaInput && inputs.length > 0) namaInput = inputs[0];
   if (!hargaInput && inputs.length > 1) hargaInput = inputs[1];
   if (!estimasiInput && inputs.length > 2) estimasiInput = inputs[2];
@@ -224,28 +273,13 @@ async function prosesSimpanLayananBaru(e) {
   }
 
   const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
-
-  if (!client) {
-    if (typeof showToast === 'function') showToast('Koneksi Supabase belum siap!', 'error');
-    else alert('Koneksi Supabase belum siap. Harap refresh halaman!');
-    return;
-  }
+  if (!client) return;
 
   try {
     const userRes = await client.auth.getUser();
     const userId = userRes?.data?.user?.id || null;
 
-    let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) 
-                 ? currentToko.id 
-                 : localStorage.getItem('toko_id');
-
-    if (!tokoId) {
-      const { data: tokoData } = await client.from('toko').select('id').limit(1).maybeSingle();
-      if (tokoData && tokoData.id) {
-        tokoId = tokoData.id;
-        localStorage.setItem('toko_id', tokoId);
-      }
-    }
+    let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) ? currentToko.id : localStorage.getItem('toko_id');
 
     const payload = {
       nama_layanan: nama_layanan,
@@ -255,19 +289,11 @@ async function prosesSimpanLayananBaru(e) {
       user_id: userId
     };
 
-    if (tokoId) {
-      payload.toko_id = tokoId;
-    }
+    if (tokoId) payload.toko_id = tokoId;
 
-    console.log("Sending payload layanan to Supabase:", payload);
-
-    const { data, error } = await client
-      .from('layanan')
-      .insert([payload])
-      .select();
+    const { error } = await client.from('layanan').insert([payload]);
 
     if (error) {
-      console.error('Error Insert Layanan:', error);
       if (typeof showToast === 'function') showToast('Gagal menyimpan: ' + error.message, 'error');
       else alert('Gagal menyimpan layanan: ' + error.message);
       return;
@@ -281,14 +307,14 @@ async function prosesSimpanLayananBaru(e) {
     if (hargaInput) hargaInput.value = '';
     if (estimasiInput) estimasiInput.value = '';
 
-    // Refresh daftar tampilan layanan
-    if (typeof renderKelolaLayananList === 'function') renderKelolaLayananList();
-    if (typeof renderLayananPOS === 'function') renderLayananPOS();
+    // Tutup modal kelola layanan jika perlu
+    if (typeof closeModalKelolaLayanan === 'function') closeModalKelolaLayanan();
+
+    // Refresh daftar di Gambar 2
+    renderLayananPOS();
 
   } catch (err) {
     console.error('Catch simpan layanan:', err);
-    if (typeof showToast === 'function') showToast('Terjadi kesalahan sistem: ' + err.message, 'error');
-    else alert('Terjadi kesalahan sistem: ' + err.message);
   }
 }
 
@@ -306,88 +332,20 @@ async function hapusLayananBaru(id) {
       return;
     }
     alert('Layanan berhasil dihapus!');
-    renderKelolaLayananList();
+    renderLayananPOS();
   } catch (err) {
     console.error('Catch hapus layanan:', err);
   }
 }
 
-// ==========================================
-// FUNGSI SIMPAN & AKTUATOR TARGET OMSET BULANAN
-// ==========================================
-function simpanTargetOmset(e) {
-  if (e && e.preventDefault) e.preventDefault();
-
-  const inputEl = document.querySelector('input[placeholder*="15"]') 
-               || document.querySelector('#target_omset_input')
-               || document.querySelector('.target-omset-input')
-               || document.querySelector('input[type="number"]');
-
-  let rawVal = inputEl ? inputEl.value : '';
-  let cleanVal = rawVal.toString().replace(/[^0-9]/g, '');
-  let nominalTarget = parseFloat(cleanVal);
-
-  if (isNaN(nominalTarget) || nominalTarget <= 0) {
-    alert('Harap masukkan nominal target yang valid!');
-    return;
+// Live Search Filter di Gambar 2
+document.addEventListener('input', function(e) {
+  if (e.target && (e.target.placeholder || '').toLowerCase().includes('cari layanan')) {
+    renderLayananPOS(e.target.value.trim());
   }
+});
 
-  if (nominalTarget < 1000) {
-    nominalTarget = nominalTarget * 1000000;
-  }
-
-  localStorage.setItem('target_omset_bulanan', nominalTarget);
-  updateProgressTargetOmset();
-
-  alert('Target Omset Bulanan berhasil diperbarui menjadi Rp ' + nominalTarget.toLocaleString('id-ID'));
-}
-
-function updateProgressTargetOmset() {
-  const targetSaved = parseFloat(localStorage.getItem('target_omset_bulanan')) || 15000000;
-  let omsetBulanIni = 0;
-  const now = new Date();
-  const txList = window.globalTxCache || [];
-
-  txList.forEach(t => {
-    const tgl = t.created_at ? new Date(t.created_at) : null;
-    if (tgl && tgl.getMonth() === now.getMonth() && tgl.getFullYear() === now.getFullYear()) {
-      if (t.status_laundry !== 'Batal') {
-        omsetBulanIni += (t.total_harga || 0);
-      }
-    }
-  });
-
-  const allParagraphs = document.querySelectorAll('p, span, div');
-  
-  allParagraphs.forEach(el => {
-    const txt = el.textContent.trim();
-    if (txt.includes('Target:') || txt.includes('Target :')) {
-      if (el.children.length === 0) {
-        el.textContent = 'Target: Rp ' + targetSaved.toLocaleString('id-ID');
-      }
-    }
-    if (txt.includes('Tercapai:') || txt.includes('Tercapai :')) {
-      if (el.children.length === 0) {
-        el.textContent = 'Tercapai: Rp ' + omsetBulanIni.toLocaleString('id-ID');
-      }
-    }
-  });
-
-  let persen = Math.min(Math.round((omsetBulanIni / targetSaved) * 100), 100);
-
-  allParagraphs.forEach(el => {
-    if (el.textContent.trim().endsWith('%') && el.textContent.trim().length <= 4) {
-      el.textContent = persen + '%';
-    }
-  });
-
-  const progressBar = document.querySelector('.bg-emerald-200, .bg-emerald-300, .bg-emerald-400');
-  if (progressBar && progressBar.firstElementChild) {
-    progressBar.firstElementChild.style.width = persen + '%';
-  }
-}
-
-// AUTOMATIC EVENT LISTENER UNTUK TOMBOL "Simpan Layanan Baru"
+// AUTOMATIC EVENT LISTENER
 document.addEventListener('click', function(e) {
   const btn = e.target.closest('button') || e.target;
   const txt = (btn.textContent || '').trim().toLowerCase();
@@ -398,14 +356,9 @@ document.addEventListener('click', function(e) {
   }
 });
 
-// Register Ke Scope Global Window
+// Register Global
 window.prosesSimpanLayananBaru = prosesSimpanLayananBaru;
-window.tambahLayananBaruAsli = prosesSimpanLayananBaru;
-window.tambahLayananBaru = prosesSimpanLayananBaru;
+window.renderKelolaLayananList = renderKelolaLayananList;
+window.renderLayananPOS = renderLayananPOS;
+window.pilihLayananKeKeranjang = pilihLayananKeKeranjang;
 window.hapusLayananBaru = hapusLayananBaru;
-window.simpanTargetOmset = simpanTargetOmset;
-window.updateProgressTargetOmset = updateProgressTargetOmset;
-
-document.addEventListener('DOMContentLoaded', () => {
-  setTimeout(updateProgressTargetOmset, 500);
-});
