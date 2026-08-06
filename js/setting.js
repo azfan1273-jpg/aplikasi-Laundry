@@ -2,13 +2,9 @@
 // FILE: js/setting.js
 // ==========================================
 
-// Variable Global Store / Toko
 let currentTokoId = localStorage.getItem('toko_id') || null;
 
-/**
- * 1. FUNGSI UNTUK TOGGLE (MEMBUKA/MENUTUP) FORM TAMBAH KASIR
- * Memastikan form input nama, email, password kasir bisa dibuka dari tombol '+ Buat Kasir'
- */
+// Toggle (Membuat Muncul/Sembunyi) Form Input Kasir Baru
 function toggleFormTambahKasir() {
   const formContainer = document.getElementById('form-tambah-kasir');
   if (!formContainer) return;
@@ -20,9 +16,7 @@ function toggleFormTambahKasir() {
   }
 }
 
-/**
- * 2. FUNGSI UNTUK MENYIMPAN KASIR BARU KE SUPABASE
- */
+// Simpan Kasir Baru ke Supabase Auth & Tabel Profiles
 async function simpanKasirBaru() {
   try {
     const inputNama = document.getElementById('new_kasir_nama');
@@ -42,7 +36,7 @@ async function simpanKasirBaru() {
       return;
     }
 
-    // A. Buat akun di Supabase Auth
+    // 1. Tambah user ke Supabase Auth
     const { data: authData, error: authErr } = await supabaseClient.auth.signUp({
       email: email,
       password: password,
@@ -60,7 +54,7 @@ async function simpanKasirBaru() {
       return;
     }
 
-    // B. Insert data profil ke tabel 'profiles' Supabase
+    // 2. Tambah profil ke tabel 'profiles'
     if (authData && authData.user) {
       const { error: dbErr } = await supabaseClient.from('profiles').insert([{
         id: authData.user.id,
@@ -77,15 +71,13 @@ async function simpanKasirBaru() {
 
     if (typeof showToast === 'function') showToast('Akun kasir berhasil dibuat!', 'success');
 
-    // Reset Form Input
+    // Reset input
     if (inputNama) inputNama.value = '';
     if (inputEmail) inputEmail.value = '';
     if (inputPassword) inputPassword.value = '';
 
-    // Sembunyikan kembali form
     toggleFormTambahKasir();
 
-    // Reload daftar kasir
     if (typeof renderDaftarKasir === 'function') {
       await renderDaftarKasir();
     }
@@ -96,9 +88,7 @@ async function simpanKasirBaru() {
   }
 }
 
-/**
- * 3. FUNGSI RENDER DAFTAR KASIR AKTIF DI MODAL
- */
+// Render Daftar Kasir
 async function renderDaftarKasir() {
   const container = document.getElementById('list-kasir-container');
   if (!container) return;
@@ -135,5 +125,21 @@ async function renderDaftarKasir() {
   } catch (err) {
     console.error('Error renderDaftarKasir:', err);
     container.innerHTML = '<p class="text-xs text-rose-500">Gagal memuat daftar kasir.</p>';
+  }
+}
+
+// Accordion Toggle
+function toggleAccordion(accId) {
+  const element = document.getElementById(accId);
+  const arrow = document.getElementById(`arrow-${accId}`);
+  if (!element) return;
+
+  if (element.classList.contains('hidden')) {
+    element.classList.remove('hidden');
+    if (arrow) arrow.style.transform = 'rotate(180deg)';
+    if (accId === 'acc-kasir') renderDaftarKasir();
+  } else {
+    element.classList.add('hidden');
+    if (arrow) arrow.style.transform = 'rotate(0deg)';
   }
 }

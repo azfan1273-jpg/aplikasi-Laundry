@@ -387,7 +387,6 @@
                 <button onclick="toggleFormTambahKasir()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1 rounded-xl text-[11px] shadow-sm">+ Buat Kasir</button>
               </div>
 
-              <!-- HANYA MENAMBAHKAN INPUT NAMA KASIR AGAR PENDAFTARAN KASIR TIDAK GAGAL -->
               <div id="form-tambah-kasir" class="space-y-2 pt-2 border-t border-indigo-200/60 hidden">
                 <p class="font-bold text-indigo-950 text-[11px]">Daftarkan Kasir Baru:</p>
                 <input id="new_kasir_nama" type="text" placeholder="Nama Kasir / Pegawai" class="w-full p-2.5 bg-white border rounded-xl text-xs outline-none font-semibold">
@@ -527,16 +526,14 @@
     </div>
   </div>
 
-  <!-- FLOATING ACTION BUTTON -->
+  <!-- FLOATING ACTION BUTTON (MENU MELAYANG KE ATAS) -->
   <div id="fab-backdrop" onclick="toggleFabMenu()" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 opacity-0 pointer-events-none transition-opacity duration-300"></div>
 
-  <div id="fab-container" class="fixed bottom-24 right-8 z-50 transition-all duration-300 ease-out">
-    <div class="relative flex items-center justify-center">
-      <button id="fab-main-btn" onclick="toggleFabMenu()" class="w-20 h-20 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-2xl flex items-center justify-center text-2xl font-black transition-transform duration-200 active:scale-90 border-2 border-white z-10">
-        <span id="fab-icon" class="transition-transform duration-300">➕</span>
-      </button>
-
-      <div id="fab-side-menu" class="absolute right-16 flex flex-col items-end gap-2.5 whitespace-nowrap transition-all duration-300 opacity-0 pointer-events-none translate-x-4">
+  <div id="fab-container" class="fixed bottom-20 right-6 z-50">
+    <div class="relative flex flex-col items-center">
+      
+      <!-- MENU UNGU MELAYANG KE ATAS -->
+      <div id="fab-side-menu" class="absolute bottom-20 flex flex-col items-end gap-2.5 whitespace-nowrap transition-all duration-300 opacity-0 pointer-events-none translate-y-4">
         <button onclick="toggleFabMenu(); openModalPOS();" class="flex items-center gap-2 bg-white text-slate-800 text-xs font-extrabold py-2.5 px-4 rounded-2xl shadow-xl border border-slate-200 active:scale-95">
           <span>🛒 Transaksi Baru</span>
         </button>
@@ -549,6 +546,12 @@
           <span>💸 Tambah Pengeluaran</span>
         </button>
       </div>
+
+      <!-- TOMBOL UTAMA (+) -->
+      <button id="fab-main-btn" onclick="toggleFabMenu()" class="w-16 h-16 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-2xl flex items-center justify-center text-2xl font-black transition-transform duration-200 active:scale-90 border-2 border-white">
+        <span id="fab-icon" class="transition-transform duration-300">➕</span>
+      </button>
+
     </div>
   </div>
 
