@@ -1,122 +1,139 @@
 // ==========================================
-// FIX BUG 1: Tambah Kasir Baru & Load Kasir
+// FILE: js/setting.js
 // ==========================================
 
-// Variable global toko ID (pastikan terisi dari session/localStorage)
+// Variable Global Store / Toko
 let currentTokoId = localStorage.getItem('toko_id') || null;
 
 /**
- * Fungsi untuk menambah kasir baru ke Supabase Auth & Tabel Profiles
+ * 1. FUNGSI UNTUK TOGGLE (MEMBUKA/MENUTUP) FORM TAMBAH KASIR
+ * Memastikan form input nama, email, password kasir bisa dibuka dari tombol '+ Buat Kasir'
  */
-async function tambahKasirBaru() {
+function toggleFormTambahKasir() {
+  const formContainer = document.getElementById('form-tambah-kasir');
+  if (!formContainer) return;
+
+  if (formContainer.classList.contains('hidden')) {
+    formContainer.classList.remove('hidden');
+  } else {
+    formContainer.classList.add('hidden');
+  }
+}
+
+/**
+ * 2. FUNGSI UNTUK MENYIMPAN KASIR BARU KE SUPABASE
+ */
+async function simpanKasirBaru() {
   try {
-    // Ambil element input dari form HTML
-    const emailInput = document.getElementById('kasirEmail') || document.getElementById('emailKasir');
-    const passInput = document.getElementById('kasirPassword') || document.getElementById('passwordKasir');
-    const namaInput = document.getElementById('kasirNama') || document.getElementById('namaKasir');
+    const inputNama = document.getElementById('new_kasir_nama');
+    const inputEmail = document.getElementById('new_kasir_email');
+    const inputPassword = document.getElementById('new_kasir_password');
 
-    const email = emailInput ? emailInput.value.trim() : '';
-    const password = passInput ? passInput.value.trim() : '';
-    const nama = namaInput ? namaInput.value.trim() : '';
+    const nama = inputNama ? inputNama.value.trim() : '';
+    const email = inputEmail ? inputEmail.value.trim() : '';
+    const password = inputPassword ? inputPassword.value.trim() : '';
 
-    // Validasi input tidak boleh kosong
-    if (!email || !password || !nama) {
-      if (typeof showToast === 'function') showToast("Semua bidang (Nama, Email, Password) wajib diisi!");
+    if (!email || !password) {
+      if (typeof showToast === 'function') {
+        showToast('Email dan Password kasir wajib diisi!', 'error');
+      } else {
+        alert('Email dan Password kasir wajib diisi!');
+      }
       return;
     }
 
-    // 1. Buat User Baru di Supabase Auth
+    // A. Buat akun di Supabase Auth
     const { data: authData, error: authErr } = await supabaseClient.auth.signUp({
       email: email,
       password: password,
       options: {
         data: {
-          nama_user: nama,
+          nama_user: nama || email.split('@')[0],
           role: 'kasir'
         }
       }
     });
 
     if (authErr) {
-      console.error("Error Auth SignUp:", authErr);
-      if (typeof showToast === 'function') showToast("Gagal registrasi auth: " + authErr.message);
+      console.error('Error Sign Up Kasir:', authErr);
+      if (typeof showToast === 'function') showToast('Gagal: ' + authErr.message, 'error');
       return;
     }
 
-    // 2. Insert Data Lengkap ke Tabel 'profiles' Supabase
+    // B. Insert data profil ke tabel 'profiles' Supabase
     if (authData && authData.user) {
       const { error: dbErr } = await supabaseClient.from('profiles').insert([{
         id: authData.user.id,
         toko_id: currentTokoId,
         role: 'kasir',
-        nama_user: nama,
+        nama_user: nama || email.split('@')[0],
         email: email
       }]);
 
       if (dbErr) {
-        console.error("Error insert ke profiles:", dbErr);
-        if (typeof showToast === 'function') showToast("Gagal simpan profil: " + dbErr.message);
-        return;
+        console.error('Error insert profiles kasir:', dbErr);
       }
     }
 
-    // Berhasil
-    if (typeof showToast === 'function') showToast("Akun kasir berhasil dibuat!");
+    if (typeof showToast === 'function') showToast('Akun kasir berhasil dibuat!', 'success');
 
-    // Reset Form Input setelah berhasil
-    if (emailInput) emailInput.value = '';
-    if (passInput) passInput.value = '';
-    if (namaInput) namaInput.value = '';
+    // Reset Form Input
+    if (inputNama) inputNama.value = '';
+    if (inputEmail) inputEmail.value = '';
+    if (inputPassword) inputPassword.value = '';
 
-    // Reload daftar kasir di tabel
-    if (typeof loadDaftarKasirList === 'function') {
-      await loadDaftarKasirList();
+    // Sembunyikan kembali form
+    toggleFormTambahKasir();
+
+    // Reload daftar kasir
+    if (typeof renderDaftarKasir === 'function') {
+      await renderDaftarKasir();
     }
 
   } catch (err) {
-    console.error("Error pada fungsi tambahKasirBaru:", err);
-    if (typeof showToast === 'function') showToast("Terjadi kesalahan sistem saat membuat kasir.");
+    console.error('Error simpanKasirBaru:', err);
+    if (typeof showToast === 'function') showToast('Terjadi kesalahan saat membuat kasir.', 'error');
   }
 }
 
 /**
- * Fungsi untuk memuat daftar kasir ke tabel UI
+ * 3. FUNGSI RENDER DAFTAR KASIR AKTIF DI MODAL
  */
-async function loadDaftarKasirList() {
+async function renderDaftarKasir() {
+  const container = document.getElementById('list-kasir-container');
+  if (!container) return;
+
   try {
-    const { data: kasirList, error } = await supabaseClient
+    container.innerHTML = '<p class="text-xs text-slate-400 italic">Memuat daftar kasir...</p>';
+
+    const { data: listKasir, error } = await supabaseClient
       .from('profiles')
       .select('*')
       .eq('role', 'kasir');
 
     if (error) throw error;
 
-    const tbody = document.getElementById('tabelDaftarKasir');
-    if (!tbody) return;
-
-    tbody.innerHTML = '';
-
-    if (!kasirList || kasirList.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" class="text-center">Belum ada kasir.</td></tr>';
+    if (!listKasir || listKasir.length === 0) {
+      container.innerHTML = '<p class="text-xs text-slate-400 italic">Belum ada kasir terdaftar.</p>';
       return;
     }
 
-    kasirList.forEach((kasir, index) => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${index + 1}</td>
-        <td>${kasir.nama_user || '-'}</td>
-        <td>${kasir.email || '-'}</td>
-        <td>
-          <button class="btn btn-sm btn-info" onclick="bukaModalEditKasir('${kasir.id}', '${kasir.nama_user}', '${kasir.email}')">
-            Detail / Edit
-          </button>
-        </td>
+    container.innerHTML = '';
+    listKasir.forEach((kasir) => {
+      const item = document.createElement('div');
+      item.className = 'flex justify-between items-center p-2 bg-white rounded-xl border border-indigo-100 text-xs';
+      item.innerHTML = `
+        <div>
+          <p class="font-bold text-slate-800">${kasir.nama_user || 'Kasir'}</p>
+          <p class="text-[10px] text-slate-400">${kasir.email}</p>
+        </div>
+        <span class="text-[9px] bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 rounded-md">Kasir</span>
       `;
-      tbody.appendChild(tr);
+      container.appendChild(item);
     });
 
   } catch (err) {
-    console.error("Error loadDaftarKasirList:", err);
+    console.error('Error renderDaftarKasir:', err);
+    container.innerHTML = '<p class="text-xs text-rose-500">Gagal memuat daftar kasir.</p>';
   }
 }
