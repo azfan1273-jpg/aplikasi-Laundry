@@ -1,3 +1,27 @@
+// ==========================================
+// DEKLARASI GLOBAL CACHE & FALLBACK MODAL
+// Taruh di baris paling atas file js/report.js
+// ==========================================
+var globalTxCache = window.globalTxCache || [];
+var globalPengeluaranCache = window.globalPengeluaranCache || [];
+var allPelanggan = window.allPelanggan || [];
+var globalItemCache = window.globalItemCache || {};
+var currentReportSubTab = window.currentReportSubTab || 'transaksi';
+
+// Fallback jika fungsi openModalWithHistory belum ada di app.js/modal.js
+if (typeof window.openModalWithHistory !== 'function') {
+  window.openModalWithHistory = function(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      modal.style.display = 'flex';
+    } else {
+      console.warn('Modal ID tidak ditemukan:', modalId);
+    }
+  };
+}
+
 async function loadReport() {
   if(!globalTxCache) return;
 
