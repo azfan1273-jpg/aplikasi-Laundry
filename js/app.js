@@ -267,37 +267,49 @@ function tutupModalPOS() {
 
 // --- LOGIKA TOMBOL MODAL POS ---
 
-// Fungsi saat tombol CARI diklik
-function handleCariPelanggan() {
+function handleCariPelanggan(e) {
+  if (e) e.stopPropagation();
   console.log('Tombol Cari Pelanggan diklik');
   alert('Membuka pilihan pelanggan...');
-  // Nanti di sini kita sambungkan ke modal pencarian customer Supabase
 }
 
-// Fungsi saat tombol + TAMBAH LAYANAN diklik
-function handleTambahLayanan() {
+function handleTambahLayanan(e) {
+  if (e) e.stopPropagation();
   console.log('Tombol Tambah Layanan diklik');
   alert('Membuka katalog layanan...');
-  // Nanti di sini kita sambungkan ke modal list produk/layanan
 }
 
-// Inisialisasi Listener setelah DOM Siap
-document.addEventListener('DOMContentLoaded', () => {
-  // 1. Event listener untuk tombol X (Tutup Modal)
+// Inisialisasi Listener Langsung (Tanpa menunggu DOMContentLoaded jika DOM sudah ready)
+function initPOSListeners() {
   const btnClosePOS = document.getElementById('btnClosePOS');
   if (btnClosePOS) {
-    btnClosePOS.addEventListener('click', tutupModalPOS);
+    btnClosePOS.onclick = (e) => {
+      e.stopPropagation();
+      tutupModalPOS();
+    };
   }
 
-  // 2. Event listener untuk tombol CARI pelanggan
   const btnSearchCustomer = document.getElementById('btnSearchCustomer');
   if (btnSearchCustomer) {
-    btnSearchCustomer.addEventListener('click', handleCariPelanggan);
+    btnSearchCustomer.onclick = handleCariPelanggan;
   }
 
-  // 3. Event listener untuk tombol + Tambah Layanan
   const btnAddService = document.getElementById('btnAddService');
   if (btnAddService) {
-    btnAddService.addEventListener('click', handleTambahLayanan);
+    btnAddService.onclick = handleTambahLayanan;
   }
-});
+}
+
+// Jalankan saat fungsi bukaModalPOS dipanggil agar listener SELALU aktif
+const originalBukaModalPOS = bukaModalPOS;
+bukaModalPOS = function() {
+  if (typeof originalBukaModalPOS === 'function') originalBukaModalPOS();
+  initPOSListeners();
+};
+
+// Jalankan juga saat dokumen selesai dimuat
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initPOSListeners);
+} else {
+  initPOSListeners();
+}
