@@ -285,52 +285,42 @@ async function hapusLayananBaru(id) {
 }
 
 // ==========================================
-// FUNGSI SIMPAN & MUAT TARGET OMSET BULANAN
+// FIX TARGET OMSET (DITARUH DI JS/REPORT.JS)
 // ==========================================
-
-// 1. Simpan Target Omset ke Penyimpanan Lokal
-/ ==========================================
-// FUNGSI SIMPAN & AKTUATOR TARGET OMSET BULANAN
-// ==========================================
-
 function simpanTargetOmset(e) {
   if (e && e.preventDefault) e.preventDefault();
 
-  // 1. Ambil input nominal
-  const inputEl = document.querySelector('input[placeholder*="15"]') 
-               || document.querySelector('#target_omset_input')
-               || document.querySelector('.target-omset-input')
-               || document.querySelector('input[value="15"]')
-               || document.querySelector('input[type="number"]');
+  const inputs = document.querySelectorAll('input');
+  let targetInput = null;
 
-  let rawVal = inputEl ? inputEl.value : '';
+  inputs.forEach(inp => {
+    if (inp.value == '15' || inp.value == '15000000' || inp.placeholder.includes('15') || inp.parentElement.textContent.includes('TARGET OMSET')) {
+      targetInput = inp;
+    }
+  });
+
+  if (!targetInput) targetInput = document.querySelector('input[type="number"]') || inputs[0];
+
+  let rawVal = targetInput ? targetInput.value : '15000000';
   let cleanVal = rawVal.toString().replace(/[^0-9]/g, '');
-  let nominalTarget = parseFloat(cleanVal);
+  let nominal = parseFloat(cleanVal);
 
-  if (isNaN(nominalTarget) || nominalTarget <= 0) {
+  if (isNaN(nominal) || nominal <= 0) {
     alert('Harap masukkan nominal target yang valid!');
     return;
   }
 
-  // Jika input hanya '66' atau angka kecil, otomatis kalikan jutaan (opsional)
-  if (nominalTarget < 1000) {
-    nominalTarget = nominalTarget * 1000000;
-  }
+  if (nominal < 1000) nominal = nominal * 1000000;
 
-  // 2. Simpan ke localStorage
-  localStorage.setItem('target_omset_bulanan', nominalTarget);
-
-  // 3. Update tampilan UI secara langsung
+  localStorage.setItem('target_omset_bulanan', nominal);
   updateProgressTargetOmset();
 
-  alert('Target Omset Bulanan berhasil diperbarui menjadi Rp ' + nominalTarget.toLocaleString('id-ID'));
+  alert('Target Omset Bulanan berhasil disimpan: Rp ' + nominal.toLocaleString('id-ID'));
 }
 
 function updateProgressTargetOmset() {
-  // Ambil nominal target dari localStorage (default 15 juta)
   const targetSaved = parseFloat(localStorage.getItem('target_omset_bulanan')) || 15000000;
-
-  // 1. Hitung Omset Bulan Ini dari globalTxCache
+  
   let omsetBulanIni = 0;
   const now = new Date();
   const txList = window.globalTxCache || [];
@@ -344,66 +334,30 @@ function updateProgressTargetOmset() {
     }
   });
 
-  // 2. Cari elemen-elemen teks di HTML
-  const allParagraphs = document.querySelectorAll('p, span, div');
-  
-  allParagraphs.forEach(el => {
-    const txt = el.textContent.trim();
-    
-    // Update Teks Target
-    if (txt.includes('Target:') || txt.includes('Target :')) {
-      // Pastikan elemen tidak memiliki child elemen lain agar tidak menimpa struktur
-      if (el.children.length === 0) {
+  document.querySelectorAll('p, span, div, td').forEach(el => {
+    if (el.children.length === 0) {
+      if (el.textContent.includes('Target:') || el.textContent.includes('Target :')) {
         el.textContent = 'Target: Rp ' + targetSaved.toLocaleString('id-ID');
       }
-    }
-
-    // Update Teks Tercapai
-    if (txt.includes('Tercapai:') || txt.includes('Tercapai :')) {
-      if (el.children.length === 0) {
+      if (el.textContent.includes('Tercapai:') || el.textContent.includes('Tercapai :')) {
         el.textContent = 'Tercapai: Rp ' + omsetBulanIni.toLocaleString('id-ID');
       }
     }
   });
 
-  // 3. Update Persentase Progress Bar
   let persen = Math.min(Math.round((omsetBulanIni / targetSaved) * 100), 100);
-
-  // Update Badge Persen (misal 0%)
-  const badgePersen = document.querySelector('.bg-emerald-500, [class*="0%"]');
-  allParagraphs.forEach(el => {
+  
+  document.querySelectorAll('div, span').forEach(el => {
     if (el.textContent.trim().endsWith('%') && el.textContent.trim().length <= 4) {
       el.textContent = persen + '%';
     }
   });
-
-  // Update Lebar Progress Bar
-  const progressBar = document.querySelector('.bg-emerald-200, .bg-emerald-300, .bg-emerald-400');
-  if (progressBar && progressBar.firstElementChild) {
-    progressBar.firstElementChild.style.width = persen + '%';
-  }
-
-  // 4. Set ulang nilai input box
-  const inputEl = document.querySelector('input[placeholder*="15"]') 
-               || document.querySelector('#target_omset_input');
-  if (inputEl && !inputEl.value) {
-    inputEl.value = targetSaved;
-  }
 }
 
-// Register Global
-window.simpanTargetOmset = simpanTargetOmset;
-window.updateProgressTargetOmset = updateProgressTargetOmset;
-
-// Panggil saat dokumen siap
-document.addEventListener('DOMContentLoaded', () => {
-  setTimeout(updateProgressTargetOmset, 500);
-});
-
-// Export ke Window Scope
+// Daftarkan ke Global Window
 window.simpanTargetOmset = simpanTargetOmset;
 window.updateProgressTargetOmset = updateProgressTargetOmset;
 
 document.addEventListener('DOMContentLoaded', () => {
-  updateProgressTargetOmset();
+  setTimeout(updateProgressTargetOmset, 800);
 });
