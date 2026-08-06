@@ -13,12 +13,28 @@ function closeOnBackdrop(event, modalId) {
   }
 }
 
-function openModalJendelaAkunWithChart() {
+async function openModalJendelaAkunWithChart() {
   const modal = document.getElementById('modal-jendela-akun');
   if (modal) modal.classList.remove('hidden');
 
+  // Paksa update email dan role saat modal terbuka
+  if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (session && session.user) {
+      const emailVal = session.user.email || (currentUserProfile ? currentUserProfile.email : '');
+      
+      // Update elemen tempat penulisan email
+      const settingEmail = document.getElementById('setting-user-email');
+      const subHeaderEmail = document.querySelector('#modal-jendela-akun .text-blue-100'); // Subtitle di header biru
+      
+      if (settingEmail) settingEmail.innerText = emailVal;
+      if (subHeaderEmail) subHeaderEmail.innerText = emailVal;
+    }
+  }
+
   if (typeof loadDaftarKasirList === 'function') loadDaftarKasirList();
   if (typeof loadPermissionSwitches === 'function') loadPermissionSwitches();
+  if (typeof loadSettingsToForm === 'function') loadSettingsToForm();
 }
 
 // --- OPEN MODAL KELOLA LAYANAN ---

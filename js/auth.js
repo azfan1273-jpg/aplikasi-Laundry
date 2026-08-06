@@ -38,8 +38,7 @@ async function loadUserProfile(authUser) {
       .eq('id', authUser.id)
       .maybeSingle();
 
-    if (profErr || !profile) {
-      console.warn("Profile tidak ditemukan atau bermasalah:", profErr);
+    if (!profile) {
       showAuthScreen(true);
       return;
     }
@@ -59,10 +58,12 @@ async function loadUserProfile(authUser) {
       }
     }
 
-    // Update UI Header & Topbar
+    // 3. Update Tampilan Topbar & Modal Header Email
+    const emailVal = authUser.email || profile.email || 'Akun Kasir';
     const topbarEmail = document.getElementById('topbar-user-email');
-    const topbarToko = document.getElementById('topbar-nama-toko');
     const settingEmail = document.getElementById('setting-user-email');
+    const modalHeaderEmail = document.getElementById('modal-header-user-email'); // Jika ada elemen subtitle di modal
+    const topbarToko = document.getElementById('topbar-nama-toko');
 
     if (topbarEmail) topbarEmail.innerText = authUser.email || '';
     if (settingEmail) settingEmail.innerText = authUser.email || '';
