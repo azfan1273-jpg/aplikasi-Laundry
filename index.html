@@ -791,60 +791,57 @@
     </div>
   </div>
 
-  <div id="modal-pos" onclick="closeOnBackdrop(event, 'modal-pos')" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
-    <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 max-h-[85vh] scroll-area" onclick="event.stopPropagation()" style="min-height: 0;">
-      <div class="flex justify-between items-center border-b pb-3 border-slate-100">
-        <h3 class="font-black text-slate-900 text-base">Buat Order Transaksi</h3>
-        <button onclick="closeModalPOS()" class="w-8 h-8 bg-slate-100 rounded-full font-bold text-slate-500">✕</button>
-      </div>
+  <div id="modalPOS" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
+  <div class="bg-white rounded-2xl w-full max-w-lg p-6 relative shadow-xl">
+    
+    <!-- 1. Tombol Close (X) -> Tambahkan id="btnClosePOS" -->
+    <button id="btnClosePOS" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 transition">
+      ✕
+    </button>
 
-      <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2">
-        <div class="flex justify-between items-start">
-          <div>
-            <p class="text-xs font-bold text-slate-500">Pelanggan</p>
-            <div id="display-pelanggan" class="mt-1"><p class="text-xs text-slate-400 italic">Silahkan Pilih Customer Terlebih Dahulu.</p></div>
-          </div>
-          <button onclick="openModalPilihPelanggan()" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-sm transition">CARI</button>
-        </div>
-      </div>
+    <h2 class="text-xl font-bold mb-4">Buat Order Transaksi</h2>
 
-      <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3">
-        <div class="flex justify-between items-center border-b pb-2 border-slate-200/60">
-          <p class="text-xs font-bold text-slate-700">Daftar Layanan (Keranjang)</p>
-          <button onclick="openModalPilihLayanan()" class="text-xs font-bold text-cyan-600 bg-cyan-50 px-2.5 py-1 rounded-lg border border-cyan-200">+ Tambah Layanan</button>
-        </div>
-        <div id="display-layanan-list" class="space-y-2">
-          <p class="text-xs text-slate-400 italic text-center py-2">Belum ada layanan yang ditambahkan.</p>
-        </div>
+    <!-- Section Pelanggan -->
+    <div class="bg-gray-50 p-4 rounded-xl mb-4 flex items-center justify-between border border-gray-100">
+      <div>
+        <p class="text-xs text-gray-500 font-medium">Pelanggan</p>
+        <p id="selectedCustomerName" class="text-sm font-semibold text-gray-400 italic">Silahkan Pilih Customer Terlebih Dahulu.</p>
       </div>
+      <!-- 2. Tombol Cari -> Tambahkan id="btnSearchCustomer" -->
+      <button id="btnSearchCustomer" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition">
+        CARI
+      </button>
+    </div>
 
-      <div id="form-opsional" class="space-y-3 hidden">
-        <div>
-          <label class="text-xs font-bold text-slate-600">Pilih Parfum</label>
-          <select id="pilih_parfum" class="w-full p-2.5 border border-slate-200 rounded-xl text-xs bg-white mt-1">
-            <option value="Standard">Standard / Original</option>
-            <option value="Lavender">Lavender</option>
-            <option value="Sakura">Sakura</option>
-            <option value="Lily">Lily</option>
-          </select>
-        </div>
-        <div>
-          <label class="text-xs font-bold text-slate-600">Keterangan Catatan</label>
-          <input id="catatan_order" type="text" placeholder="Contoh : Celana Merah Luntur" class="w-full p-2.5 border border-slate-200 rounded-xl text-xs mt-1 outline-none">
-        </div>
-      </div>
-
-      <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
-        <div>
-          <p class="text-[10px] font-bold text-slate-400 uppercase">Total Price</p>
-          <h2 id="display-total-harga" class="text-lg font-black text-slate-900">Rp 0</h2>
-        </div>
-        <button onclick="submitOrderFinal()" class="bg-red-500 hover:bg-red-600 text-white font-black text-sm px-8 py-3.5 rounded-2xl shadow-lg shadow-red-500/20 active:scale-[0.98] transition">
-          PESAN
+    <!-- Section Daftar Layanan / Keranjang -->
+    <div class="bg-gray-50 p-4 rounded-xl mb-6 border border-gray-100">
+      <div class="flex justify-between items-center mb-3">
+        <p class="text-xs text-gray-500 font-medium">Daftar Layanan (Keranjang)</p>
+        <!-- 3. Tombol + Tambah Layanan -> Tambahkan id="btnAddService" -->
+        <button id="btnAddService" class="bg-cyan-100 hover:bg-cyan-200 text-cyan-800 text-xs font-semibold px-3 py-1.5 rounded-lg transition">
+          + Tambah Layanan
         </button>
       </div>
+      
+      <!-- Container Keranjang -->
+      <div id="cartItemsContainer">
+        <p class="text-xs text-gray-400 text-center py-4 italic">Belum ada layanan yang ditambahkan.</p>
+      </div>
     </div>
+
+    <!-- Section Total Price & Tombol Pesan -->
+    <div class="flex justify-between items-center pt-2 border-t border-gray-100">
+      <div>
+        <p class="text-[10px] text-gray-400 uppercase tracking-wider font-bold">TOTAL PRICE</p>
+        <p id="totalPricePOS" class="text-xl font-extrabold text-gray-800">Rp 0</p>
+      </div>
+      <button id="btnSubmitPOS" class="bg-red-500 hover:bg-red-600 text-white font-bold px-6 py-2.5 rounded-xl shadow-md transition">
+        PESAN
+      </button>
+    </div>
+
   </div>
+</div>
 
   <div id="modal-pelanggan" onclick="closeOnBackdrop(event, 'modal-pelanggan')" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
     <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 max-h-[85vh] flex flex-col" onclick="event.stopPropagation()">

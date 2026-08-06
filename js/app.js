@@ -256,3 +256,48 @@ function bukaModalPOS() {
     if (anyModal) anyModal.classList.remove('hidden');
   }
 }
+
+function tutupModalPOS() {
+  const modal = document.getElementById('modal-pos') || document.getElementById('modal-transaksi') || document.getElementById('modalPOS');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+}
+
+// --- LOGIKA TOMBOL MODAL POS ---
+
+// Fungsi saat tombol CARI diklik
+function handleCariPelanggan() {
+  console.log('Tombol Cari Pelanggan diklik');
+  alert('Membuka pilihan pelanggan...');
+  // Nanti di sini kita sambungkan ke modal pencarian customer Supabase
+}
+
+// Fungsi saat tombol + TAMBAH LAYANAN diklik
+function handleTambahLayanan() {
+  console.log('Tombol Tambah Layanan diklik');
+  alert('Membuka katalog layanan...');
+  // Nanti di sini kita sambungkan ke modal list produk/layanan
+}
+
+// Inisialisasi Listener setelah DOM Siap
+document.addEventListener('DOMContentLoaded', () => {
+  // 1. Event listener untuk tombol X (Tutup Modal)
+  const btnClosePOS = document.getElementById('btnClosePOS');
+  if (btnClosePOS) {
+    btnClosePOS.addEventListener('click', tutupModalPOS);
+  }
+
+  // 2. Event listener untuk tombol CARI pelanggan
+  const btnSearchCustomer = document.getElementById('btnSearchCustomer');
+  if (btnSearchCustomer) {
+    btnSearchCustomer.addEventListener('click', handleCariPelanggan);
+  }
+
+  // 3. Event listener untuk tombol + Tambah Layanan
+  const btnAddService = document.getElementById('btnAddService');
+  if (btnAddService) {
+    btnAddService.addEventListener('click', handleTambahLayanan);
+  }
+});
