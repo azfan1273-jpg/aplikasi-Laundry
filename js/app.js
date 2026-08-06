@@ -246,24 +246,50 @@ function tutupModalPOS() {
 function handleCariPelanggan(e) {
   if (e) { e.preventDefault(); e.stopPropagation(); }
   
-  // Panggil modal pilih pelanggan bawaan aplikasi
+  const modalPelanggan = document.getElementById('modal-pelanggan');
+  if (modalPelanggan) {
+    modalPelanggan.classList.remove('hidden');
+    modalPelanggan.classList.add('flex');
+  }
+  
   if (typeof openModalPilihPelanggan === 'function') {
-    openModalPilihPelanggan();
-  } else {
-    const modalPelanggan = document.getElementById('modal-pelanggan');
-    if (modalPelanggan) modalPelanggan.classList.remove('hidden');
+    try { openModalPilihPelanggan(); } catch (err) { console.log(err); }
+  }
+  if (typeof renderPelangganPOS === 'function') {
+    try { renderPelangganPOS(); } catch (err) { console.log(err); }
   }
 }
 
 function handleTambahLayanan(e) {
   if (e) { e.preventDefault(); e.stopPropagation(); }
   
-  // Panggil modal pilih layanan bawaan aplikasi
+  const modalLayanan = document.getElementById('modal-layanan');
+  if (modalLayanan) {
+    modalLayanan.classList.remove('hidden');
+    modalLayanan.classList.add('flex');
+  }
+  
   if (typeof openModalPilihLayanan === 'function') {
-    openModalPilihLayanan();
-  } else {
-    const modalLayanan = document.getElementById('modal-layanan');
-    if (modalLayanan) modalLayanan.classList.remove('hidden');
+    try { openModalPilihLayanan(); } catch (err) { console.log(err); }
+  }
+  if (typeof renderLayananPOS === 'function') {
+    try { renderLayananPOS(); } catch (err) { console.log(err); }
+  }
+}
+
+function closeModalPilihPelanggan() {
+  const modal = document.getElementById('modal-pelanggan');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+}
+
+function closeModalPilihLayanan() {
+  const modal = document.getElementById('modal-layanan');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
   }
 }
 
