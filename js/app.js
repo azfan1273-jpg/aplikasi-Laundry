@@ -53,6 +53,7 @@ function openModalKelolaLayanan() {
   const modal = document.getElementById('modal-kelola-layanan');
   if (modal) {
     modal.classList.remove('hidden');
+    modal.classList.add('flex');
     if (typeof renderKelolaLayananList === 'function') {
       try {
         renderKelolaLayananList();
@@ -63,11 +64,20 @@ function openModalKelolaLayanan() {
   }
 }
 
+function closeModalKelolaLayanan() {
+  const modal = document.getElementById('modal-kelola-layanan');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+}
+
 // 3. FUNGSI MENUTUP MODAL (AMAN)
 function closeModalWithHistory(modalId) {
   const modal = document.getElementById(modalId);
   if (modal) {
     modal.classList.add('hidden');
+    modal.classList.remove('flex');
   }
 }
 
@@ -205,6 +215,7 @@ function openModalPengeluaran() {
   const modal = document.getElementById('modal-pengeluaran');
   if (modal) {
     modal.classList.remove('hidden');
+    modal.classList.add('flex');
   } else {
     console.error("Modal #modal-pengeluaran tidak ditemukan!");
   }
@@ -214,6 +225,7 @@ function closeModalPengeluaran() {
   const modal = document.getElementById('modal-pengeluaran');
   if (modal) {
     modal.classList.add('hidden');
+    modal.classList.remove('flex');
   }
 }
 
@@ -241,7 +253,7 @@ function tutupModalPOS() {
   }
 }
 
-// --- LOGIKA HUBUNGAN DENGAN MODAL PELANGGAN & LAYANAN V2 ---
+// --- LOGIKA HUBUNGAN DENGAN MODAL PELANGGAN & LAYANAN ---
 
 function handleCariPelanggan(e) {
   if (e) { e.preventDefault(); e.stopPropagation(); }
@@ -293,6 +305,25 @@ function closeModalPilihLayanan() {
   }
 }
 
+// --- WRAPPER SIMPAN PELANGGAN & LAYANAN BARU ---
+function simpanCustomerBaru(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  if (typeof window.prosesSimpanCustomerBaru === 'function') {
+    window.prosesSimpanCustomerBaru();
+  } else if (typeof simpanCustomer === 'function') {
+    simpanCustomer();
+  }
+}
+
+function tambahLayananBaru(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  if (typeof window.prosesSimpanLayananBaru === 'function') {
+    window.prosesSimpanLayananBaru();
+  } else if (typeof simpanLayanan === 'function') {
+    simpanLayanan();
+  }
+}
+
 // --- LOGIKA VALIDASI DAN PROSES PESAN ---
 
 function handleProsesPesan(e) {
@@ -301,7 +332,7 @@ function handleProsesPesan(e) {
   const customerLabel = document.getElementById('selectedCustomerName')?.textContent?.trim();
   const cartContainer = document.getElementById('cartItemsContainer');
   
-  // 1. Cek Apakah Pelanggan Sudah Dipilih
+  // 1. Cek Pelanggan
   if (!customerLabel || customerLabel.includes('Silahkan Pilih Customer Terlebih Dahulu.')) {
     if (typeof showToast === 'function') {
       showToast('Harap isi kolom Pelanggan Terlebih dahulu..!!', 'error');
@@ -311,7 +342,7 @@ function handleProsesPesan(e) {
     return;
   }
 
-  // 2. Cek Apakah Layanan / Keranjang Masih Kosong
+  // 2. Cek Keranjang Layanan
   if (!cartContainer || cartContainer.textContent.includes('Belum ada layanan yang ditambahkan.')) {
     if (typeof showToast === 'function') {
       showToast('Harap isi kolom Layanan Terlebih dahul..!!', 'error');
@@ -321,7 +352,7 @@ function handleProsesPesan(e) {
     return;
   }
 
-  // 3. Jika Semua Terisi, Eksekusi Simpan Order
+  // 3. Simpan Order
   if (typeof simpanOrderPOS === 'function') {
     simpanOrderPOS();
   } else {
@@ -361,14 +392,14 @@ function initPOSListeners() {
   }
 }
 
-// Pembungkus bukaModalPOS untuk menjamin event listener selalu terikat
+// Pembungkus bukaModalPOS
 const originalBukaModalPOS = bukaModalPOS;
 bukaModalPOS = function() {
   if (typeof originalBukaModalPOS === 'function') originalBukaModalPOS();
   initPOSListeners();
 };
 
-// Inisialisasi Saat Halaman Load
+// Inisialisasi Load
 document.addEventListener('DOMContentLoaded', () => {
   console.log('App JS terload dengan aman.');
   setTimeout(terapkanHakAksesKasir, 500);

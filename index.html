@@ -660,11 +660,13 @@
     </div>
   </div>
 
-  <div id="modal-kelola-layanan" onclick="closeOnBackdrop(event, 'modal-kelola-layanan')" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
-    <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 max-h-[85vh] flex flex-col" onclick="event.stopPropagation()">
+  <!-- MODAL KELOLA LAYANAN -->
+  <div id="modal-kelola-layanan" onclick="closeOnBackdrop(event, 'modal-kelola-layanan')" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] hidden items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 max-h-[85vh] flex flex-col shadow-2xl" onclick="event.stopPropagation()">
       <div class="flex justify-between items-center border-b pb-3 shrink-0">
         <h3 class="font-black text-slate-900 text-base">Kelola Daftar Layanan</h3>
-        <button onclick="closeModalKelolaLayanan()" class="w-8 h-8 bg-slate-100 rounded-full font-bold text-slate-500">✕</button>
+        <!-- 3. Fix Tombol X Kelola Layanan (Lingkaran Merah) -->
+        <button type="button" onclick="closeModalKelolaLayanan()" class="w-8 h-8 bg-slate-100 hover:bg-slate-200 rounded-full font-bold text-slate-500 flex items-center justify-center transition">✕</button>
       </div>
 
       <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2.5 text-xs shrink-0">
@@ -680,7 +682,8 @@
           </select>
         </div>
         <input id="new_estimasi_hari" type="number" step="0.1" placeholder="Estimasi Selesai (Hari / misal: 1 atau 0.5)" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl outline-none font-bold">
-        <button onclick="tambahLayananBaru()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-2.5 rounded-xl shadow-sm">Simpan Layanan Baru</button>
+        <!-- 2. Fix Tombol Simpan Layanan Baru -->
+        <button type="button" onclick="tambahLayananBaru(event)" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-2.5 rounded-xl shadow-sm transition">Simpan Layanan Baru</button>
       </div>
 
       <div class="space-y-2 flex-1 min-h-0 flex flex-col">
@@ -845,19 +848,24 @@
     </div>
   </div>
 
-  <div id="modal-pelanggan" onclick="closeOnBackdrop(event, 'modal-pelanggan')" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+  <!-- MODAL PILIH / TAMBAH PELANGGAN -->
+  <div id="modal-pelanggan" onclick="closeOnBackdrop(event, 'modal-pelanggan')" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] hidden items-end sm:items-center justify-center p-0 sm:p-4">
     <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 max-h-[85vh] flex flex-col" onclick="event.stopPropagation()">
       <div class="flex justify-between items-center border-b pb-2 shrink-0">
         <h4 class="font-extrabold text-slate-800 text-sm">Pilih Customer</h4>
-        <button onclick="closeModalPilihPelanggan()" class="text-slate-400 font-bold">✕</button>
+        <!-- 3. Fix Tombol X Pelanggan -->
+        <button type="button" onclick="closeModalPilihPelanggan()" class="text-slate-400 font-bold hover:text-slate-600 w-7 h-7 flex items-center justify-center rounded-full hover:bg-slate-100">✕</button>
       </div>
       <input id="search-pelanggan" onkeyup="filterPelangganList()" type="text" placeholder="Masukkan Nama atau No Hp" class="w-full p-3 border border-slate-300 rounded-xl text-xs outline-none focus:border-blue-500 shrink-0">
       <div id="list-pelanggan-container" class="scroll-area space-y-2 flex-1 pr-1" style="min-height: 0;"><p class="text-xs text-slate-400 text-center py-4">Memuat pelanggan...</p></div>
-      <button onclick="toggleFormCustomerBaru()" class="w-full bg-red-500 text-white font-bold text-xs py-3.5 rounded-xl shadow-md shrink-0">TAMBAH CUSTOMER BARU</button>
+      
+      <button type="button" onclick="toggleFormCustomerBaru()" class="w-full bg-red-500 text-white font-bold text-xs py-3.5 rounded-xl shadow-md shrink-0">TAMBAH CUSTOMER BARU</button>
+      
       <div id="form-customer-baru" class="space-y-2 pt-2 border-t hidden shrink-0">
         <input id="new_nama_pelanggan" type="text" placeholder="Nama Pelanggan Baru" class="w-full p-2.5 border rounded-xl text-xs">
         <input id="new_no_hp" type="tel" placeholder="No HP / WhatsApp" class="w-full p-2.5 border rounded-xl text-xs">
-        <button onclick="simpanCustomerBaru()" class="w-full bg-blue-600 text-white font-bold text-xs py-2.5 rounded-xl">Simpan Customer</button>
+        <!-- 1. Fix Tombol Simpan Customer -->
+        <button type="button" onclick="simpanCustomerBaru(event)" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2.5 rounded-xl shadow-md transition">Simpan Customer</button>
       </div>
     </div>
   </div>
