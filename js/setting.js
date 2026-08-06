@@ -144,16 +144,17 @@ function renderKelolaLayananList() {
   }
 }
 
+// ==========================================
+// RENDER DAFTAR LAYANAN DENGAN FITUR DRAG & DROP
+// ==========================================
 // 2. Render Daftar Layanan di Gambar 2 (Modal Pilih Layanan POS)
 async function renderLayananPOS(keyword = '') {
-  console.log("-> Memuat daftar layanan di Modal Pilih Layanan...");
+  console.log("-> Memuat daftar layanan di Modal Pilih Layanan dengan Drag & Drop...");
 
-  // Cari container list di Modal Pilih Layanan (Gambar 2)
   let container = document.getElementById('list-layanan-container')
                || document.querySelector('#modal-layanan .scroll-area')
                || document.querySelector('#modal-layanan .space-y-2');
 
-  // Fallback jika container belum ter-set ID khusus
   if (!container) {
     const allP = document.querySelectorAll('#modal-layanan p, #modal-layanan div');
     allP.forEach(el => {
@@ -169,7 +170,7 @@ async function renderLayananPOS(keyword = '') {
   if (!client) return;
 
   try {
-    let query = client.from('layanan').select('*').order('id', { ascending: false });
+    let query = client.from('layanan').select('*');
     let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) ? currentToko.id : localStorage.getItem('toko_id');
     if (tokoId) {
       query = query.eq('toko_id', tokoId);
@@ -178,7 +179,29 @@ async function renderLayananPOS(keyword = '') {
     const { data: listLayanan, error } = await query;
     if (error) throw error;
 
-    window.allLayananCache = listLayanan || [];
+    let rawData = listLayanan || [];
+
+    // --- LOGIKA URUTAN DRAG & DROP SAVED ORDER ---
+    const savedOrderJson = localStorage.getItem('layanan_custom_order');
+    if (savedOrderJson) {
+      try {
+        const savedOrderIds = JSON.parse(savedOrderJson);
+        rawData.sort((a, b) => {
+          let indexA = savedOrderIds.indexOf(a.id);
+          let indexB = savedOrderIds.indexOf(b.id);
+          if (indexA === -1) indexA = 999;
+          if (indexB === -1) indexB = 999;
+          return indexA - indexB;
+        });
+      } catch (e) {
+        console.warn("Gagal parse saved order layout:", e);
+      }
+    } else {
+      // Urutan default jika belum pernah diset: ID terbesar (terbaru) diatas
+      rawData.sort((a, b) => b.id - a.id);
+    }
+
+    window.allLayananCache = rawData;
 
     let filtered = window.allLayananCache;
     if (keyword) {
@@ -192,13 +215,17 @@ async function renderLayananPOS(keyword = '') {
       return;
     }
 
+    // Render HTML dengan atribut draggable="true" & Handle Geser (☰)
     container.innerHTML = filtered.map(item => `
-      <div class="p-3 bg-white rounded-2xl border border-slate-200 text-xs mb-2 flex justify-between items-center shadow-sm hover:border-blue-400 transition">
-        <div>
-          <p class="font-extrabold text-slate-800 text-xs">${item.nama_layanan}</p>
-          <p class="text-[10px] text-slate-500 mt-0.5">
-            Rp ${(item.harga || 0).toLocaleString('id-ID')} / ${item.satuan || 'Kg'} • Est: ${item.estimasi_hari || 1} Hari
-          </p>
+      <div data-id="${item.id}" draggable="true" class="drag-item p-3 bg-white rounded-2xl border border-slate-200 text-xs mb-2 flex justify-between items-center shadow-sm hover:border-blue-400 cursor-grab active:cursor-grabbing transition-all">
+        <div class="flex items-center gap-2.5">
+          <span class="text-slate-300 hover:text-slate-500 cursor-grab font-black text-sm select-none" title="Geser untuk ubah posisi">☰</span>
+          <div>
+            <p class="font-extrabold text-slate-800 text-xs">${item.nama_layanan}</p>
+            <p class="text-[10px] text-slate-500 mt-0.5">
+              Rp ${(item.harga || 0).toLocaleString('id-ID')} / ${item.satuan || 'Kg'} • Est: ${item.estimasi_hari || 1} Hari
+            </p>
+          </div>
         </div>
         <div class="flex items-center gap-1.5">
           <button type="button" onclick="pilihLayananKeKeranjang(${item.id}, '${item.nama_layanan}', ${item.harga}, '${item.satuan}')" class="bg-blue-600 text-white font-bold text-[11px] px-3 py-1.5 rounded-xl shadow-sm hover:bg-blue-700 active:scale-95 transition">
@@ -211,10 +238,73 @@ async function renderLayananPOS(keyword = '') {
       </div>
     `).join('');
 
+    // Inisialisasi Event Listener Drag and Drop
+    initDragAndDropLayanan(container);
+
   } catch (err) {
     console.error('Error renderLayananPOS:', err);
     if (container) container.innerHTML = '<p class="text-xs text-rose-500 text-center py-4">Gagal memuat daftar layanan.</p>';
   }
+}
+
+// FUNGSI INIT DRAG & DROP
+function initDragAndDropLayanan(container) {
+  let draggedItem = null;
+
+  const items = container.querySelectorAll('.drag-item');
+
+  items.forEach(item => {
+    item.addEventListener('dragstart', function(e) {
+      draggedItem = this;
+      setTimeout(() => this.classList.add('opacity-40', 'scale-[0.98]'), 0);
+    });
+
+    item.addEventListener('dragend', function() {
+      this.classList.remove('opacity-40', 'scale-[0.98]');
+      draggedItem = null;
+      simpanUrutanLayanan(container);
+    });
+
+    item.addEventListener('dragover', function(e) {
+      e.preventDefault();
+    });
+
+    item.addEventListener('dragenter', function(e) {
+      e.preventDefault();
+      if (this !== draggedItem) {
+        this.classList.add('border-blue-500', 'bg-blue-50/30');
+      }
+    });
+
+    item.addEventListener('dragleave', function() {
+      this.classList.remove('border-blue-500', 'bg-blue-50/30');
+    });
+
+    item.addEventListener('drop', function(e) {
+      e.preventDefault();
+      this.classList.remove('border-blue-500', 'bg-blue-50/30');
+      if (this !== draggedItem) {
+        const allItems = Array.from(container.querySelectorAll('.drag-item'));
+        const draggedIndex = allItems.indexOf(draggedItem);
+        const targetIndex = allItems.indexOf(this);
+
+        if (draggedIndex < targetIndex) {
+          this.after(draggedItem);
+        } else {
+          this.before(draggedItem);
+        }
+      }
+    });
+  });
+}
+
+// SIMPAN URUTAN BARU KE LOCALSTORAGE
+function simpanUrutanLayanan(container) {
+  const items = container.querySelectorAll('.drag-item');
+  const orderIds = Array.from(items).map(item => parseInt(item.getAttribute('data-id'))).filter(Boolean);
+
+  localStorage.setItem('layanan_custom_order', JSON.stringify(orderIds));
+  console.log("Urutan posisi layanan baru disimpan:", orderIds);
 }
 
 // Fungsi Memilih Layanan ke Transaksi
