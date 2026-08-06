@@ -13,25 +13,28 @@ async function openModalJendelaAkunWithChart() {
     // 2. Ambil role dari localStorage
     let userRole = localStorage.getItem('user_role');
 
-    // JIKA EMAIL ADALAH OWNER/ADMIN KITA LANGSUNG IZINKAN (By-pass sisa cache kasir)
-    const isOwnerEmail = activeEmail.includes('superadmin') || activeEmail.includes('owner') || activeEmail === 'superadmin.lndr@gmail.com';
+    // Tentukan apakah user saat ini adalah Owner berdasarkan email atau role
+    const isOwnerEmail = activeEmail.includes('superadmin') || 
+                         activeEmail.includes('owner') || 
+                         activeEmail === 'superadmin.lndr@gmail.com';
 
+    // Jika terdeteksi email Owner, pastikan role di-set sebagai owner
     if (isOwnerEmail) {
       userRole = 'owner';
-      localStorage.setItem('user_role', 'owner'); // Reset cache role
+      localStorage.setItem('user_role', 'owner');
     }
 
-    // Jika role masih 'kasir', baru tampilkan pesan ditolak
-    if (userRole === 'kasir' && !isOwnerEmail) {
+    // 3. JIKA USER ADALAH KASIR (DAN BUKAN EMAIL OWNER), BLOKIR AKSES TOTAL!
+    if (userRole === 'kasir' || activeEmail.includes('kasir')) {
       if (typeof showToast === 'function') {
         showToast('Akses Ditolak: Menu Kelola Akun khusus Owner/Admin!', 'error');
       } else {
         alert('Akses Ditolak: Menu Kelola Akun khusus Owner/Admin!');
       }
-      return;
+      return; // Hentikan eksekusi, modal tidak akan terbuka
     }
 
-    // 3. JIKA OWNER / ADMIN, BUKA MODAL KELOLA AKUN
+    // 4. JIKA OWNER / ADMIN, BUKA MODAL KELOLA AKUN
     const modal = document.getElementById('modal-jendela-akun');
     if (!modal) return;
 
