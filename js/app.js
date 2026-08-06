@@ -321,13 +321,10 @@ function simpanCustomerBaru(e) {
 // --- WRAPPER SIMPAN LAYANAN BARU ---
 function tambahLayananBaru(e) {
   if (e && e.preventDefault) e.preventDefault();
-  // Langsung panggil fungsi eksekusi asli di setting.js
-  if (typeof window.tambahLayananBaruAsli === 'function') {
+  if (typeof window.prosesSimpanLayananBaru === 'function') {
+    window.prosesSimpanLayananBaru(e);
+  } else if (typeof window.tambahLayananBaruAsli === 'function') {
     window.tambahLayananBaruAsli(e);
-  } else if (typeof window.prosesSimpanLayananBaru === 'function') {
-    window.prosesSimpanLayananBaru();
-  } else if (typeof simpanLayanan === 'function') {
-    simpanLayanan();
   }
 }
 
