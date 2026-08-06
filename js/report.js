@@ -381,3 +381,83 @@ function renderModalListDirectReport(type, title) {
 
   container.innerHTML = '<div class="space-y-3 py-2 px-1"><div class="text-center border-b pb-3 border-slate-100"><h3 class="font-extrabold text-slate-900 text-base">' + title + '</h3></div><div class="space-y-2">' + filtered.map(t => '<div onclick="openModalDetailOrderById(' + t.id + ')" class="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-center text-xs"><div><p class="font-extrabold text-slate-900">' + (t.pelanggan.nama||'Customer') + '</p><p class="text-[10px] text-slate-400">' + formatDateIndo(t.created_at) + '</p></div><p class="font-black text-blue-600">Rp ' + (t.total_harga||0).toLocaleString() + '</p></div>').join('') + '</div></div>';
 }
+
+// ==========================================
+// FUNGSI SIMPAN PENGELUARAN BARU
+// ==========================================
+async function simpanPengeluaranBaru(e) {
+  if (e && e.preventDefault) e.preventDefault();
+
+  console.log("-> Tombol Simpan Pengeluaran Diklik!");
+
+  // 1. Ambil inputan dari modal pengeluaran
+  const nominalInput = document.getElementById('new_nominal_pengeluaran') || document.getElementById('pengeluaranNominal');
+  const ketInput = document.getElementById('new_keterangan_pengeluaran') || document.getElementById('pengeluaranKeterangan');
+
+  const nominal = nominalInput?.value?.trim();
+  const keterangan = ketInput?.value?.trim() || 'Pengeluaran';
+
+  if (!nominal) {
+    alert('Harap masukkan nominal pengeluaran!');
+    return;
+  }
+
+  // 2. Cek koneksi Supabase
+  const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
+
+  if (!client) {
+    alert('Koneksi Supabase belum siap! Silakan refresh halaman.');
+    return;
+  }
+
+  try {
+    const userRes = await client.auth.getUser();
+    const userId = userRes?.data?.user?.id || null;
+
+    // 3. Susun payload ke tabel pengeluaran
+    const payload = {
+      nominal: parseFloat(nominal),
+      keterangan: keterangan
+    };
+
+    if (userId) {
+      payload.user_id = userId;
+    }
+
+    // 4. Insert ke tabel 'pengeluaran' di Supabase
+    const { data, error } = await client
+      .from('pengeluaran')
+      .insert([payload])
+      .select();
+
+    if (error) {
+      console.error('Error insert pengeluaran:', error);
+      alert('Gagal menyimpan pengeluaran: ' + error.message);
+      return;
+    }
+
+    alert('Pengeluaran sebesar Rp ' + parseInt(nominal).toLocaleString('id-ID') + ' berhasil disimpan!');
+
+    // Reset input
+    if (nominalInput) nominalInput.value = '';
+    if (ketInput) ketInput.value = '';
+
+    // Sembunyikan modal/form pengeluaran jika ada
+    const modal = document.getElementById('modal-pengeluaran') || document.getElementById('form-pengeluaran-baru');
+    if (modal) {
+      modal.classList.add('hidden');
+    }
+
+    // Refresh data laporan jika fungsinya ada
+    if (typeof fetchReport === 'function') {
+      fetchReport();
+    }
+
+  } catch (err) {
+    console.error('Catch simpan pengeluaran:', err);
+    alert('Terjadi kesalahan sistem: ' + err.message);
+  }
+}
+
+// WAJIB: Daftarkan ke window agar HTML (onclick) bisa memanggil fungsi ini
+window.simpanPengeluaranBaru = simpanPengeluaranBaru;
