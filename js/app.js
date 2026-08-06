@@ -8,23 +8,27 @@ function openModalJendelaAkunWithChart() {
   if (modal) {
     modal.classList.remove('hidden');
 
-    // SET EMAIL USER DI HEADER MODAL
+    // SAMAKAN EMAIL MODAL DENGAN EMAIL OWNER DI TOPBAR/PENGATURAN
     const accountModalEmail = document.getElementById('account-modal-email');
-    if (accountModalEmail) {
-      const currentUserEmail = localStorage.getItem('user_email') || 
-                               (typeof currentUser !== 'undefined' && currentUser ? currentUser.email : null) || 
-                               '';
-      
-      if (currentUserEmail) {
-        accountModalEmail.textContent = currentUserEmail;
-      } else if (typeof supabaseClient !== 'undefined') {
-        supabaseClient.auth.getUser().then(({ data }) => {
-          if (data && data.user) {
-            accountModalEmail.textContent = data.user.email;
-          }
-        });
-      }
+    const topbarEmail = document.getElementById('topbar-user-email');
+    const settingEmail = document.getElementById('setting-user-email');
+
+    // Ambil nilai email aktif yang sudah tampil di Topbar atau Panel Setting
+    let activeEmail = (topbarEmail && topbarEmail.textContent !== 'Memuat akun...') ? topbarEmail.textContent : '';
+    if (!activeEmail && settingEmail) {
+      activeEmail = settingEmail.textContent;
     }
+
+    // Tampilkan email owner ke header modal
+    if (accountModalEmail && activeEmail) {
+      accountModalEmail.textContent = activeEmail;
+    }
+
+    if (typeof renderTrafficChart === 'function') {
+      try { renderTrafficChart(); } catch(e) { console.log(e); }
+    }
+  }
+}
 
     if (typeof renderTrafficChart === 'function') {
       try { renderTrafficChart(); } catch(e) { console.log(e); }
