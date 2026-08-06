@@ -126,7 +126,6 @@ async function tambahKasirBaru() {
 
   if (!email || !password || !nama) {
     if (typeof showToast === 'function') showToast("Isi nama, email, dan password kasir!", "error");
-    else alert("Isi nama, email, dan password kasir!");
     return;
   }
 
@@ -136,13 +135,8 @@ async function tambahKasirBaru() {
   }
 
   try {
-    // 1. Buat Secondary Client agar session Owner tidak terputus saat signUp
-    const tempSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: { persistSession: false }
-    });
-
-    // 2. Daftarkan Auth Kasir Baru
-    const { data: authData, error: authErr } = await tempSupabase.auth.signUp({
+    // 1. Panggil API SignUp Supabase
+    const { data: authData, error: authErr } = await supabaseClient.auth.signUp({
       email: email,
       password: password,
       options: {
@@ -155,43 +149,33 @@ async function tambahKasirBaru() {
     });
 
     if (authErr) {
-      if (typeof showToast === 'function') showToast("Gagal membuat kasir: " + authErr.message, "error");
+      if (typeof showToast === 'function') showToast("Gagal: " + authErr.message, "error");
       return;
     }
 
-    if (!authData.user) {
-      if (typeof showToast === 'function') showToast("Gagal mendapatkan ID user baru.", "error");
-      return;
-    }
-
-    // 3. Masukkan/Update Data Profil Kasir Menggunakan Client Utama Owner
-    const { error: profErr } = await supabaseClient
-      .from('profiles')
-      .upsert([{
+    // 2. Insert Manual ke Tabel Profiles sebagai cadangan
+    if (authData && authData.user) {
+      await supabaseClient.from('profiles').insert([{
         id: authData.user.id,
         toko_id: currentToko.id,
         role: 'kasir',
         nama_user: nama,
         email: email
       }]);
-
-    if (profErr) {
-      console.warn("Peringatan insert profile:", profErr.message);
     }
 
     if (typeof showToast === 'function') showToast("Akun kasir berhasil dibuat! 🎉", "success");
 
-    // Reset Form Input
+    // Reset Form
     if (emailInput) emailInput.value = '';
     if (passInput) passInput.value = '';
     if (namaInput) namaInput.value = '';
 
-    // Reload Daftar Kasir
     await loadDaftarKasirList();
 
   } catch (err) {
     console.error("Error tambahKasirBaru:", err);
-    if (typeof showToast === 'function') showToast("Terjadi kesalahan: " + err.message, "error");
+    if (typeof showToast === 'function') showToast("Terjadi kesalahan sistem.", "error");
   }
 }
 
