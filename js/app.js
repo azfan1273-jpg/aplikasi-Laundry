@@ -2,7 +2,78 @@
 // FILE: js/app.js
 // ==========================================
 
-// Pindah Tab Navigasi Utama (Beranda, Order, Report, Setting)
+// 1. MEMBUKA MODAL KELOLA AKUN & ANALITIK (HEADER TOPBAR & TOMBOL BUKA)
+function openModalJendelaAkunWithChart() {
+  const modal = document.getElementById('modal-jendela-akun');
+  if (modal) {
+    modal.classList.remove('hidden');
+    // Buka accordion kasir jika perlu atau render chart
+    if (typeof renderTrafficChart === 'function') {
+      try { renderTrafficChart(); } catch(e) { console.log(e); }
+    }
+  } else {
+    console.error("Modal #modal-jendela-akun tidak ditemukan!");
+  }
+}
+
+// 2. MEMBUKA MODAL KELOLA LAYANAN
+function openModalKelolaLayanan() {
+  const modal = document.getElementById('modal-kelola-layanan');
+  if (modal) {
+    modal.classList.remove('hidden');
+  } else {
+    console.error("Modal #modal-kelola-layanan tidak ditemukan!");
+  }
+}
+
+// 3. FUNGSI MENUTUP MODAL
+function closeModalWithHistory(modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal) {
+    modal.classList.add('hidden');
+  }
+}
+
+function closeOnBackdrop(event, modalId) {
+  if (event.target && event.target.id === modalId) {
+    closeModalWithHistory(modalId);
+  }
+}
+
+// 4. ANIMASI TOGGLE TOMBOL FAB (+)
+function toggleFabMenu() {
+  const backdrop = document.getElementById('fab-backdrop');
+  const sideMenu = document.getElementById('fab-side-menu');
+  const icon = document.getElementById('fab-icon');
+
+  if (!sideMenu) return;
+
+  const isHidden = sideMenu.classList.contains('opacity-0') || sideMenu.classList.contains('pointer-events-none');
+
+  if (isHidden) {
+    // TAMPILKAN MENU MELAYANG KE ATAS
+    sideMenu.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
+    sideMenu.classList.add('opacity-100', 'pointer-events-auto', 'translate-y-0');
+
+    if (backdrop) {
+      backdrop.classList.remove('opacity-0', 'pointer-events-none');
+      backdrop.classList.add('opacity-100', 'pointer-events-auto');
+    }
+    if (icon) icon.style.transform = 'rotate(45deg)';
+  } else {
+    // SEMBUNYIKAN MENU
+    sideMenu.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4');
+    sideMenu.classList.remove('opacity-100', 'pointer-events-auto', 'translate-y-0');
+
+    if (backdrop) {
+      backdrop.classList.add('opacity-0', 'pointer-events-none');
+      backdrop.classList.remove('opacity-100', 'pointer-events-auto');
+    }
+    if (icon) icon.style.transform = 'rotate(0deg)';
+  }
+}
+
+// 5. NAVIGASI TAB UTAMA
 function switchTab(tabName) {
   const sections = document.querySelectorAll('.page-section');
   sections.forEach(sec => sec.classList.remove('active'));
@@ -24,83 +95,3 @@ function switchTab(tabName) {
     activeNavBtn.classList.add('text-blue-600', 'font-bold');
   }
 }
-
-// Membuka Modal Kelola Akun & Analitik (Dari Topbar & Tombol Buka)
-function openModalJendelaAkunWithChart() {
-  const modal = document.getElementById('modal-jendela-akun');
-  if (modal) {
-    modal.classList.remove('hidden');
-    if (typeof renderTrafficChart === 'function') {
-      renderTrafficChart();
-    }
-  }
-}
-
-// Membuka Modal Kelola Layanan
-function openModalKelolaLayanan() {
-  const modal = document.getElementById('modal-kelola-layanan');
-  if (modal) {
-    modal.classList.remove('hidden');
-    if (typeof renderKelolaLayananList === 'function') {
-      renderKelolaLayananList();
-    }
-  }
-}
-
-// Tutup Modal via Tombol X atau Backdrop
-function closeModalWithHistory(modalId) {
-  const modal = document.getElementById(modalId);
-  if (modal) {
-    modal.classList.add('hidden');
-  }
-}
-
-function closeOnBackdrop(event, modalId) {
-  if (event.target.id === modalId) {
-    closeModalWithHistory(modalId);
-  }
-}
-
-// TOGGLE MENU FAB (TOMBOL + MELAYANG KE ATAS)
-function toggleFabMenu() {
-  const backdrop = document.getElementById('fab-backdrop');
-  const sideMenu = document.getElementById('fab-side-menu');
-  const icon = document.getElementById('fab-icon');
-
-  if (!sideMenu) return;
-
-  const isOpen = !sideMenu.classList.contains('opacity-0');
-
-  if (isOpen) {
-    // TUTUP MENU
-    sideMenu.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4');
-    sideMenu.classList.remove('opacity-100', 'pointer-events-auto', 'translate-y-0');
-    
-    if (backdrop) {
-      backdrop.classList.add('opacity-0', 'pointer-events-none');
-      backdrop.classList.remove('opacity-100', 'pointer-events-auto');
-    }
-
-    if (icon) {
-      icon.style.transform = 'rotate(0deg)';
-    }
-  } else {
-    // BUKA MENU MELAYANG KE ATAS
-    sideMenu.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
-    sideMenu.classList.add('opacity-100', 'pointer-events-auto', 'translate-y-0');
-
-    if (backdrop) {
-      backdrop.classList.remove('opacity-0', 'pointer-events-none');
-      backdrop.classList.add('opacity-100', 'pointer-events-auto');
-    }
-
-    if (icon) {
-      icon.style.transform = 'rotate(45deg)';
-    }
-  }
-}
-
-// Inisialisasi Aplikasi saat Load
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('Aplikasi Laundry Siap.');
-});

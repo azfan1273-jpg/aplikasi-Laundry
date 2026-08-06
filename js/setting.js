@@ -2,9 +2,25 @@
 // FILE: js/setting.js
 // ==========================================
 
-let currentTokoId = localStorage.getItem('toko_id') || null;
+// Toggle Accordion di Jendela Akun (Termasuk Accordion Kasir)
+function toggleAccordion(accId) {
+  const element = document.getElementById(accId);
+  const arrow = document.getElementById(`arrow-${accId}`);
+  if (!element) return;
 
-// Toggle (Membuat Muncul/Sembunyi) Form Input Kasir Baru
+  if (element.classList.contains('hidden')) {
+    element.classList.remove('hidden');
+    if (arrow) arrow.style.transform = 'rotate(180deg)';
+    if (accId === 'acc-kasir' && typeof renderDaftarKasir === 'function') {
+      renderDaftarKasir();
+    }
+  } else {
+    element.classList.add('hidden');
+    if (arrow) arrow.style.transform = 'rotate(0deg)';
+  }
+}
+
+// Toggle Form Input Kasir Baru (+ Buat Kasir)
 function toggleFormTambahKasir() {
   const formContainer = document.getElementById('form-tambah-kasir');
   if (!formContainer) return;
@@ -16,7 +32,7 @@ function toggleFormTambahKasir() {
   }
 }
 
-// Simpan Kasir Baru ke Supabase Auth & Tabel Profiles
+// Simpan Kasir Baru ke Supabase
 async function simpanKasirBaru() {
   try {
     const inputNama = document.getElementById('new_kasir_nama');
@@ -28,15 +44,16 @@ async function simpanKasirBaru() {
     const password = inputPassword ? inputPassword.value.trim() : '';
 
     if (!email || !password) {
-      if (typeof showToast === 'function') {
-        showToast('Email dan Password kasir wajib diisi!', 'error');
-      } else {
-        alert('Email dan Password kasir wajib diisi!');
-      }
+      alert('Email dan Password kasir wajib diisi!');
       return;
     }
 
-    // 1. Tambah user ke Supabase Auth
+    if (typeof supabaseClient === 'undefined') {
+      alert('Koneksi database Supabase belum siap.');
+      return;
+    }
+
+    // 1. Registrasi Auth
     const { data: authData, error: authErr } = await supabaseClient.auth.signUp({
       email: email,
       password: password,
@@ -49,52 +66,43 @@ async function simpanKasirBaru() {
     });
 
     if (authErr) {
-      console.error('Error Sign Up Kasir:', authErr);
-      if (typeof showToast === 'function') showToast('Gagal: ' + authErr.message, 'error');
+      alert('Gagal membuat kasir: ' + authErr.message);
       return;
     }
 
-    // 2. Tambah profil ke tabel 'profiles'
+    // 2. Simpan ke Profiles
     if (authData && authData.user) {
-      const { error: dbErr } = await supabaseClient.from('profiles').insert([{
+      await supabaseClient.from('profiles').insert([{
         id: authData.user.id,
-        toko_id: currentTokoId,
+        toko_id: localStorage.getItem('toko_id') || null,
         role: 'kasir',
         nama_user: nama || email.split('@')[0],
         email: email
       }]);
-
-      if (dbErr) {
-        console.error('Error insert profiles kasir:', dbErr);
-      }
     }
 
-    if (typeof showToast === 'function') showToast('Akun kasir berhasil dibuat!', 'success');
+    alert('Akun kasir berhasil dibuat!');
 
-    // Reset input
     if (inputNama) inputNama.value = '';
     if (inputEmail) inputEmail.value = '';
     if (inputPassword) inputPassword.value = '';
 
     toggleFormTambahKasir();
-
-    if (typeof renderDaftarKasir === 'function') {
-      await renderDaftarKasir();
-    }
+    renderDaftarKasir();
 
   } catch (err) {
     console.error('Error simpanKasirBaru:', err);
-    if (typeof showToast === 'function') showToast('Terjadi kesalahan saat membuat kasir.', 'error');
+    alert('Terjadi kesalahan saat menyimpan kasir.');
   }
 }
 
-// Render Daftar Kasir
+// Render List Kasir
 async function renderDaftarKasir() {
   const container = document.getElementById('list-kasir-container');
-  if (!container) return;
+  if (!container || typeof supabaseClient === 'undefined') return;
 
   try {
-    container.innerHTML = '<p class="text-xs text-slate-400 italic">Memuat daftar kasir...</p>';
+    container.innerHTML = '<p class="text-xs text-slate-400 italic">Memuat kasir...</p>';
 
     const { data: listKasir, error } = await supabaseClient
       .from('profiles')
@@ -104,7 +112,7 @@ async function renderDaftarKasir() {
     if (error) throw error;
 
     if (!listKasir || listKasir.length === 0) {
-      container.innerHTML = '<p class="text-xs text-slate-400 italic">Belum ada kasir terdaftar.</p>';
+      container.innerHTML = '<p class="text-xs text-slate-400 italic">Belum ada kasir.</p>';
       return;
     }
 
@@ -121,25 +129,8 @@ async function renderDaftarKasir() {
       `;
       container.appendChild(item);
     });
-
   } catch (err) {
-    console.error('Error renderDaftarKasir:', err);
-    container.innerHTML = '<p class="text-xs text-rose-500">Gagal memuat daftar kasir.</p>';
-  }
-}
-
-// Accordion Toggle
-function toggleAccordion(accId) {
-  const element = document.getElementById(accId);
-  const arrow = document.getElementById(`arrow-${accId}`);
-  if (!element) return;
-
-  if (element.classList.contains('hidden')) {
-    element.classList.remove('hidden');
-    if (arrow) arrow.style.transform = 'rotate(180deg)';
-    if (accId === 'acc-kasir') renderDaftarKasir();
-  } else {
-    element.classList.add('hidden');
-    if (arrow) arrow.style.transform = 'rotate(0deg)';
+    console.error(err);
+    container.innerHTML = '<p class="text-xs text-rose-500">Gagal memuat kasir.</p>';
   }
 }
