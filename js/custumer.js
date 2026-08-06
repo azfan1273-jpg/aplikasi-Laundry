@@ -67,17 +67,32 @@ async function fetchCustomers() {
     }
 }
 
-// Buka/Tutup Form Pelanggan Baru
+// Buka/Tutup Form Pelanggan Baru (Fleksibel)
 function toggleFormCustomerBaru() {
-    const form = document.getElementById('formCustomerBaru');
-    const btnText = document.getElementById('btnTextFormCustomer');
-    
-    if (!form) return;
+    // Cari elemen form berdasarkan beberapa ID / Selektor yang mungkin
+    const form = document.getElementById('formCustomerBaru') 
+              || document.getElementById('formAddCustomer')
+              || document.querySelector('.form-customer-baru');
+              
+    const btnText = document.getElementById('btnTextFormCustomer')
+                 || document.querySelector('#btnToggleCustomer span');
 
-    if (form.style.display === 'none' || form.style.display === '') {
+    if (!form) {
+        console.error("Elemen form customer tidak ditemukan di HTML!");
+        alert("Elemen form tidak ditemukan di halaman!");
+        return;
+    }
+
+    // Cek apakah form menggunakan Bootstrap 'd-none' atau inline CSS display
+    const isHidden = form.classList.contains('d-none') || 
+                     window.getComputedStyle(form).display === 'none';
+
+    if (isHidden) {
+        form.classList.remove('d-none');
         form.style.display = 'block';
         if (btnText) btnText.textContent = 'BATAL';
     } else {
+        form.classList.add('d-none');
         form.style.display = 'none';
         if (btnText) btnText.textContent = 'TAMBAH CUSTOMER BARU';
         resetFormCustomerBaru();
