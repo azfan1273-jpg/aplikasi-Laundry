@@ -1,38 +1,66 @@
 // ==========================================
-// FILE: js/app.js
+// FILE: js/app.js (Bagian Proteksi Kasir)
 // ==========================================
 
-// 1. MEMBUKA MODAL KELOLA AKUN & ANALITIK (DENGAN FIX EMAIL OWNER)
-function openModalJendelaAkunWithChart() {
-  const modal = document.getElementById('modal-jendela-akun');
-  if (!modal) return;
-
-  // Buka modal
-  modal.classList.remove('hidden');
-
-  // FIX EMAIL: Samakan email modal dengan email Owner di Topbar / Panel Setting
-  const accountModalEmail = document.getElementById('account-modal-email');
-  const topbarEmail = document.getElementById('topbar-user-email');
-  const settingEmail = document.getElementById('setting-user-email');
-
-  let activeEmail = '';
-  if (topbarEmail && topbarEmail.textContent && topbarEmail.textContent !== 'Memuat akun...') {
-    activeEmail = topbarEmail.textContent;
-  } else if (settingEmail && settingEmail.textContent && settingEmail.textContent !== 'Memuat...') {
-    activeEmail = settingEmail.textContent;
-  }
-
-  if (accountModalEmail && activeEmail) {
-    accountModalEmail.textContent = activeEmail;
-  }
-
-  // Render chart jika fungsi tersedia
-  if (typeof renderTrafficChart === 'function') {
-    try {
-      renderTrafficChart();
-    } catch (err) {
-      console.log('Error render chart:', err);
+// 1. MEMBUKA MODAL KELOLA AKUN & ANALITIK (DENGAN CEK HAK AKSES KASIR)
+async function openModalJendelaAkunWithChart() {
+  try {
+    // Cek apakah user yang login adalah kasir
+    let userRole = localStorage.getItem('user_role');
+    
+    // Jika role belum ada di localStorage, cek dari Supabase Auth / Tabel Profiles
+    if (!userRole && typeof supabaseClient !== 'undefined') {
+      const { data: { user } } = await supabaseClient.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabaseClient
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+        if (profile) {
+          userRole = profile.role;
+          localStorage.setItem('user_role', userRole);
+        }
+      }
     }
+
+    // JIKA KASIR, TOLAK AKSES KE KELOLA AKUN
+    if (userRole === 'kasir') {
+      if (typeof showToast === 'function') {
+        showToast('Akses Ditolak: Menu Kelola Akun khusus Owner/Admin!', 'error');
+      } else {
+        alert('Akses Ditolak: Menu Kelola Akun khusus Owner/Admin!');
+      }
+      return; // Batalkan pembukaan modal
+    }
+
+    // JIKA OWNER / ADMIN, LANJUTKAN BUKA MODAL
+    const modal = document.getElementById('modal-jendela-akun');
+    if (!modal) return;
+
+    modal.classList.remove('hidden');
+
+    const accountModalEmail = document.getElementById('account-modal-email');
+    const topbarEmail = document.getElementById('topbar-user-email');
+    const settingEmail = document.getElementById('setting-user-email');
+
+    let activeEmail = '';
+    if (topbarEmail && topbarEmail.textContent && topbarEmail.textContent !== 'Memuat akun...') {
+      activeEmail = topbarEmail.textContent;
+    } else if (settingEmail && settingEmail.textContent && settingEmail.textContent !== 'Memuat...') {
+      activeEmail = settingEmail.textContent;
+    }
+
+    if (accountModalEmail && activeEmail) {
+      accountModalEmail.textContent = activeEmail;
+    }
+
+    if (typeof renderTrafficChart === 'function') {
+      try { renderTrafficChart(); } catch (err) { console.log(err); }
+    }
+
+  } catch (err) {
+    console.error('Error cek akses kasir:', err);
   }
 }
 
@@ -126,4 +154,25 @@ function switchTab(tabName) {
 // Inisialisasi saat file loaded
 document.addEventListener('DOMContentLoaded', () => {
   console.log('App JS terload dengan aman.');
+});
+
+// ==========================================
+// FUNGSI BARU: SEMBUNYIKAN TOMBOL KELOLA AKUN UNTUK KASIR
+// ==========================================
+function terapkanHakAksesKasir() {
+  const userRole = localStorage.getItem('user_role');
+  
+  // Jika role yang login adalah kasir
+  if (userRole === 'kasir') {
+    // Sembunyikan tombol "Kelola Akun" di menu Pengaturan
+    const menuKelolaAkun = document.getElementById('setting-owner-kasir');
+    if (menuKelolaAkun) {
+      menuKelolaAkun.style.display = 'none';
+    }
+  }
+}
+
+// Jalankan otomatis saat halaman selesai dimuat
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(terapkanHakAksesKasir, 500);
 });
