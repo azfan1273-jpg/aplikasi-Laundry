@@ -228,3 +228,22 @@ function terapkanHakAksesKasir() {
 document.addEventListener('DOMContentLoaded', () => {
   setTimeout(terapkanHakAksesKasir, 500);
 });
+
+// ==========================================
+// FUNGSI MEMBUKA MODAL PENGELUARAN
+// ==========================================
+function openModalPengeluaran() {
+  const modal = document.getElementById('modal-pengeluaran');
+  if (modal) {
+    modal.classList.remove('hidden');
+  } else {
+    console.error("Modal #modal-pengeluaran tidak ditemukan!");
+  }
+}
+
+function closeModalPengeluaran() {
+  const modal = document.getElementById('modal-pengeluaran');
+  if (modal) {
+    modal.classList.add('hidden');
+  }
+}
