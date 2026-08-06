@@ -25,14 +25,14 @@ async function simpanKasirBaru() {
   }
 
   try {
-    // Kirim toko_id & role lewat user_metadata saat SignUp
+    // Gunakan temporary client agar session Owner tidak ter-logout saat buat kasir
     const tempSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
       auth: { persistSession: false }
     });
 
     const { data, error } = await tempSupabase.auth.signUp({ 
-      email, 
-      password,
+      email: email, 
+      password: password,
       options: {
         data: {
           toko_id: currentToko.id,
@@ -53,7 +53,11 @@ async function simpanKasirBaru() {
       if (passInput) passInput.value = '';
       
       toggleFormTambahKasir();
-      setTimeout(() => loadDaftarKasirList(), 1000);
+      
+      // Beri jeda 1 detik agar trigger Supabase selesai memproses
+      setTimeout(() => {
+        loadDaftarKasirList();
+      }, 1000);
     }
   } catch (err) {
     showToast("Terjadi kesalahan: " + err.message, "error");
