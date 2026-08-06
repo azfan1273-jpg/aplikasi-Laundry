@@ -176,7 +176,9 @@ async function renderKelolaLayananList() {
   }
 }
 
-// FUNGSI UTAMA: SIMPAN LAYANAN BARU LANGSUNG KE SUPABASE
+// ==========================================
+// TIMPA FUNGSI tambahLayananBaru SAJA DI js/setting.js
+// ==========================================
 async function tambahLayananBaru(e) {
   if (e && e.preventDefault) e.preventDefault();
 
@@ -198,15 +200,30 @@ async function tambahLayananBaru(e) {
   const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
 
   if (!client) {
-    alert('Koneksi Supabase belum siap. Harap muat ulang halaman.');
+    alert('Koneksi Supabase belum siap. Harap refresh halaman!');
     return;
   }
 
   try {
+    // 1. Ambil user_id dari sesi aktif
     const userRes = await client.auth.getUser();
     const userId = userRes?.data?.user?.id || null;
-    const tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) ? currentToko.id : (localStorage.getItem('toko_id') || null);
 
+    // 2. Ambil toko_id dari memori atau localStorage
+    let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) 
+                 ? currentToko.id 
+                 : localStorage.getItem('toko_id');
+
+    // 3. Fallback: Ambil ID toko dari database jika toko_id belum ter-set
+    if (!tokoId) {
+      const { data: tokoData } = await client.from('toko').select('id').limit(1).maybeSingle();
+      if (tokoData && tokoData.id) {
+        tokoId = tokoData.id;
+        localStorage.setItem('toko_id', tokoId);
+      }
+    }
+
+    // 4. Susun Payload
     const payload = {
       nama_layanan: nama_layanan,
       harga: harga,
@@ -215,15 +232,18 @@ async function tambahLayananBaru(e) {
       user_id: userId
     };
 
-    if (tokoId) payload.toko_id = tokoId;
+    if (tokoId) {
+      payload.toko_id = tokoId;
+    }
 
+    // 5. Insert ke Supabase
     const { data, error } = await client
       .from('layanan')
       .insert([payload])
       .select();
 
     if (error) {
-      console.error('Error insert layanan:', error);
+      console.error('Error Insert Layanan:', error);
       alert('Gagal menyimpan layanan: ' + error.message);
       return;
     }
@@ -235,8 +255,8 @@ async function tambahLayananBaru(e) {
     if (hargaInput) hargaInput.value = '';
     if (estimasiInput) estimasiInput.value = '';
 
-    // Refresh daftar layanan
-    renderKelolaLayananList();
+    // Refresh daftar layanan jika ada fungsinya
+    if (typeof renderKelolaLayananList === 'function') renderKelolaLayananList();
 
   } catch (err) {
     console.error('Catch simpan layanan:', err);

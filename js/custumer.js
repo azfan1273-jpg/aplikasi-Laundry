@@ -1,39 +1,92 @@
 // ==========================================
-// FILE: js/custumer.js (Modul Pelanggan)
+// GANTI / TIMPA FUNGSI simpanCustomerBaru SAJA
 // ==========================================
+async function simpanCustomerBaru(e) {
+  if (e && e.preventDefault) e.preventDefault();
 
-var allPelanggan = [];
-var selectedPelanggan = null;
+  const namaInput = document.getElementById('new_nama_pelanggan');
+  const hpInput = document.getElementById('new_no_hp');
 
-// Membuka Modal Pilih Pelanggan & Fetch Data Supabase
-async function openModalPilihPelanggan() {
-  if (typeof openModalWithHistory === 'function') {
-    openModalWithHistory('modal-pelanggan');
-  } else {
-    const modal = document.getElementById('modal-pelanggan');
-    if (modal) {
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-    }
+  const nama = namaInput?.value?.trim();
+  const no_hp = hpInput?.value?.trim() || '';
+
+  if (!nama) {
+    alert('Harap isi Nama Pelanggan!');
+    return;
   }
 
   const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
-  
-  if (client) {
-    try {
-      let query = client.from('pelanggan').select('*').order('id', { ascending: false });
-      
-      if (typeof currentToko !== 'undefined' && currentToko?.id) {
-        query = query.eq('toko_id', currentToko.id);
-      }
 
-      const res = await query;
-      if (res.error) console.error('Error fetch pelanggan:', res.error);
-      allPelanggan = res.data || [];
-      renderPelangganList(allPelanggan);
-    } catch (err) {
-      console.error('Catch fetch pelanggan:', err);
+  if (!client) {
+    alert('Koneksi Supabase belum siap. Harap refresh halaman!');
+    return;
+  }
+
+  try {
+    // 1. Ambil user_id dari sesi aktif
+    const userRes = await client.auth.getUser();
+    const userId = userRes?.data?.user?.id || null;
+
+    // 2. Ambil toko_id dari memori atau localStorage
+    let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) 
+                 ? currentToko.id 
+                 : localStorage.getItem('toko_id');
+
+    // 3. Fallback: Jika toko_id belum ter-set di frontend, ambil ID toko pertama dari DB
+    if (!tokoId) {
+      const { data: tokoData } = await client.from('toko').select('id').limit(1).maybeSingle();
+      if (tokoData && tokoData.id) {
+        tokoId = tokoData.id;
+        localStorage.setItem('toko_id', tokoId);
+      }
     }
+
+    // 4. Susun Payload
+    const payload = {
+      nama: nama,
+      no_hp: no_hp,
+      user_id: userId
+    };
+
+    if (tokoId) {
+      payload.toko_id = tokoId;
+    }
+
+    // 5. Insert ke Supabase
+    const { data, error } = await client
+      .from('pelanggan')
+      .insert([payload])
+      .select();
+
+    if (error) {
+      console.error('Error Insert Pelanggan:', error);
+      alert('Gagal menyimpan pelanggan: ' + error.message);
+      return;
+    }
+
+    alert('Pelanggan "' + nama + '" berhasil disimpan!');
+
+    // Reset Form Input
+    if (namaInput) namaInput.value = '';
+    if (hpInput) hpInput.value = '';
+    const formCustomer = document.getElementById('form-customer-baru');
+    if (formCustomer) formCustomer.classList.add('hidden');
+
+    // Update Tampilan Modal POS
+    const label = document.getElementById('selectedCustomerName');
+    if (label) {
+      label.textContent = nama + (no_hp ? ' (' + no_hp + ')' : '');
+      label.className = 'text-sm font-bold text-indigo-600';
+    }
+
+    // Tutup Modal Pelanggan
+    if (typeof closeModalPilihPelanggan === 'function') {
+      closeModalPilihPelanggan();
+    }
+
+  } catch (err) {
+    console.error('Catch simpan customer:', err);
+    alert('Terjadi kesalahan sistem: ' + err.message);
   }
 }
 
