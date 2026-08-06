@@ -622,3 +622,66 @@ window.openProfilePelangganDetail = openProfilePelangganDetail;
 document.addEventListener('DOMContentLoaded', () => {
   fetchPengeluaran();
 });
+
+// ==========================================
+// FUNGSI MODAL STATISTIK / TRAFFIC KEUTANGAN
+// ==========================================
+
+function openModalStatistik(type) {
+  console.log("-> Membuka Modal Statistik:", type);
+
+  const container = document.getElementById('list-statistik-modal-container') 
+                 || document.getElementById('list-report-modal-container');
+
+  const titleMap = {
+    'omset': 'Statistik Omset 24 Jam',
+    'pendapatan': 'Statistik Pendapatan 24 Jam',
+    'pengeluaran': 'Statistik Pengeluaran 24 Jam',
+    'order': 'Statistik Order Hari Ini'
+  };
+
+  const titleText = titleMap[type] || 'Detail Statistik';
+
+  if (container) {
+    container.innerHTML = `
+      <div class="space-y-4 py-2">
+        <div class="text-center border-b pb-3 border-slate-100">
+          <h3 class="font-extrabold text-slate-900 text-base">${titleText}</h3>
+          <div class="w-10 h-0.5 bg-rose-500 mx-auto mt-1 rounded-full"></div>
+        </div>
+        <div class="p-4 bg-slate-50 border border-slate-200/80 rounded-2xl text-center space-y-2">
+          <p class="text-xs text-slate-500 font-medium">Pemantauan Lalu Lintas Realtime</p>
+          <div class="text-2xl font-black text-blue-600">📈 24 Jam</div>
+          <p class="text-[10px] text-slate-400">Data tercatat otomatis dari aktivitas transaksi toko.</p>
+        </div>
+      </div>
+    `;
+  }
+
+  // Buka modal statistik jika ada ID-nya, atau fallback ke modal detail utama
+  const modal = document.getElementById('modal-statistik') 
+             || document.getElementById('modal-detail-laporan');
+
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    modal.style.display = 'flex';
+  } else if (typeof window.openModalWithHistory === 'function') {
+    window.openModalWithHistory('modal-detail-laporan');
+  }
+}
+
+function closeModalStatistik() {
+  const modal = document.getElementById('modal-statistik') 
+             || document.getElementById('modal-detail-laporan');
+
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    modal.style.display = 'none';
+  }
+}
+
+// Daftarkan ke Global Window Scope
+window.openModalStatistik = openModalStatistik;
+window.closeModalStatistik = closeModalStatistik;
