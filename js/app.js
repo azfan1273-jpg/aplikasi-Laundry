@@ -2,39 +2,37 @@
 // FILE: js/app.js
 // ==========================================
 
-// 1. MEMBUKA MODAL KELOLA AKUN & ANALITIK (HEADER TOPBAR & TOMBOL BUKA)
+// 1. MEMBUKA MODAL KELOLA AKUN & ANALITIK (DENGAN FIX EMAIL OWNER)
 function openModalJendelaAkunWithChart() {
   const modal = document.getElementById('modal-jendela-akun');
-  if (modal) {
-    modal.classList.remove('hidden');
+  if (!modal) return;
 
-    // SAMAKAN EMAIL MODAL DENGAN EMAIL OWNER DI TOPBAR/PENGATURAN
-    const accountModalEmail = document.getElementById('account-modal-email');
-    const topbarEmail = document.getElementById('topbar-user-email');
-    const settingEmail = document.getElementById('setting-user-email');
+  // Buka modal
+  modal.classList.remove('hidden');
 
-    // Ambil nilai email aktif yang sudah tampil di Topbar atau Panel Setting
-    let activeEmail = (topbarEmail && topbarEmail.textContent !== 'Memuat akun...') ? topbarEmail.textContent : '';
-    if (!activeEmail && settingEmail) {
-      activeEmail = settingEmail.textContent;
-    }
+  // FIX EMAIL: Samakan email modal dengan email Owner di Topbar / Panel Setting
+  const accountModalEmail = document.getElementById('account-modal-email');
+  const topbarEmail = document.getElementById('topbar-user-email');
+  const settingEmail = document.getElementById('setting-user-email');
 
-    // Tampilkan email owner ke header modal
-    if (accountModalEmail && activeEmail) {
-      accountModalEmail.textContent = activeEmail;
-    }
-
-    if (typeof renderTrafficChart === 'function') {
-      try { renderTrafficChart(); } catch(e) { console.log(e); }
-    }
+  let activeEmail = '';
+  if (topbarEmail && topbarEmail.textContent && topbarEmail.textContent !== 'Memuat akun...') {
+    activeEmail = topbarEmail.textContent;
+  } else if (settingEmail && settingEmail.textContent && settingEmail.textContent !== 'Memuat...') {
+    activeEmail = settingEmail.textContent;
   }
-}
 
-    if (typeof renderTrafficChart === 'function') {
-      try { renderTrafficChart(); } catch(e) { console.log(e); }
+  if (accountModalEmail && activeEmail) {
+    accountModalEmail.textContent = activeEmail;
+  }
+
+  // Render chart jika fungsi tersedia
+  if (typeof renderTrafficChart === 'function') {
+    try {
+      renderTrafficChart();
+    } catch (err) {
+      console.log('Error render chart:', err);
     }
-  } else {
-    console.error("Modal #modal-jendela-akun tidak ditemukan!");
   }
 }
 
@@ -43,12 +41,17 @@ function openModalKelolaLayanan() {
   const modal = document.getElementById('modal-kelola-layanan');
   if (modal) {
     modal.classList.remove('hidden');
-  } else {
-    console.error("Modal #modal-kelola-layanan tidak ditemukan!");
+    if (typeof renderKelolaLayananList === 'function') {
+      try {
+        renderKelolaLayananList();
+      } catch (err) {
+        console.log('Error render kelola layanan:', err);
+      }
+    }
   }
 }
 
-// 3. FUNGSI MENUTUP MODAL
+// 3. FUNGSI MENUTUP MODAL (AMAN)
 function closeModalWithHistory(modalId) {
   const modal = document.getElementById(modalId);
   if (modal) {
@@ -57,12 +60,12 @@ function closeModalWithHistory(modalId) {
 }
 
 function closeOnBackdrop(event, modalId) {
-  if (event.target && event.target.id === modalId) {
+  if (event && event.target && event.target.id === modalId) {
     closeModalWithHistory(modalId);
   }
 }
 
-// 4. ANIMASI TOGGLE TOMBOL FAB (+)
+// 4. ANIMASI TOGGLE TOMBOL FAB (+) MELAYANG KE ATAS
 function toggleFabMenu() {
   const backdrop = document.getElementById('fab-backdrop');
   const sideMenu = document.getElementById('fab-side-menu');
@@ -73,29 +76,31 @@ function toggleFabMenu() {
   const isHidden = sideMenu.classList.contains('opacity-0') || sideMenu.classList.contains('pointer-events-none');
 
   if (isHidden) {
-    // TAMPILKAN MENU MELAYANG KE ATAS
+    // BUKA MENU
     sideMenu.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
     sideMenu.classList.add('opacity-100', 'pointer-events-auto', 'translate-y-0');
 
     if (backdrop) {
-      backdrop.classList.remove('opacity-0', 'pointer-events-none');
+      backdrop.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
       backdrop.classList.add('opacity-100', 'pointer-events-auto');
     }
+
     if (icon) icon.style.transform = 'rotate(45deg)';
   } else {
-    // SEMBUNYIKAN MENU
+    // TUTUP MENU
     sideMenu.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4');
     sideMenu.classList.remove('opacity-100', 'pointer-events-auto', 'translate-y-0');
 
     if (backdrop) {
-      backdrop.classList.add('opacity-0', 'pointer-events-none');
+      backdrop.classList.add('hidden', 'opacity-0', 'pointer-events-none');
       backdrop.classList.remove('opacity-100', 'pointer-events-auto');
     }
+
     if (icon) icon.style.transform = 'rotate(0deg)';
   }
 }
 
-// 5. NAVIGASI TAB UTAMA
+// 5. NAVIGASI TAB UTAMA (BERANDA, ORDER, REPORT, SETTING)
 function switchTab(tabName) {
   const sections = document.querySelectorAll('.page-section');
   sections.forEach(sec => sec.classList.remove('active'));
@@ -117,3 +122,8 @@ function switchTab(tabName) {
     activeNavBtn.classList.add('text-blue-600', 'font-bold');
   }
 }
+
+// Inisialisasi saat file loaded
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('App JS terload dengan aman.');
+});
