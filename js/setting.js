@@ -144,12 +144,36 @@ function renderKelolaLayananList() {
   }
 }
 
+// Variable Global Filter Kategori Layanan (Default: kiloan)
+window.currentCategoryLayanan = window.currentCategoryLayanan || 'kiloan';
+
+// FUNGSI GANTI TAB KATEGORI
+function switchCategoryLayanan(cat) {
+  window.currentCategoryLayanan = cat;
+  
+  // Toggle style tombol tab
+  const btnKiloan = document.getElementById('tab-layanan-kiloan');
+  const btnSatuan = document.getElementById('tab-layanan-satuan');
+
+  if (btnKiloan && btnSatuan) {
+    if (cat === 'kiloan') {
+      btnKiloan.className = 'flex-1 py-1.5 text-center font-extrabold text-xs rounded-xl bg-blue-600 text-white shadow-sm transition';
+      btnSatuan.className = 'flex-1 py-1.5 text-center font-extrabold text-xs rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 transition';
+    } else {
+      btnSatuan.className = 'flex-1 py-1.5 text-center font-extrabold text-xs rounded-xl bg-blue-600 text-white shadow-sm transition';
+      btnKiloan.className = 'flex-1 py-1.5 text-center font-extrabold text-xs rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 transition';
+    }
+  }
+
+  // Render ulang list
+  renderLayananPOS();
+}
+
 // ==========================================
-// RENDER DAFTAR LAYANAN DENGAN FITUR DRAG & DROP
+// RENDER DAFTAR LAYANAN DENGAN BUNGKUS TAB (KILOAN & SATUAN)
 // ==========================================
-// 2. Render Daftar Layanan di Gambar 2 (Modal Pilih Layanan POS)
 async function renderLayananPOS(keyword = '') {
-  console.log("-> Memuat daftar layanan di Modal Pilih Layanan...");
+  console.log("-> Memuat daftar layanan POS terpisah Kiloan/Satuan...");
 
   let container = document.getElementById('list-layanan-container')
                || document.querySelector('#modal-layanan .scroll-area')
@@ -181,7 +205,7 @@ async function renderLayananPOS(keyword = '') {
 
     let rawData = listLayanan || [];
 
-    // --- BACA URUTAN YANG TERSIMPAN ---
+    // BACA URUTAN CUSTOM DARI LOCALSTORAGE
     const savedOrderJson = localStorage.getItem('layanan_custom_order');
     if (savedOrderJson) {
       try {
@@ -194,7 +218,7 @@ async function renderLayananPOS(keyword = '') {
           return indexA - indexB;
         });
       } catch (e) {
-        console.warn("Gagal parse saved order layout:", e);
+        console.warn("Gagal parse saved order:", e);
       }
     } else {
       rawData.sort((a, b) => b.id - a.id);
@@ -202,6 +226,7 @@ async function renderLayananPOS(keyword = '') {
 
     window.allLayananCache = rawData;
 
+    // 1. FILTER BERDASARKAN SEARCH KEYWORD
     let filtered = window.allLayananCache;
     if (keyword) {
       filtered = filtered.filter(item => 
@@ -209,21 +234,44 @@ async function renderLayananPOS(keyword = '') {
       );
     }
 
+    // 2. FILTER BERDASARKAN KATEGORI (KILOAN VS SATUAN)
+    const activeCat = window.currentCategoryLayanan || 'kiloan';
+    filtered = filtered.filter(item => {
+      const sat = (item.satuan || 'kg').toLowerCase().trim();
+      if (activeCat === 'kiloan') {
+        return sat === 'kg' || sat === 'kilo' || sat === 'kiloan';
+      } else {
+        return sat !== 'kg' && sat !== 'kilo' && sat !== 'kiloan';
+      }
+    });
+
+    // HEADER TAB DOCKING KATEGORI
+    const tabHeaderHTML = `
+      <div class="flex gap-2 p-1 bg-slate-100 rounded-2xl mb-3">
+        <button type="button" id="tab-layanan-kiloan" onclick="switchCategoryLayanan('kiloan')" class="flex-1 py-1.5 text-center font-extrabold text-xs rounded-xl ${activeCat === 'kiloan' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'} transition">
+          🧺 Layanan Kiloan
+        </button>
+        <button type="button" id="tab-layanan-satuan" onclick="switchCategoryLayanan('satuan')" class="flex-1 py-1.5 text-center font-extrabold text-xs rounded-xl ${activeCat === 'satuan' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'} transition">
+          👔 Layanan Satuan
+        </button>
+      </div>
+    `;
+
     if (!filtered || filtered.length === 0) {
-      container.innerHTML = '<p class="text-xs text-slate-400 text-center py-6 italic">Belum ada layanan tersedia.</p>';
+      container.innerHTML = tabHeaderHTML + `<p class="text-xs text-slate-400 text-center py-6 italic">Tidak ada layanan ${activeCat === 'kiloan' ? 'Kiloan' : 'Satuan'} ditemukan.</p>`;
       return;
     }
 
-    // Render item lengkap dengan tombol panah ▲ ▼
-    container.innerHTML = filtered.map((item, idx) => `
+    // RENDER LIST ITEM
+    const listItemsHTML = filtered.map((item, idx) => `
       <div data-id="${item.id}" class="layanan-item p-3 bg-white rounded-2xl border border-slate-200 text-xs mb-2 flex justify-between items-center shadow-sm hover:border-blue-400 transition-all">
         <div class="flex items-center gap-2">
-          <!-- TOMBOL REORDER UNTUK KASIR -->
+          <!-- TOMBOL REORDER -->
           <div class="flex flex-col gap-0.5">
-            <button type="button" onclick="geserPosisiLayanan(${idx}, 'up')" class="w-6 h-5 bg-slate-100 hover:bg-blue-100 text-slate-600 hover:text-blue-600 rounded flex items-center justify-center font-bold text-[10px] active:scale-90 transition" title="Naikkan Ke Atas">
+            <button type="button" onclick="geserPosisiLayanan(${item.id}, 'up')" class="w-6 h-5 bg-slate-100 hover:bg-blue-100 text-slate-600 hover:text-blue-600 rounded flex items-center justify-center font-bold text-[10px] active:scale-90 transition" title="Naikkan Ke Atas">
               ▲
             </button>
-            <button type="button" onclick="geserPosisiLayanan(${idx}, 'down')" class="w-6 h-5 bg-slate-100 hover:bg-blue-100 text-slate-600 hover:text-blue-600 rounded flex items-center justify-center font-bold text-[10px] active:scale-90 transition" title="Turunkan Ke Bawah">
+            <button type="button" onclick="geserPosisiLayanan(${item.id}, 'down')" class="w-6 h-5 bg-slate-100 hover:bg-blue-100 text-slate-600 hover:text-blue-600 rounded flex items-center justify-center font-bold text-[10px] active:scale-90 transition" title="Turunkan Ke Bawah">
               ▼
             </button>
           </div>
@@ -247,36 +295,42 @@ async function renderLayananPOS(keyword = '') {
       </div>
     `).join('');
 
+    container.innerHTML = tabHeaderHTML + listItemsHTML;
+
   } catch (err) {
     console.error('Error renderLayananPOS:', err);
     if (container) container.innerHTML = '<p class="text-xs text-rose-500 text-center py-4">Gagal memuat daftar layanan.</p>';
   }
 }
 
-// FUNGSI GESER URUTAN APLIKATIF (NAIK / TURUN)
-function geserPosisiLayanan(index, direction) {
+// FUNGSI GESER URUTAN BERDASARKAN ID
+function geserPosisiLayanan(id, direction) {
   if (!window.allLayananCache || window.allLayananCache.length === 0) return;
 
   let list = window.allLayananCache;
+  let index = list.findIndex(item => item.id === id);
+  if (index === -1) return;
+
   let targetIndex = direction === 'up' ? index - 1 : index + 1;
 
-  // Batas atas dan bawah
   if (targetIndex < 0 || targetIndex >= list.length) return;
 
-  // Tukar posisi item dalam Array
+  // Tukar posisi item
   let temp = list[index];
   list[index] = list[targetIndex];
   list[targetIndex] = temp;
 
-  // Simpan urutan ID baru ke LocalStorage
+  // Simpan urutan ID baru
   const newOrderIds = list.map(item => item.id);
   localStorage.setItem('layanan_custom_order', JSON.stringify(newOrderIds));
 
-  // Render Ulang Seketika
+  // Render ulang
   renderLayananPOS();
 }
 
-// Register Global Window
+// Register Window Global
+window.switchCategoryLayanan = switchCategoryLayanan;
+window.renderLayananPOS = renderLayananPOS;
 window.geserPosisiLayanan = geserPosisiLayanan;
 
 // FUNGSI INIT DRAG & DROP
