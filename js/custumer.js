@@ -37,18 +37,67 @@ function selectCustomer(id, nama, no_hp) {
 
 function toggleFormCustomerBaru() { document.getElementById('form-customer-baru').classList.toggle('hidden'); }
 
-async function simpanCustomerBaru() {
-  const nama = document.getElementById('new_nama_pelanggan').value;
-  const no_hp = document.getElementById('new_no_hp').value;
-  if(!nama) { showToast("Isi nama customer!", "error"); return; }
-  if(currentToko) {
-    const res = await supabaseClient.from('pelanggan').insert([{ nama: nama, no_hp: no_hp, toko_id: currentToko.id }]).select().single();
-    if(res.data) {
-      showToast(`Customer ${nama} berhasil disimpan!`, "success");
-      selectCustomer(res.data.id, (res.data.nama||res.data.nama_pelanggan), res.data.no_hp);
-      document.getElementById('new_nama_pelanggan').value = ''; document.getElementById('new_no_hp').value = ''; toggleFormCustomerBaru();
-    } else {
-      showToast("Gagal menyimpan customer baru.", "error");
+// FUNGSI SIMPAN PELANGGAN BARU LANGSUNG KE SUPABASE
+async function simpanCustomerBaru(e) {
+  if (e && e.preventDefault) e.preventDefault();
+
+  const namaInput = document.getElementById('new_nama_pelanggan');
+  const hpInput = document.getElementById('new_no_hp');
+
+  const nama = namaInput?.value?.trim();
+  const no_hp = hpInput?.value?.trim() || '';
+
+  if (!nama) {
+    alert('Harap isi Nama Pelanggan!');
+    return;
+  }
+
+  try {
+    // Ambil user_id dari sesi supabase aktif
+    const user = (await supabase.auth.getUser()).data?.user;
+    const userId = user ? user.id : null;
+
+    const { data, error } = await supabase
+      .from('pelanggan')
+      .insert([
+        { 
+          nama: nama, 
+          no_hp: no_hp,
+          user_id: userId
+        }
+      ])
+      .select();
+
+    if (error) {
+      console.error('Error insert pelanggan:', error);
+      alert('Gagal menyimpan pelanggan: ' + error.message);
+      return;
     }
+
+    alert('Pelanggan berhasil disimpan!');
+
+    // Reset Input
+    if (namaInput) namaInput.value = '';
+    if (hpInput) hpInput.value = '';
+
+    // Pilih otomatis pelanggan ini di modal POS
+    if (typeof pilihPelangganPOS === 'function') {
+      pilihPelangganPOS(nama);
+    } else {
+      const label = document.getElementById('selectedCustomerName');
+      if (label) {
+        label.textContent = nama;
+        label.className = 'text-sm font-bold text-indigo-600';
+      }
+    }
+
+    // Tutup Modal Pelanggan
+    if (typeof closeModalPilihPelanggan === 'function') {
+      closeModalPilihPelanggan();
+    }
+
+  } catch (err) {
+    console.error('Error catch:', err);
+    alert('Terjadi kesalahan sistem.');
   }
 }

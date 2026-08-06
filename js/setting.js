@@ -134,3 +134,65 @@ async function renderDaftarKasir() {
     container.innerHTML = '<p class="text-xs text-rose-500">Gagal memuat kasir.</p>';
   }
 }
+
+// FUNGSI SIMPAN LAYANAN BARU LANGSUNG KE SUPABASE
+async function tambahLayananBaru(e) {
+  if (e && e.preventDefault) e.preventDefault();
+
+  const namaInput = document.getElementById('new_nama_layanan');
+  const hargaInput = document.getElementById('new_harga_layanan');
+  const satuanInput = document.getElementById('new_satuan_layanan');
+  const estimasiInput = document.getElementById('new_estimasi_hari');
+
+  const nama_layanan = namaInput?.value?.trim();
+  const harga = parseFloat(hargaInput?.value) || 0;
+  const satuan = satuanInput?.value || 'Kg';
+  const estimasi_hari = parseFloat(estimasiInput?.value) || 1;
+
+  if (!nama_layanan || harga <= 0) {
+    alert('Harap isi Nama Layanan dan Harga yang valid!');
+    return;
+  }
+
+  try {
+    const user = (await supabase.auth.getUser()).data?.user;
+    const userId = user ? user.id : null;
+
+    const { data, error } = await supabase
+      .from('layanan')
+      .insert([
+        {
+          nama_layanan: nama_layanan,
+          harga: harga,
+          satuan: satuan,
+          estimasi_hari: estimasi_hari,
+          user_id: userId
+        }
+      ])
+      .select();
+
+    if (error) {
+      console.error('Error insert layanan:', error);
+      alert('Gagal menyimpan layanan: ' + error.message);
+      return;
+    }
+
+    alert('Layanan berhasil ditambahkan!');
+
+    // Reset Form
+    if (namaInput) namaInput.value = '';
+    if (hargaInput) hargaInput.value = '';
+    if (estimasiInput) estimasiInput.value = '';
+
+    // Refresh daftar layanan jika ada fungsi render
+    if (typeof renderKelolaLayananList === 'function') renderKelolaLayananList();
+    if (typeof renderLayananPOS === 'function') renderLayananPOS();
+
+    // Tutup Modal Kelola Layanan
+    if (typeof closeModalKelolaLayanan === 'function') closeModalKelolaLayanan();
+
+  } catch (err) {
+    console.error('Error catch:', err);
+    alert('Terjadi kesalahan sistem.');
+  }
+}
