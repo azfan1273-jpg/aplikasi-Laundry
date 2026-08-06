@@ -135,7 +135,7 @@ async function renderDaftarKasir() {
   }
 }
 
-// FUNGSI SIMPAN LAYANAN BARU LANGSUNG KE SUPABASE
+// FUNGSI SIMPAN LAYANAN BARU (FIX SUPABASE CLIENT & TOKO ID)
 async function tambahLayananBaru(e) {
   if (e && e.preventDefault) e.preventDefault();
 
@@ -154,21 +154,32 @@ async function tambahLayananBaru(e) {
     return;
   }
 
-  try {
-    const user = (await supabase.auth.getUser()).data?.user;
-    const userId = user ? user.id : null;
+  // Gunakan client Supabase yang aktif di aplikasi kamu
+  const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
 
-    const { data, error } = await supabase
+  if (!client) {
+    alert('Koneksi Supabase belum siap. Harap refresh halaman.');
+    return;
+  }
+
+  try {
+    const userRes = await client.auth.getUser();
+    const userId = userRes?.data?.user?.id || null;
+    const tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) ? currentToko.id : (localStorage.getItem('toko_id') || null);
+
+    const payload = {
+      nama_layanan: nama_layanan,
+      harga: harga,
+      satuan: satuan,
+      estimasi_hari: estimasi_hari,
+      user_id: userId
+    };
+
+    if (tokoId) payload.toko_id = tokoId;
+
+    const { data, error } = await client
       .from('layanan')
-      .insert([
-        {
-          nama_layanan: nama_layanan,
-          harga: harga,
-          satuan: satuan,
-          estimasi_hari: estimasi_hari,
-          user_id: userId
-        }
-      ])
+      .insert([payload])
       .select();
 
     if (error) {
@@ -184,7 +195,7 @@ async function tambahLayananBaru(e) {
     if (hargaInput) hargaInput.value = '';
     if (estimasiInput) estimasiInput.value = '';
 
-    // Refresh daftar layanan jika ada fungsi render
+    // Refresh daftar layanan
     if (typeof renderKelolaLayananList === 'function') renderKelolaLayananList();
     if (typeof renderLayananPOS === 'function') renderLayananPOS();
 
@@ -192,7 +203,7 @@ async function tambahLayananBaru(e) {
     if (typeof closeModalKelolaLayanan === 'function') closeModalKelolaLayanan();
 
   } catch (err) {
-    console.error('Error catch:', err);
-    alert('Terjadi kesalahan sistem.');
+    console.error('Error catch simpan layanan:', err);
+    alert('Terjadi kesalahan sistem: ' + err.message);
   }
 }

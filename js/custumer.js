@@ -37,7 +37,7 @@ function selectCustomer(id, nama, no_hp) {
 
 function toggleFormCustomerBaru() { document.getElementById('form-customer-baru').classList.toggle('hidden'); }
 
-// FUNGSI SIMPAN PELANGGAN BARU LANGSUNG KE SUPABASE
+// FUNGSI SIMPAN PELANGGAN BARU (FIX SUPABASE CLIENT & TOKO ID)
 async function simpanCustomerBaru(e) {
   if (e && e.preventDefault) e.preventDefault();
 
@@ -52,20 +52,32 @@ async function simpanCustomerBaru(e) {
     return;
   }
 
-  try {
-    // Ambil user_id dari sesi supabase aktif
-    const user = (await supabase.auth.getUser()).data?.user;
-    const userId = user ? user.id : null;
+  // Gunakan client Supabase yang aktif di aplikasi kamu
+  const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
 
-    const { data, error } = await supabase
+  if (!client) {
+    alert('Koneksi Supabase belum siap. Harap refresh halaman.');
+    return;
+  }
+
+  try {
+    // Ambil data user & toko yang sedang aktif
+    const userRes = await client.auth.getUser();
+    const userId = userRes?.data?.user?.id || null;
+    const tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) ? currentToko.id : (localStorage.getItem('toko_id') || null);
+
+    const payload = {
+      nama: nama,
+      no_hp: no_hp,
+      user_id: userId
+    };
+
+    // Tambahkan toko_id jika ketersediaan kolom/data ada
+    if (tokoId) payload.toko_id = tokoId;
+
+    const { data, error } = await client
       .from('pelanggan')
-      .insert([
-        { 
-          nama: nama, 
-          no_hp: no_hp,
-          user_id: userId
-        }
-      ])
+      .insert([payload])
       .select();
 
     if (error) {
@@ -76,28 +88,29 @@ async function simpanCustomerBaru(e) {
 
     alert('Pelanggan berhasil disimpan!');
 
-    // Reset Input
+    // Reset Input & Hide Form
     if (namaInput) namaInput.value = '';
     if (hpInput) hpInput.value = '';
+    const formCustomerBaru = document.getElementById('form-customer-baru');
+    if (formCustomerBaru) formCustomerBaru.classList.add('hidden');
 
-    // Pilih otomatis pelanggan ini di modal POS
-    if (typeof pilihPelangganPOS === 'function') {
-      pilihPelangganPOS(nama);
-    } else {
-      const label = document.getElementById('selectedCustomerName');
-      if (label) {
-        label.textContent = nama;
-        label.className = 'text-sm font-bold text-indigo-600';
-      }
+    // Update Label Pelanggan Terpilih di Modal POS
+    const label = document.getElementById('selectedCustomerName');
+    if (label) {
+      label.textContent = nama;
+      label.className = 'text-sm font-bold text-indigo-600';
     }
 
-    // Tutup Modal Pelanggan
+    // Refresh list pelanggan & tutup modal
+    if (typeof openModalPilihPelanggan === 'function') {
+      openModalPilihPelanggan();
+    }
     if (typeof closeModalPilihPelanggan === 'function') {
       closeModalPilihPelanggan();
     }
 
   } catch (err) {
-    console.error('Error catch:', err);
-    alert('Terjadi kesalahan sistem.');
+    console.error('Error catch simpan pelanggan:', err);
+    alert('Terjadi kesalahan sistem: ' + err.message);
   }
 }
