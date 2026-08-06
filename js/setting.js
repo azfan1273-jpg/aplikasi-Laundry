@@ -283,3 +283,93 @@ async function hapusLayananBaru(id) {
     console.error('Catch hapus layanan:', err);
   }
 }
+
+// ==========================================
+// FUNGSI SIMPAN & MUAT TARGET OMSET BULANAN
+// ==========================================
+
+// 1. Simpan Target Omset ke Penyimpanan Lokal
+function simpanTargetOmset(e) {
+  if (e && e.preventDefault) e.preventDefault();
+
+  // Cari input nominal target omset
+  const inputEl = document.querySelector('input[placeholder*="15"]') 
+               || document.querySelector('#target_omset_input')
+               || document.querySelector('input[type="number"]')
+               || document.querySelector('.target-omset-input');
+
+  let rawVal = inputEl ? inputEl.value : '15000000';
+  let cleanVal = rawVal.toString().replace(/[^0-9]/g, '');
+  let nominalTarget = parseFloat(cleanVal);
+
+  // Jika user cuma ngetik "15", otomatis ubah jadi 15.000.000
+  if (nominalTarget < 1000) {
+    nominalTarget = nominalTarget * 1000000;
+  }
+
+  if (isNaN(nominalTarget) || nominalTarget <= 0) {
+    alert('Harap masukkan target omset yang valid!');
+    return;
+  }
+
+  // Simpan ke localStorage
+  localStorage.setItem('target_omset_bulanan', nominalTarget);
+
+  alert('Target Omset Bulanan berhasil diperbarui menjadi Rp ' + nominalTarget.toLocaleString('id-ID'));
+
+  // Update Tampilan Progress Bar
+  updateProgressTargetOmset();
+}
+
+// 2. Hitung & Update Progress Bar Target Omset
+function updateProgressTargetOmset() {
+  const targetSaved = parseFloat(localStorage.getItem('target_omset_bulanan')) || 15000000;
+  
+  // Hitung total omset bulan ini dari cache transaksi
+  let omsetBulanIni = 0;
+  const now = new Date();
+  const txList = window.globalTxCache || [];
+
+  txList.forEach(t => {
+    const tgl = t.created_at ? new Date(t.created_at) : null;
+    if (tgl && tgl.getMonth() === now.getMonth() && tgl.getFullYear() === now.getFullYear()) {
+      if (t.status_laundry !== 'Batal') {
+        omsetBulanIni += (t.total_harga || 0);
+      }
+    }
+  });
+
+  // Hitung Persentase
+  let persen = Math.min(Math.round((omsetBulanIni / targetSaved) * 100), 100);
+
+  // Update elemen UI jika ada
+  const displayTarget = document.querySelectorAll('.target-omset-display, [id*="target-omset"]');
+  displayTarget.forEach(el => {
+    if (el.textContent.includes('Target:')) {
+      el.textContent = 'Target: Rp ' + targetSaved.toLocaleString('id-ID');
+    }
+  });
+
+  const displayTercapai = document.querySelectorAll('.tercapai-omset-display');
+  displayTercapai.forEach(el => {
+    el.textContent = 'Tercapai: Rp ' + omsetBulanIni.toLocaleString('id-ID');
+  });
+
+  const badgePersen = document.querySelector('.bg-emerald-500, .progress-percent-badge');
+  if (badgePersen) {
+    badgePersen.textContent = persen + '%';
+  }
+
+  const progressBar = document.querySelector('.progress-bar-fill, .bg-emerald-200');
+  if (progressBar) {
+    progressBar.style.width = persen + '%';
+  }
+}
+
+// Export ke Window Scope
+window.simpanTargetOmset = simpanTargetOmset;
+window.updateProgressTargetOmset = updateProgressTargetOmset;
+
+document.addEventListener('DOMContentLoaded', () => {
+  updateProgressTargetOmset();
+});
