@@ -383,26 +383,36 @@ function renderModalListDirectReport(type, title) {
 }
 
 // ==========================================
-// FUNGSI SIMPAN PENGELUARAN BARU
+// FUNGSI SIMPAN PENGELUARAN BARU (FIXED ID)
 // ==========================================
 async function simpanPengeluaranBaru(e) {
   if (e && e.preventDefault) e.preventDefault();
 
   console.log("-> Tombol Simpan Pengeluaran Diklik!");
 
-  // 1. Ambil inputan dari modal pengeluaran
-  const nominalInput = document.getElementById('new_nominal_pengeluaran') || document.getElementById('pengeluaranNominal');
-  const ketInput = document.getElementById('new_keterangan_pengeluaran') || document.getElementById('pengeluaranKeterangan');
+  // Cari input nominal & keterangan dari berbagai kemungkinan ID di HTML
+  const nominalInput = document.getElementById('new_nominal_pengeluaran') 
+                    || document.getElementById('pengeluaranNominal')
+                    || document.getElementById('nominal_pengeluaran')
+                    || document.getElementById('nominal')
+                    || document.querySelector('input[type="number"]');
+
+  const ketInput = document.getElementById('new_keterangan_pengeluaran') 
+                || document.getElementById('pengeluaranKeterangan')
+                || document.getElementById('keterangan_pengeluaran')
+                || document.getElementById('keterangan')
+                || document.querySelector('input[placeholder*="Keterangan"]')
+                || document.querySelector('input[placeholder*="keterangan"]');
 
   const nominal = nominalInput?.value?.trim();
   const keterangan = ketInput?.value?.trim() || 'Pengeluaran';
 
-  if (!nominal) {
-    alert('Harap masukkan nominal pengeluaran!');
+  if (!nominal || isNaN(nominal) || parseFloat(nominal) <= 0) {
+    alert('Harap masukkan nominal pengeluaran yang valid!');
     return;
   }
 
-  // 2. Cek koneksi Supabase
+  // Cek koneksi Supabase
   const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
 
   if (!client) {
@@ -414,7 +424,6 @@ async function simpanPengeluaranBaru(e) {
     const userRes = await client.auth.getUser();
     const userId = userRes?.data?.user?.id || null;
 
-    // 3. Susun payload ke tabel pengeluaran
     const payload = {
       nominal: parseFloat(nominal),
       keterangan: keterangan
@@ -424,7 +433,6 @@ async function simpanPengeluaranBaru(e) {
       payload.user_id = userId;
     }
 
-    // 4. Insert ke tabel 'pengeluaran' di Supabase
     const { data, error } = await client
       .from('pengeluaran')
       .insert([payload])
@@ -442,13 +450,13 @@ async function simpanPengeluaranBaru(e) {
     if (nominalInput) nominalInput.value = '';
     if (ketInput) ketInput.value = '';
 
-    // Sembunyikan modal/form pengeluaran jika ada
-    const modal = document.getElementById('modal-pengeluaran') || document.getElementById('form-pengeluaran-baru');
+    // Sembunyikan modal/form pengeluaran
+    const modal = document.getElementById('modal-pengeluaran') 
+               || document.getElementById('form-pengeluaran-baru');
     if (modal) {
       modal.classList.add('hidden');
     }
 
-    // Refresh data laporan jika fungsinya ada
     if (typeof fetchReport === 'function') {
       fetchReport();
     }
@@ -459,5 +467,4 @@ async function simpanPengeluaranBaru(e) {
   }
 }
 
-// WAJIB: Daftarkan ke window agar HTML (onclick) bisa memanggil fungsi ini
 window.simpanPengeluaranBaru = simpanPengeluaranBaru;
