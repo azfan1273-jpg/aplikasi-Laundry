@@ -1,14 +1,14 @@
 // ==========================================
-// DEKLARASI GLOBAL CACHE & FALLBACK MODAL
-// Taruh di baris paling atas file js/report.js
+// FILE: js/report.js (VERSI UTUH & FINAL)
 // ==========================================
+
+// 1. DEKLARASI GLOBAL CACHE & FALLBACK MODAL
 var globalTxCache = window.globalTxCache || [];
 var globalPengeluaranCache = window.globalPengeluaranCache || [];
 var allPelanggan = window.allPelanggan || [];
 var globalItemCache = window.globalItemCache || {};
 var currentReportSubTab = window.currentReportSubTab || 'transaksi';
 
-// Fallback jika fungsi openModalWithHistory belum ada di app.js/modal.js
 if (typeof window.openModalWithHistory !== 'function') {
   window.openModalWithHistory = function(modalId) {
     const modal = document.getElementById(modalId);
@@ -22,6 +22,7 @@ if (typeof window.openModalWithHistory !== 'function') {
   };
 }
 
+// 2. FUNGSI MUAT LAPORAN UTAMA
 async function loadReport() {
   if(!globalTxCache) return;
 
@@ -55,16 +56,24 @@ async function loadReport() {
     }
   });
 
-  document.getElementById('rpt-stat-omset').innerText = 'Rp ' + totalOmset.toLocaleString();
-  document.getElementById('rpt-stat-pendapatan').innerText = 'Rp ' + totalPendapatan.toLocaleString();
-  document.getElementById('rpt-stat-pengeluaran').innerText = 'Rp ' + totalPengeluaran.toLocaleString();
-  document.getElementById('rpt-stat-order').innerText = countOrder;
-  document.getElementById('rpt-stat-selesai').innerText = countSelesai;
-  document.getElementById('rpt-stat-batal').innerText = countBatal;
+  const elOmset = document.getElementById('rpt-stat-omset');
+  const elPendapatan = document.getElementById('rpt-stat-pendapatan');
+  const elPengeluaran = document.getElementById('rpt-stat-pengeluaran');
+  const elOrder = document.getElementById('rpt-stat-order');
+  const elSelesai = document.getElementById('rpt-stat-selesai');
+  const elBatal = document.getElementById('rpt-stat-batal');
+
+  if(elOmset) elOmset.innerText = 'Rp ' + totalOmset.toLocaleString();
+  if(elPendapatan) elPendapatan.innerText = 'Rp ' + totalPendapatan.toLocaleString();
+  if(elPengeluaran) elPengeluaran.innerText = 'Rp ' + totalPengeluaran.toLocaleString();
+  if(elOrder) elOrder.innerText = countOrder;
+  if(elSelesai) elSelesai.innerText = countSelesai;
+  if(elBatal) elBatal.innerText = countBatal;
 
   renderReportSubContent();
 }
 
+// 3. NAVIGASI SUB-TAB LAPORAN
 function switchReportSubTab(sub) {
   currentReportSubTab = sub;
   document.querySelectorAll('.tab-report-btn').forEach(btn => btn.classList.remove('active'));
@@ -122,6 +131,7 @@ function renderReportCard(title, icon, desc, type) {
   '</div>';
 }
 
+// 4. MEMBUKA & MERENDER SUB-REPORT (PEMUATAN SELALU TERISI)
 function openModalSubReport(title, type) {
   const container = document.getElementById('list-report-modal-container');
 
@@ -138,19 +148,31 @@ function openModalSubReport(title, type) {
   } else if (type === 'pelanggan_top') {
     renderModalTopCustomer();
   } else {
-    container.innerHTML = 
-      '<div class="p-4 bg-blue-50 rounded-2xl border border-blue-100 text-center space-y-2 py-8 my-4">' +
-        '<span class="text-3xl">📊</span>' +
-        '<h4 class="font-black text-blue-900 text-sm">' + title + '</h4>' +
-        '<p class="text-xs text-blue-600">Fitur laporan ini siap disesuaikan pada langkah berikutnya.</p>' +
-      '</div>';
+    if (container) {
+      container.innerHTML = 
+        '<div class="p-4 bg-blue-50 rounded-2xl border border-blue-100 text-center space-y-2 py-8 my-4">' +
+          '<span class="text-3xl">📊</span>' +
+          '<h4 class="font-black text-blue-900 text-sm">' + title + '</h4>' +
+          '<p class="text-xs text-blue-600">Fitur laporan ini siap disesuaikan.</p>' +
+        '</div>';
+    }
   }
 
-  openModalWithHistory('modal-detail-laporan');
+  // Buka Modal
+  const modal = document.getElementById('modal-detail-laporan');
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    modal.style.display = 'flex';
+  } else if (typeof openModalWithHistory === 'function') {
+    openModalWithHistory('modal-detail-laporan');
+  }
 }
 
+// 5. RENDER MODAL RINGKASAN PELANGGAN
 function renderModalRingkasanPelanggan() {
   const container = document.getElementById('list-report-modal-container');
+  if (!container) return;
   var totalPel = allPelanggan.length;
   var now = new Date();
   var sevenDaysAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
@@ -214,8 +236,10 @@ function renderModalRingkasanPelanggan() {
   }, 100);
 }
 
+// 6. RENDER MODAL DETAIL PELANGGAN
 function renderModalListDetailPelanggan() {
   const container = document.getElementById('list-report-modal-container');
+  if (!container) return;
   if (!allPelanggan.length) { container.innerHTML = '<p class="text-xs text-slate-400 text-center py-10">Belum ada data pelanggan.</p>'; return; }
 
   container.innerHTML = 
@@ -234,8 +258,10 @@ function renderModalListDetailPelanggan() {
     '</div>';
 }
 
+// 7. RENDER MODAL TOP CUSTOMER
 function renderModalTopCustomer() {
   const container = document.getElementById('list-report-modal-container');
+  if (!container) return;
   if (!allPelanggan.length) { container.innerHTML = '<p class="text-xs text-slate-400 text-center py-10">Belum ada data pelanggan.</p>'; return; }
 
   var topList = allPelanggan.map(p => {
@@ -274,6 +300,7 @@ function openProfilePelangganDetail(pelangganId) {
   if (!pel) return;
 
   const container = document.getElementById('list-profile-modal-container');
+  if (!container) return;
   var nm = pel.nama || pel.nama_pelanggan || 'Customer';
   var hp = pel.no_hp || '08-';
 
@@ -283,8 +310,8 @@ function openProfilePelangganDetail(pelangganId) {
 
   if (pelTxList.length > 0) {
     var sorted = [...pelTxList].sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
-    trxPertama = formatDateIndo(sorted[0].created_at);
-    trxTerakhir = formatDateIndo(sorted[sorted.length - 1].created_at);
+    trxPertama = typeof formatDateIndo === 'function' ? formatDateIndo(sorted[0].created_at) : sorted[0].created_at;
+    trxTerakhir = typeof formatDateIndo === 'function' ? formatDateIndo(sorted[sorted.length - 1].created_at) : sorted[sorted.length - 1].created_at;
 
     pelTxList.forEach(t => {
       var st = t.status_laundry || 'Diterima';
@@ -309,14 +336,18 @@ function openProfilePelangganDetail(pelangganId) {
     '<div class="space-y-4 py-2">' +
       '<div class="flex flex-col items-center justify-center text-center space-y-1 border-b pb-4 border-slate-100"><div class="w-16 h-16 bg-blue-100 border-2 border-dashed border-blue-400 rounded-full flex items-center justify-center text-2xl font-black text-blue-600 shadow-sm">' + nm.charAt(0).toUpperCase() + '</div><h3 class="font-extrabold text-slate-900 text-base mt-1">' + nm + '</h3><p class="text-xs font-bold text-slate-400">' + hp + '</p></div>' +
       '<div class="space-y-2"><h4 class="font-black text-slate-900 text-xs tracking-wide">Data Transaksi</h4><div class="space-y-2 text-xs font-medium text-slate-600 bg-slate-50 p-3 rounded-2xl border border-slate-100"><div class="flex justify-between"><span>Total Uang Transaksi</span><span class="font-bold text-slate-900">Rp ' + totalUang.toLocaleString() + '</span></div><div class="flex justify-between"><span>Tagihan Belum Lunas</span><span class="font-bold text-rose-600">Rp ' + tagihanBelumLunas.toLocaleString() + '</span></div><div class="flex justify-between"><span>Jumlah Transaksi</span><span class="font-bold text-slate-900">' + jumlahTrx + ' Transaksi</span></div><div class="flex justify-between"><span>Rincian Berat</span><span class="font-bold text-slate-900">' + totalBeratKg.toFixed(1) + ' Kg</span></div><div class="flex justify-between"><span>Transaksi Pertama</span><span class="font-bold text-slate-800">' + trxPertama + '</span></div><div class="flex justify-between"><span>Transaksi Terakhir</span><span class="font-bold text-slate-800">' + trxTerakhir + '</span></div></div></div>' +
-      '<div class="space-y-2 pt-2 border-t border-slate-100"><h4 class="font-black text-slate-900 text-xs tracking-wide">History Transaksi</h4>' + (!pelTxList.length ? '<p class="text-xs text-slate-400 text-center py-6">Belum ada riwayat transaksi.</p>' : '<div class="space-y-2">' + pelTxList.map(t => '<div onclick="openModalDetailOrderById(' + t.id + ')" class="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-start text-xs cursor-pointer active:scale-[0.98] transition"><div><p class="font-extrabold text-slate-800">TRX/' + String(t.id).padStart(8, '0') + '</p><p class="text-[10px] text-slate-400">' + formatDateIndo(t.created_at) + '</p></div><div class="text-right"><p class="font-extrabold ' + (t.status_pembayaran === 'Lunas' ? 'text-emerald-600' : 'text-rose-600') + '">' + (t.status_pembayaran||'Belum Bayar') + '</p><p class="text-[10px] text-slate-500 font-bold">Status : ' + (t.status_laundry||'Diterima').toUpperCase() + '</p></div></div>').join('') + '</div>') + '</div>' +
+      '<div class="space-y-2 pt-2 border-t border-slate-100"><h4 class="font-black text-slate-900 text-xs tracking-wide">History Transaksi</h4>' + (!pelTxList.length ? '<p class="text-xs text-slate-400 text-center py-6">Belum ada riwayat transaksi.</p>' : '<div class="space-y-2">' + pelTxList.map(t => '<div onclick="openModalDetailOrderById(' + t.id + ')" class="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-start text-xs cursor-pointer active:scale-[0.98] transition"><div><p class="font-extrabold text-slate-800">TRX/' + String(t.id).padStart(8, '0') + '</p><p class="text-[10px] text-slate-400">' + (typeof formatDateIndo === 'function' ? formatDateIndo(t.created_at) : t.created_at) + '</p></div><div class="text-right"><p class="font-extrabold ' + (t.status_pembayaran === 'Lunas' ? 'text-emerald-600' : 'text-rose-600') + '">' + (t.status_pembayaran||'Belum Bayar') + '</p><p class="text-[10px] text-slate-500 font-bold">Status : ' + (t.status_laundry||'Diterima').toUpperCase() + '</p></div></div>').join('') + '</div>') + '</div>' +
     '</div>';
 
-  openModalWithHistory('modal-profile-pelanggan');
+  if (typeof openModalWithHistory === 'function') {
+    openModalWithHistory('modal-profile-pelanggan');
+  }
 }
 
+// 8. RENDER MODAL FILTER TRANSAKSI & KEUANGAN
 function renderModalFilterableReport(type, title) {
   const container = document.getElementById('list-report-modal-container');
+  if (!container) return;
   container.innerHTML = 
     '<div class="space-y-4 py-2"><div class="text-center border-b pb-3 border-slate-100"><h3 class="font-extrabold text-slate-900 text-base">Laporan Transaksi</h3><div class="w-10 h-0.5 bg-rose-500 mx-auto mt-1 rounded-full"></div></div>' +
     '<div class="space-y-1 text-xs"><label class="font-medium text-slate-600 text-[11px]">waktu</label><select id="report_time_filter" onchange="applyReportFilter(\'' + type + '\')" class="w-full p-3 border border-slate-300 rounded-xl bg-white font-bold text-xs outline-none focus:border-blue-500"><option value="hari_ini">Hari Ini</option><option value="seminggu">Seminggu</option><option value="bulan_ini">Bulan Ini</option><option value="30_hari">30 Hari</option></select></div>' +
@@ -327,6 +358,7 @@ function renderModalFilterableReport(type, title) {
 
 function renderModalKeuanganReport(type, title) {
   const container = document.getElementById('list-report-modal-container');
+  if (!container) return;
   container.innerHTML = 
     '<div class="space-y-4 py-2"><div class="text-center border-b pb-3 border-slate-100"><h3 class="font-extrabold text-slate-900 text-base">' + title + '</h3><div class="w-10 h-0.5 bg-rose-500 mx-auto mt-1 rounded-full"></div></div>' +
     '<div class="flex items-center gap-2 text-xs"><div class="flex-1 space-y-1"><label class="font-medium text-slate-600 text-[11px]">waktu</label><select id="keuangan_time_filter" onchange="applyKeuanganFilter(\'' + type + '\')" class="w-full p-3 border border-slate-300 rounded-xl bg-white font-bold text-xs outline-none focus:border-blue-500"><option value="hari_ini">Hari Ini</option><option value="seminggu">Seminggu</option><option value="bulan_ini">Bulan Ini</option><option value="30_hari">30 Hari</option></select></div></div>' +
@@ -336,7 +368,9 @@ function renderModalKeuanganReport(type, title) {
 }
 
 function applyKeuanganFilter(type) {
-  const timeVal = document.getElementById('keuangan_time_filter').value;
+  const filterEl = document.getElementById('keuangan_time_filter');
+  if (!filterEl) return;
+  const timeVal = filterEl.value;
   var now = new Date();
   var isMatchDate = function(dateObj) {
     if (!dateObj) return false;
@@ -357,22 +391,28 @@ function applyKeuanganFilter(type) {
     totalNominal = dataList.reduce((acc, curr) => acc + (curr.nominal || 0), 0);
   }
 
-  document.getElementById('display_total_keuangan').innerText = 'Rp ' + totalNominal.toLocaleString();
+  const dispEl = document.getElementById('display_total_keuangan');
+  if (dispEl) dispEl.innerText = 'Rp ' + totalNominal.toLocaleString();
   const contentEl = document.getElementById('keuangan_data_content');
 
-  if (!dataList.length) {
-    contentEl.innerHTML = '<p class="text-xs text-slate-400 text-center py-6">Tidak ada data.</p>';
-  } else {
-    contentEl.innerHTML = dataList.map(item => {
-      var titleText = item.keterangan || (item.pelanggan ? item.pelanggan.nama : 'Transaksi #' + item.id);
-      var valText = item.nominal || item.total_harga || 0;
-      return '<div class="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-center text-xs mb-2"><div><p class="font-bold text-slate-800">' + titleText + '</p><p class="text-[10px] text-slate-400 mt-0.5">' + formatDateIndo(item.created_at) + '</p></div><p class="font-black text-emerald-600">Rp ' + valText.toLocaleString() + '</p></div>';
-    }).join('');
+  if (contentEl) {
+    if (!dataList.length) {
+      contentEl.innerHTML = '<p class="text-xs text-slate-400 text-center py-6">Tidak ada data.</p>';
+    } else {
+      contentEl.innerHTML = dataList.map(item => {
+        var titleText = item.keterangan || (item.pelanggan ? item.pelanggan.nama : 'Transaksi #' + item.id);
+        var valText = item.nominal || item.total_harga || 0;
+        var tglFormatted = typeof formatDateIndo === 'function' ? formatDateIndo(item.created_at) : item.created_at;
+        return '<div class="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-center text-xs mb-2"><div><p class="font-bold text-slate-800">' + titleText + '</p><p class="text-[10px] text-slate-400 mt-0.5">' + tglFormatted + '</p></div><p class="font-black text-emerald-600">Rp ' + valText.toLocaleString() + '</p></div>';
+      }).join('');
+    }
   }
 }
 
 function applyReportFilter(type) {
-  const timeVal = document.getElementById('report_time_filter').value;
+  const filterEl = document.getElementById('report_time_filter');
+  if (!filterEl) return;
+  const timeVal = filterEl.value;
   var now = new Date();
   var filtered = globalTxCache.filter(t => {
     var tgl = t.created_at ? new Date(t.created_at) : new Date();
@@ -382,20 +422,25 @@ function applyReportFilter(type) {
     return true;
   });
 
-  document.getElementById('count_trx_report').innerText = filtered.length + ' TRANSAKSI';
+  const countEl = document.getElementById('count_trx_report');
+  if (countEl) countEl.innerText = filtered.length + ' TRANSAKSI';
   const contentEl = document.getElementById('report_data_content');
 
-  if (!filtered.length) contentEl.innerHTML = '<p class="text-xs text-slate-400 text-center py-6">Tidak ada data.</p>';
-  else {
-    contentEl.innerHTML = filtered.map(t => {
-      var nmPel = t.pelanggan.nama || t.pelanggan.nama_pelanggan || 'Customer';
-      return '<div onclick="openModalDetailOrderById(' + t.id + ')" class="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-center text-xs mb-2 cursor-pointer active:scale-[0.99] transition"><div><p class="font-bold text-slate-800">' + nmPel + ' <span class="text-[9px] text-slate-400 font-normal">#' + t.id + '</span></p><p class="text-[10px] text-slate-400 mt-0.5">' + formatDateIndo(t.created_at) + '</p></div><div class="text-right"><p class="font-black text-blue-600">Rp ' + (t.total_harga?t.total_harga.toLocaleString():'0') + '</p></div></div>';
-    }).join('');
+  if (contentEl) {
+    if (!filtered.length) contentEl.innerHTML = '<p class="text-xs text-slate-400 text-center py-6">Tidak ada data.</p>';
+    else {
+      contentEl.innerHTML = filtered.map(t => {
+        var nmPel = (t.pelanggan && (t.pelanggan.nama || t.pelanggan.nama_pelanggan)) ? (t.pelanggan.nama || t.pelanggan.nama_pelanggan) : 'Customer';
+        var tglFormatted = typeof formatDateIndo === 'function' ? formatDateIndo(t.created_at) : t.created_at;
+        return '<div onclick="openModalDetailOrderById(' + t.id + ')" class="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-center text-xs mb-2 cursor-pointer active:scale-[0.99] transition"><div><p class="font-bold text-slate-800">' + nmPel + ' <span class="text-[9px] text-slate-400 font-normal">#' + t.id + '</span></p><p class="text-[10px] text-slate-400 mt-0.5">' + tglFormatted + '</p></div><div class="text-right"><p class="font-black text-blue-600">Rp ' + (t.total_harga?t.total_harga.toLocaleString():'0') + '</p></div></div>';
+      }).join('');
+    }
   }
 }
 
 function renderModalListDirectReport(type, title) {
   const container = document.getElementById('list-report-modal-container');
+  if (!container) return;
   var filtered = globalTxCache.filter(t => {
     var st = t.status_laundry || 'Diterima';
     if (type === 'transaksi_proses') return st !== 'Selesai' && st !== 'Batal';
@@ -403,184 +448,19 @@ function renderModalListDirectReport(type, title) {
     return true;
   });
 
-  container.innerHTML = '<div class="space-y-3 py-2 px-1"><div class="text-center border-b pb-3 border-slate-100"><h3 class="font-extrabold text-slate-900 text-base">' + title + '</h3></div><div class="space-y-2">' + filtered.map(t => '<div onclick="openModalDetailOrderById(' + t.id + ')" class="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-center text-xs"><div><p class="font-extrabold text-slate-900">' + (t.pelanggan.nama||'Customer') + '</p><p class="text-[10px] text-slate-400">' + formatDateIndo(t.created_at) + '</p></div><p class="font-black text-blue-600">Rp ' + (t.total_harga||0).toLocaleString() + '</p></div>').join('') + '</div></div>';
+  container.innerHTML = '<div class="space-y-3 py-2 px-1"><div class="text-center border-b pb-3 border-slate-100"><h3 class="font-extrabold text-slate-900 text-base">' + title + '</h3></div><div class="space-y-2">' + filtered.map(t => {
+    var nmPel = (t.pelanggan && t.pelanggan.nama) ? t.pelanggan.nama : 'Customer';
+    var tglFormatted = typeof formatDateIndo === 'function' ? formatDateIndo(t.created_at) : t.created_at;
+    return '<div onclick="openModalDetailOrderById(' + t.id + ')" class="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-center text-xs cursor-pointer active:scale-[0.98] transition"><div><p class="font-extrabold text-slate-900">' + nmPel + '</p><p class="text-[10px] text-slate-400">' + tglFormatted + '</p></div><p class="font-black text-blue-600">Rp ' + (t.total_harga||0).toLocaleString() + '</p></div>';
+  }).join('') + '</div></div>';
 }
 
-// ==========================================
-// FUNGSI SIMPAN PENGELUARAN BARU (FIXED PARSING)
-// ==========================================
-async function simpanPengeluaranBaru(e) {
-  if (e && e.preventDefault) e.preventDefault();
-
-  console.log("-> Tombol Simpan Pengeluaran Diklik!");
-
-  // Cari input nominal & keterangan dari berbagai ID yang mungkin ada di HTML
-  const nominalInput = document.getElementById('new_nominal_pengeluaran') 
-                    || document.getElementById('pengeluaranNominal')
-                    || document.getElementById('nominal_pengeluaran')
-                    || document.getElementById('nominal')
-                    || document.querySelector('#modal-pengeluaran input[type="number"]')
-                    || document.querySelector('#modal-pengeluaran input[type="text"]');
-
-  const ketInput = document.getElementById('new_keterangan_pengeluaran') 
-                || document.getElementById('pengeluaranKeterangan')
-                || document.getElementById('keterangan_pengeluaran')
-                || document.getElementById('keterangan')
-                || document.querySelector('#modal-pengeluaran input[placeholder*="ket"]')
-                || document.querySelector('#modal-pengeluaran input[placeholder*="Ket"]');
-
-  let rawValue = nominalInput?.value || '';
-
-  // Bersihkan inputan: Hapus Rp, titik, koma, dan spasi
-  let cleanValue = rawValue.toString().replace(/[^0-9]/g, '');
-  let nominal = parseFloat(cleanValue);
-
-  console.log("Nominal Asli:", rawValue, "-> Hasil Clean:", nominal);
-
-  if (isNaN(nominal) || nominal <= 0) {
-    alert('Harap masukkan nominal pengeluaran yang valid!');
-    return;
-  }
-
-  const ketValue = ketInput?.value?.trim() || 'Pengeluaran';
-
-  // Cek koneksi Supabase
-  const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
-
-  if (!client) {
-    alert('Koneksi Supabase belum siap! Silakan refresh halaman.');
-    return;
-  }
-
-  try {
-    const userRes = await client.auth.getUser();
-    const userId = userRes?.data?.user?.id || null;
-
-    const payload = {
-      nominal: nominal,
-      keterangan: ketValue
-    };
-
-    if (userId) {
-      payload.user_id = userId;
-    }
-
-    const { data, error } = await client
-      .from('pengeluaran')
-      .insert([payload])
-      .select();
-
-    if (error) {
-      console.error('Error insert pengeluaran:', error);
-      alert('Gagal menyimpan pengeluaran: ' + error.message);
-      return;
-    }
-
-    alert('Pengeluaran sebesar Rp ' + nominal.toLocaleString('id-ID') + ' berhasil disimpan!');
-
-    // Reset input
-    if (nominalInput) nominalInput.value = '';
-    if (ketInput) ketInput.value = '';
-
-    // Sembunyikan modal/form pengeluaran
-    const modal = document.getElementById('modal-pengeluaran') 
-               || document.getElementById('form-pengeluaran-baru');
-    if (modal) {
-      modal.classList.add('hidden');
-    }
-
-    if (typeof fetchReport === 'function') {
-      fetchReport();
-    }
-
-  } catch (err) {
-    console.error('Catch simpan pengeluaran:', err);
-    alert('Terjadi kesalahan sistem: ' + err.message);
-  }
-}
-
-window.simpanPengeluaranBaru = simpanPengeluaranBaru;
-
-// ==========================================
-// FUNGSI MEMUAT & MENAMPILKAN DAFAR PENGELUARAN
-// ==========================================
-async function fetchPengeluaran() {
-  const container = document.getElementById('list-pengeluaran-container') 
-                 || document.getElementById('report-pengeluaran-list')
-                 || document.getElementById('list-pengeluaran');
-
-  if (!container) {
-    console.log("Container list pengeluaran tidak ditemukan di HTML.");
-    return;
-  }
-
-  const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
-
-  if (!client) return;
-
-  try {
-    // Ambil data dari tabel pengeluaran
-    const { data, error } = await client
-      .from('pengeluaran')
-      .select('*')
-      .order('id', { ascending: false }); // Urutkan dari yang terbaru
-
-    if (error) {
-      console.error('Error fetch pengeluaran:', error);
-      return;
-    }
-
-    if (!data || data.length === 0) {
-      container.innerHTML = `
-        <div class="text-center py-4 text-slate-400 text-xs italic">
-          Belum ada catatan pengeluaran.
-        </div>`;
-      return;
-    }
-
-    // Render data ke tampilan HTML
-    container.innerHTML = data.map(item => {
-      const nominalFormatted = parseFloat(item.nominal || 0).toLocaleString('id-ID');
-      const ket = item.keterangan || 'Pengeluaran';
-      
-      return `
-        <div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100 mb-2">
-          <div>
-            <p class="font-bold text-slate-800 text-xs">${escapeHtml(ket)}</p>
-            <p class="text-[10px] text-slate-400">${item.created_at ? new Date(item.created_at).toLocaleDateString('id-ID') : '-'}</p>
-          </div>
-          <span class="font-extrabold text-red-500 text-xs">- Rp ${nominalFormatted}</span>
-        </div>
-      `;
-    }).join('');
-
-  } catch (err) {
-    console.error('Catch fetch pengeluaran:', err);
-  }
-}
-
-// Update fungsi simpanPengeluaranBaru agar memanggil fetchPengeluaran() di akhir
-// Pastikan di dalam fungsi simpanPengeluaranBaru kamu panggil:
-// await fetchPengeluaran();
-
-// Panggil saat halaman laporan dibuka
-window.fetchPengeluaran = fetchPengeluaran;
-
-document.addEventListener('DOMContentLoaded', () => {
-  fetchPengeluaran();
-});
-
-// ==========================================================
-// TAMBAHAN FUNGSI PENGELUARAN (TIDAK MERUSAK KODE ATAS)
-// ==========================================================
-
-// 1. FUNGSI SIMPAN PENGELUARAN BARU
+// 9. FUNGSI SIMPAN PENGELUARAN BARU
 async function simpanPengeluaranBaru(e) {
   if (e && e.preventDefault) e.preventDefault();
 
   console.log("-> Memproses Simpan Pengeluaran...");
 
-  // Cari input nominal & keterangan dari berbagai ID yang mungkin ada di HTML
   const nominalInput = document.getElementById('new_nominal_pengeluaran') 
                     || document.getElementById('pengeluaranNominal')
                     || document.getElementById('nominal_pengeluaran')
@@ -596,8 +476,6 @@ async function simpanPengeluaranBaru(e) {
                 || document.querySelector('#modal-pengeluaran input[placeholder*="Ket"]');
 
   let rawValue = nominalInput?.value || '';
-
-  // Bersihkan inputan: Hapus Rp, titik, koma, dan spasi
   let cleanValue = rawValue.toString().replace(/[^0-9]/g, '');
   let nominal = parseFloat(cleanValue);
 
@@ -607,8 +485,6 @@ async function simpanPengeluaranBaru(e) {
   }
 
   const ketValue = ketInput?.value?.trim() || 'Pengeluaran Toko';
-
-  // Cek koneksi Supabase
   const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
 
   if (!client) {
@@ -642,21 +518,13 @@ async function simpanPengeluaranBaru(e) {
 
     alert('Pengeluaran sebesar Rp ' + nominal.toLocaleString('id-ID') + ' berhasil disimpan!');
 
-    // Reset input
     if (nominalInput) nominalInput.value = '';
     if (ketInput) ketInput.value = '';
 
-    // Sembunyikan modal pengeluaran
-    if (typeof closeModalWithHistory === 'function') {
-      closeModalWithHistory('modal-pengeluaran');
-    } else {
-      const modal = document.getElementById('modal-pengeluaran') || document.getElementById('form-pengeluaran-baru');
-      if (modal) modal.classList.add('hidden');
-    }
-
-    // Reload Laporan
-    if (typeof loadReport === 'function') {
-      loadReport();
+    paksaTutupModalLaporan();
+    
+    if (typeof fetchPengeluaran === 'function') {
+      fetchPengeluaran();
     }
 
   } catch (err) {
@@ -665,94 +533,58 @@ async function simpanPengeluaranBaru(e) {
   }
 }
 
-// 2. DAFTARKAN FUNGSI KE WINDOW GLOBAL
-window.simpanPengeluaranBaru = simpanPengeluaranBaru;
-window.loadReport = loadReport;
-window.switchReportSubTab = switchReportSubTab;
-window.openModalSubReport = openModalSubReport;
+// 10. TARIK PENGELUARAN DARI SUPABASE
+async function fetchPengeluaran() {
+  const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
 
-// ==========================================
-// FUNGSI PENUTUP MODAL & TOMBOL KEMBALI
-// ==========================================
+  if (!client) return;
 
-// 1. Fungsi Umum Menutup Modal Detail Laporan
-function closeModalReport(modalId) {
-  // Ambil ID modal yang spesifik atau fallback ke modal detail utama
-  const idToClose = modalId || 'modal-detail-laporan';
-  const modal = document.getElementById(idToClose);
+  try {
+    const { data, error } = await client
+      .from('pengeluaran')
+      .select('*')
+      .order('id', { ascending: false });
 
-  if (modal) {
-    modal.classList.add('hidden');
-    modal.classList.remove('flex');
-    modal.style.display = 'none';
-  } else {
-    // Tutup modal apapun yang sedang terbuka
-    document.querySelectorAll('.modal, [id*="modal"]').forEach(m => {
-      if (!m.classList.contains('hidden')) {
-        m.classList.add('hidden');
-        m.style.display = 'none';
-      }
-    });
+    if (error) {
+      console.error('Error fetch pengeluaran:', error);
+      return;
+    }
+
+    window.globalPengeluaranCache = data || [];
+    
+    if (typeof loadReport === 'function') {
+      loadReport();
+    }
+
+  } catch (err) {
+    console.error('Catch fetch pengeluaran:', err);
   }
 }
 
-// 2. Override & Fallback closeModalWithHistory agar Tombol X & Panah Kembali Berfungsi
-if (typeof window.closeModalWithHistory !== 'function') {
-  window.closeModalWithHistory = function(modalId) {
-    closeModalReport(modalId);
-  };
-} else {
-  // Simpan fungsi lama
-  const originalCloseModal = window.closeModalWithHistory;
-  window.closeModalWithHistory = function(modalId) {
-    try {
-      originalCloseModal(modalId);
-    } catch (err) {
-      console.warn("Fallback trigger closeModalReport");
-    }
-    closeModalReport(modalId);
-  };
-}
-
-// 3. Pasang Event Listener Klik Area Luar Modal (Backdrop Close)
-document.addEventListener('click', function(e) {
-  const modalContainer = document.getElementById('modal-detail-laporan');
-  if (modalContainer && !modalContainer.classList.contains('hidden')) {
-    // Jika yang diklik adalah background luar (bukan isi card modal-nya)
-    if (e.target === modalContainer) {
-      closeModalReport('modal-detail-laporan');
-    }
-  }
-});
-
-// Register ke scope global window
-window.closeModalReport = closeModalReport;
-
-// ==========================================
-// HANDLE PENUTUP MODAL DARI JAVASCRIPT
-// ==========================================
-
-// 1. Buat fungsi penutup universal
+// 11. SISTEM PENUTUP MODAL & NAVIGASI KEMBALI
 function paksaTutupModalLaporan() {
-  const modal = document.getElementById('modal-detail-laporan') 
-             || document.getElementById('modal-pengeluaran');
+  const modalDetail = document.getElementById('modal-detail-laporan');
+  const modalPengeluaran = document.getElementById('modal-pengeluaran');
 
-  if (modal) {
-    modal.classList.add('hidden');
-    modal.classList.remove('flex');
-    modal.style.display = 'none';
+  if (modalDetail) {
+    modalDetail.classList.add('hidden');
+    modalDetail.classList.remove('flex');
+    modalDetail.style.display = 'none';
   }
 
-  // Backup: Sembunyikan semua modal yang sedang terbuka
-  document.querySelectorAll('[id*="modal"]').forEach(m => {
-    if (m.id.includes('report') || m.id.includes('laporan') || m.id.includes('detail')) {
-      m.classList.add('hidden');
-      m.style.display = 'none';
-    }
+  if (modalPengeluaran) {
+    modalPengeluaran.classList.add('hidden');
+    modalPengeluaran.classList.remove('flex');
+    modalPengeluaran.style.display = 'none';
+  }
+
+  document.querySelectorAll('[id*="modal-report"]').forEach(m => {
+    m.classList.add('hidden');
+    m.style.display = 'none';
   });
 }
 
-// 2. Hubungkan fungsi penutup asli ke fungsi penutup universal
+// Override Handler Bawaan HTML
 window.closeModalWithHistory = function(modalId) {
   paksaTutupModalLaporan();
 };
@@ -761,22 +593,32 @@ window.closeModal = function(modalId) {
   paksaTutupModalLaporan();
 };
 
-// 3. Tangkap klik pada tombol dengan ikon Silang (X) atau Panah (<-) di dalam modal
+// Event Listener Klik Tombol (←, ✕, Backdrop Luar Modal)
 document.addEventListener('click', function(e) {
-  // Cek apakah elemen yang diklik adalah tombol close / ikon kembali
-  const target = e.target;
-  
-  if (target.closest('[onclick*="closeModal"]') || 
-      target.closest('.close-modal') || 
-      target.textContent.trim() === '✕' || 
-      target.textContent.trim() === '←' ||
-      target.textContent.trim() === 'X') {
+  const btn = e.target.closest('button') || e.target;
+  const txt = (btn.textContent || '').trim();
+
+  if (txt === '←' || txt === '✕' || txt === 'X' || btn.classList.contains('close-modal')) {
     paksaTutupModalLaporan();
   }
 
-  // Cek jika area latar luar modal diklik (Backdrop Close)
   const modalDetail = document.getElementById('modal-detail-laporan');
   if (modalDetail && e.target === modalDetail) {
     paksaTutupModalLaporan();
   }
+});
+
+// 12. EXPORT KE WINDOW SCOPE GLOBAL
+window.loadReport = loadReport;
+window.switchReportSubTab = switchReportSubTab;
+window.openModalSubReport = openModalSubReport;
+window.simpanPengeluaranBaru = simpanPengeluaranBaru;
+window.fetchPengeluaran = fetchPengeluaran;
+window.paksaTutupModalLaporan = paksaTutupModalLaporan;
+window.applyKeuanganFilter = applyKeuanganFilter;
+window.applyReportFilter = applyReportFilter;
+window.openProfilePelangganDetail = openProfilePelangganDetail;
+
+document.addEventListener('DOMContentLoaded', () => {
+  fetchPengeluaran();
 });
