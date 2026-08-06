@@ -149,7 +149,7 @@ function renderKelolaLayananList() {
 // ==========================================
 // 2. Render Daftar Layanan di Gambar 2 (Modal Pilih Layanan POS)
 async function renderLayananPOS(keyword = '') {
-  console.log("-> Memuat daftar layanan di Modal Pilih Layanan dengan Drag & Drop...");
+  console.log("-> Memuat daftar layanan di Modal Pilih Layanan...");
 
   let container = document.getElementById('list-layanan-container')
                || document.querySelector('#modal-layanan .scroll-area')
@@ -181,7 +181,7 @@ async function renderLayananPOS(keyword = '') {
 
     let rawData = listLayanan || [];
 
-    // --- LOGIKA URUTAN DRAG & DROP SAVED ORDER ---
+    // --- BACA URUTAN YANG TERSIMPAN ---
     const savedOrderJson = localStorage.getItem('layanan_custom_order');
     if (savedOrderJson) {
       try {
@@ -197,7 +197,6 @@ async function renderLayananPOS(keyword = '') {
         console.warn("Gagal parse saved order layout:", e);
       }
     } else {
-      // Urutan default jika belum pernah diset: ID terbesar (terbaru) diatas
       rawData.sort((a, b) => b.id - a.id);
     }
 
@@ -215,11 +214,20 @@ async function renderLayananPOS(keyword = '') {
       return;
     }
 
-    // Render HTML dengan atribut draggable="true" & Handle Geser (☰)
-    container.innerHTML = filtered.map(item => `
-      <div data-id="${item.id}" draggable="true" class="drag-item p-3 bg-white rounded-2xl border border-slate-200 text-xs mb-2 flex justify-between items-center shadow-sm hover:border-blue-400 cursor-grab active:cursor-grabbing transition-all">
-        <div class="flex items-center gap-2.5">
-          <span class="text-slate-300 hover:text-slate-500 cursor-grab font-black text-sm select-none" title="Geser untuk ubah posisi">☰</span>
+    // Render item lengkap dengan tombol panah ▲ ▼
+    container.innerHTML = filtered.map((item, idx) => `
+      <div data-id="${item.id}" class="layanan-item p-3 bg-white rounded-2xl border border-slate-200 text-xs mb-2 flex justify-between items-center shadow-sm hover:border-blue-400 transition-all">
+        <div class="flex items-center gap-2">
+          <!-- TOMBOL REORDER UNTUK KASIR -->
+          <div class="flex flex-col gap-0.5">
+            <button type="button" onclick="geserPosisiLayanan(${idx}, 'up')" class="w-6 h-5 bg-slate-100 hover:bg-blue-100 text-slate-600 hover:text-blue-600 rounded flex items-center justify-center font-bold text-[10px] active:scale-90 transition" title="Naikkan Ke Atas">
+              ▲
+            </button>
+            <button type="button" onclick="geserPosisiLayanan(${idx}, 'down')" class="w-6 h-5 bg-slate-100 hover:bg-blue-100 text-slate-600 hover:text-blue-600 rounded flex items-center justify-center font-bold text-[10px] active:scale-90 transition" title="Turunkan Ke Bawah">
+              ▼
+            </button>
+          </div>
+
           <div>
             <p class="font-extrabold text-slate-800 text-xs">${item.nama_layanan}</p>
             <p class="text-[10px] text-slate-500 mt-0.5">
@@ -227,6 +235,7 @@ async function renderLayananPOS(keyword = '') {
             </p>
           </div>
         </div>
+
         <div class="flex items-center gap-1.5">
           <button type="button" onclick="pilihLayananKeKeranjang(${item.id}, '${item.nama_layanan}', ${item.harga}, '${item.satuan}')" class="bg-blue-600 text-white font-bold text-[11px] px-3 py-1.5 rounded-xl shadow-sm hover:bg-blue-700 active:scale-95 transition">
             + Pilih
@@ -238,14 +247,37 @@ async function renderLayananPOS(keyword = '') {
       </div>
     `).join('');
 
-    // Inisialisasi Event Listener Drag and Drop
-    initDragAndDropLayanan(container);
-
   } catch (err) {
     console.error('Error renderLayananPOS:', err);
     if (container) container.innerHTML = '<p class="text-xs text-rose-500 text-center py-4">Gagal memuat daftar layanan.</p>';
   }
 }
+
+// FUNGSI GESER URUTAN APLIKATIF (NAIK / TURUN)
+function geserPosisiLayanan(index, direction) {
+  if (!window.allLayananCache || window.allLayananCache.length === 0) return;
+
+  let list = window.allLayananCache;
+  let targetIndex = direction === 'up' ? index - 1 : index + 1;
+
+  // Batas atas dan bawah
+  if (targetIndex < 0 || targetIndex >= list.length) return;
+
+  // Tukar posisi item dalam Array
+  let temp = list[index];
+  list[index] = list[targetIndex];
+  list[targetIndex] = temp;
+
+  // Simpan urutan ID baru ke LocalStorage
+  const newOrderIds = list.map(item => item.id);
+  localStorage.setItem('layanan_custom_order', JSON.stringify(newOrderIds));
+
+  // Render Ulang Seketika
+  renderLayananPOS();
+}
+
+// Register Global Window
+window.geserPosisiLayanan = geserPosisiLayanan;
 
 // FUNGSI INIT DRAG & DROP
 function initDragAndDropLayanan(container) {
