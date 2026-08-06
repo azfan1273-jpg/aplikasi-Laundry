@@ -21,8 +21,9 @@ function openModalJendelaAkunWithChart() {
   if (typeof loadPermissionSwitches === 'function') loadPermissionSwitches();
 }
 
-// --- GEMBOK AKSES KELOLA LAYANAN ---
-function openModalKelolaLayanan() {
+// --- OPEN MODAL KELOLA LAYANAN ---
+async function openModalKelolaLayanan() {
+  // 1. Cek Gembok Izin
   if (typeof getTokoPermissions === 'function' && typeof currentUserProfile !== 'undefined' && currentUserProfile) {
     const perms = getTokoPermissions();
     if (currentUserProfile.role !== 'owner' && !perms.is_manager && !perms.akses_layanan) {
@@ -31,17 +32,27 @@ function openModalKelolaLayanan() {
     }
   }
 
+  // 2. Buka Modal Terlebih Dahulu agar Kasir Melihat Respons Langsung
   const modal = document.getElementById('modal-kelola-layanan');
   if (modal) modal.classList.remove('hidden');
-  if (typeof renderKelolaLayananList === 'function') renderKelolaLayananList();
+
+  // 3. Render List Layanan secara Aman
+  if (typeof renderKelolaLayananList === 'function') {
+    try {
+      await renderKelolaLayananList();
+    } catch (e) {
+      console.error("Error render kelola layanan:", e);
+    }
+  }
 }
 
 function closeModalKelolaLayanan() {
   closeModalWithHistory('modal-kelola-layanan');
 }
 
-// --- GEMBOK AKSES PENGELUARAN ---
+// --- OPEN MODAL PENGELUARAN ---
 function openModalPengeluaran() {
+  // 1. Cek Gembok Izin
   if (typeof getTokoPermissions === 'function' && typeof currentUserProfile !== 'undefined' && currentUserProfile) {
     const perms = getTokoPermissions();
     if (currentUserProfile.role !== 'owner' && !perms.is_manager && !perms.akses_pengeluaran) {
@@ -51,8 +62,10 @@ function openModalPengeluaran() {
   }
 
   const inputNominal = document.getElementById('input_nominal_pengeluaran');
+  const inputKet = document.getElementById('input_keterangan_pengeluaran');
   if (inputNominal) inputNominal.value = '';
-  
+  if (inputKet) inputKet.value = '';
+
   const modal = document.getElementById('modal-pengeluaran');
   if (modal) modal.classList.remove('hidden');
 }
@@ -68,8 +81,10 @@ function openModalStatistik(tipe) {
   if (modal) modal.classList.remove('hidden');
 }
 
+// --- OPEN MODAL POS / TRANSAKSI BARU ---
 function openModalPOS() {
   if (typeof resetPOSState === 'function') resetPOSState();
+  
   const modal = document.getElementById('modal-pos');
   if (modal) modal.classList.remove('hidden');
 }

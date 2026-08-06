@@ -290,3 +290,125 @@ async function simpanProfilDanPassOwner() {
     }
   }
 }
+// ==========================================
+// KELOLA LAYANAN & HARGA (DASHBOARD/MODAL)
+// ==========================================
+
+async function renderKelolaLayananList() {
+  const container = document.getElementById('list-kelola-layanan-container');
+  if (!container) return;
+
+  if (!currentToko || typeof supabaseClient === 'undefined' || !supabaseClient) {
+    container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Data toko belum siap...</p>';
+    return;
+  }
+
+  container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Memuat daftar layanan...</p>';
+
+  try {
+    const { data: layananList, error } = await supabaseClient
+      .from('layanan')
+      .select('*')
+      .eq('toko_id', currentToko.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error("Error fetch layanan:", error);
+      container.innerHTML = '<p class="text-xs text-rose-500 text-center py-4">Gagal memuat layanan.</p>';
+      return;
+    }
+
+    if (!layananList || layananList.length === 0) {
+      container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Belum ada layanan terdaftar.</p>';
+      return;
+    }
+
+    container.innerHTML = layananList.map(l => `
+      <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200 flex justify-between items-center text-xs">
+        <div>
+          <p class="font-extrabold text-slate-800">${l.nama_layanan || 'Layanan'}</p>
+          <p class="text-[10px] text-slate-400">Rp ${Number(l.harga || 0).toLocaleString()} / ${l.satuan || 'Kg'} (${l.estimasi_hari || 1} Hari)</p>
+        </div>
+        <button onclick="hapusLayanan('${l.id}')" class="text-rose-500 font-bold text-xs hover:underline bg-rose-50 px-2 py-1 rounded-lg border border-rose-100">Hapus</button>
+      </div>
+    `).join('');
+
+  } catch (err) {
+    console.error("Error renderKelolaLayananList:", err);
+    container.innerHTML = '<p class="text-xs text-rose-500 text-center py-4">Terjadi kesalahan sistem.</p>';
+  }
+}
+
+async function tambahLayananBaru() {
+  const namaInput = document.getElementById('new_nama_layanan');
+  const hargaInput = document.getElementById('new_harga_layanan');
+  const satuanInput = document.getElementById('new_satuan_layanan');
+  const estimasiInput = document.getElementById('new_estimasi_hari');
+
+  const nama = namaInput ? namaInput.value.trim() : '';
+  const harga = hargaInput ? parseFloat(hargaInput.value) : 0;
+  const satuan = satuanInput ? satuanInput.value : 'Kg';
+  const estimasi = estimasiInput ? parseFloat(estimasiInput.value) : 1;
+
+  if (!nama || isNaN(harga) || harga <= 0) {
+    if (typeof showToast === 'function') showToast("Isi nama dan harga layanan dengan benar!", "error");
+    return;
+  }
+
+  if (!currentToko || !supabaseClient) {
+    if (typeof showToast === 'function') showToast("Data toko tidak ditemukan!", "error");
+    return;
+  }
+
+  try {
+    const { error } = await supabaseClient
+      .from('layanan')
+      .insert([{
+        toko_id: currentToko.id,
+        nama_layanan: nama,
+        harga: harga,
+        satuan: satuan,
+        estimasi_hari: estimasi
+      }]);
+
+    if (error) {
+      if (typeof showToast === 'function') showToast("Gagal menambah layanan: " + error.message, "error");
+      return;
+    }
+
+    if (typeof showToast === 'function') showToast("Layanan baru berhasil ditambahkan! 🎉", "success");
+    
+    if (namaInput) namaInput.value = '';
+    if (hargaInput) hargaInput.value = '';
+    if (estimasiInput) estimasiInput.value = '';
+
+    await renderKelolaLayananList();
+
+  } catch (err) {
+    if (typeof showToast === 'function') showToast("Terjadi kesalahan: " + err.message, "error");
+  }
+}
+
+async function hapusLayanan(idLayanan) {
+  if (!confirm("Apakah Anda yakin ingin menghapus layanan ini?")) return;
+
+  if (!supabaseClient) return;
+
+  try {
+    const { error } = await supabaseClient
+      .from('layanan')
+      .delete()
+      .eq('id', idLayanan);
+
+    if (error) {
+      if (typeof showToast === 'function') showToast("Gagal menghapus layanan: " + error.message, "error");
+      return;
+    }
+
+    if (typeof showToast === 'function') showToast("Layanan berhasil dihapus.", "info");
+    await renderKelolaLayananList();
+
+  } catch (err) {
+    if (typeof showToast === 'function') showToast("Terjadi kesalahan: " + err.message, "error");
+  }
+}
