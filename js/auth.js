@@ -300,28 +300,36 @@ function getTokoPermissions() {
 }
 
 // ==========================================
-// TERAPKAN IZIN AKSES UI
+// TERAPKAN IZIN AKSES UI (VERSI LENGKAP & AMAN)
 // ==========================================
 function applyUserPermissionsUI() {
   if (!currentUserProfile) return;
 
   const isOwner = currentUserProfile.role === 'owner';
+
+  // 1. Update Badge Role di Topbar & Pengaturan
   const roleBadge = document.getElementById('topbar-role-badge');
   const settingRoleBadge = document.getElementById('setting-role-badge');
-
   if (roleBadge) roleBadge.innerText = isOwner ? 'Owner' : 'Kasir';
   if (settingRoleBadge) settingRoleBadge.innerText = isOwner ? 'Owner' : 'Kasir';
 
+  // 2. Ambil Izin Akses Toko
   const perms = getTokoPermissions();
 
+  // 3. Tangkap Elemen-Elemen Menu & Tombol
   const ownerSectionLayanan = document.getElementById('setting-owner-layanan');
   const ownerSectionKasir = document.getElementById('setting-owner-kasir');
+  const menuKelolaAkun = document.getElementById('setting-owner-kasir') || document.getElementById('menu-kelola-akun');
   const fabPengeluaran = document.getElementById('fab-btn-pengeluaran');
   const navReport = document.getElementById('nav-report');
 
   if (!isOwner) {
+    // --- MODE KASIR ---
+    // Sembunyikan Kelola Akun / Tambah Kasir
     if (ownerSectionKasir) ownerSectionKasir.style.display = 'none';
+    if (menuKelolaAkun) menuKelolaAkun.style.display = 'none';
 
+    // Cek Izin Spesifik Toko
     const canLaporan = perms.is_manager || perms.akses_laporan;
     const canLayanan = perms.is_manager || perms.akses_layanan;
     const canPengeluaran = perms.is_manager || perms.akses_pengeluaran;
@@ -329,9 +337,13 @@ function applyUserPermissionsUI() {
     if (ownerSectionLayanan) ownerSectionLayanan.style.display = canLayanan ? 'flex' : 'none';
     if (fabPengeluaran) fabPengeluaran.style.display = canPengeluaran ? 'flex' : 'none';
     if (navReport) navReport.style.display = canLaporan ? 'flex' : 'none';
+
   } else {
+    // --- MODE OWNER ---
+    // Tampilkan Semua Menu
     if (ownerSectionLayanan) ownerSectionLayanan.style.display = 'flex';
     if (ownerSectionKasir) ownerSectionKasir.style.display = 'flex';
+    if (menuKelolaAkun) menuKelolaAkun.style.display = 'flex';
     if (fabPengeluaran) fabPengeluaran.style.display = 'flex';
     if (navReport) navReport.style.display = 'flex';
   }
