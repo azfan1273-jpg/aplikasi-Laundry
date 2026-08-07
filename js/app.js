@@ -285,11 +285,21 @@ function handleTambahLayanan(e) {
     modalLayanan.classList.add('flex');
   }
   
-  if (typeof openModalPilihLayanan === 'function') {
-    try { openModalPilihLayanan(); } catch (err) { console.log(err); }
+  // Panggil seluruh kemungkinan fungsi render/load layanan
+  if (typeof window.openModalPilihLayanan === 'function') {
+    try { window.openModalPilihLayanan(); } catch (err) { console.log(err); }
   }
-  if (typeof renderLayananPOS === 'function') {
-    try { renderLayananPOS(); } catch (err) { console.log(err); }
+  if (typeof window.bukaModalPilihLayanan === 'function') {
+    try { window.bukaModalPilihLayanan(); } catch (err) { console.log(err); }
+  }
+  if (typeof window.renderLayananPOS === 'function') {
+    try { window.renderLayananPOS(); } catch (err) { console.log(err); }
+  }
+  if (typeof window.renderLayananList === 'function') {
+    try { window.renderLayananList(); } catch (err) { console.log(err); }
+  }
+  if (typeof window.renderDaftarLayanan === 'function') {
+    try { window.renderDaftarLayanan(); } catch (err) { console.log(err); }
   }
 }
 
