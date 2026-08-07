@@ -752,3 +752,61 @@ window.updateQtyManual = updateQtyManual;
 window.ubahQtyKeranjang = ubahQtyKeranjang;
 window.hapusItemKeranjang = hapusItemKeranjang;
 window.hitungsDanUpdateTotalPrice = hitungsDanUpdateTotalPrice;
+
+// ==========================================
+// FIX PENUH: KALKULASI & UPDATE TOTAL PRICE REALTIME
+// ==========================================
+function hitungsDanUpdateTotalPrice() {
+  const items = window.keranjangPOS || [];
+  let total = 0;
+
+  // 1. Hitung total dari seluruh item di keranjang
+  items.forEach(item => {
+    let q = item.qty;
+    if (typeof q === 'string') q = parseFloat(q.replace(',', '.')) || 0;
+    let h = parseFloat(item.harga) || 0;
+    total += (q * h);
+  });
+
+  window.totalHargaPOS = Math.round(total);
+  const formattedTotal = 'Rp ' + window.totalHargaPOS.toLocaleString('id-ID');
+
+  // 2. Tembak elemen berdasarkan ID langsung jika ada
+  ['total-price-pos', 'total_harga', 'totalPrice', 'grand-total', 'total-bayar'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = formattedTotal;
+  });
+
+  // 3. Pindai DOM secara presisi mencari teks TOTAL PRICE
+  const allElements = document.querySelectorAll('#modal-order *, .modal-order *, div, p, span, h3, h4');
+  allElements.forEach(el => {
+    if (el.children.length === 0 && (el.textContent || '').trim().toUpperCase() === 'TOTAL PRICE') {
+      const parent = el.parentElement;
+      if (parent) {
+        const priceVal = parent.querySelector('p:not(:first-child), div:not(:first-child), span:not(:first-child), .text-lg, .font-black, .font-bold, h3, h4') 
+                      || el.nextElementSibling;
+        
+        if (priceVal && priceVal !== el) {
+          priceVal.textContent = formattedTotal;
+        }
+      }
+    }
+  });
+
+  // 4. Fallback: Cari elemen berawalan "Rp 0" di bawah label TOTAL PRICE
+  if (total > 0) {
+    const rpElements = document.querySelectorAll('p, div, span, h3, h4');
+    rpElements.forEach(el => {
+      if (el.children.length === 0 && (el.textContent || '').trim().startsWith('Rp 0')) {
+        const textUpper = (el.parentElement?.textContent || '').toUpperCase();
+        if (textUpper.includes('TOTAL') || textUpper.includes('PRICE')) {
+          el.textContent = formattedTotal;
+        }
+      }
+    });
+  }
+}
+
+// Pastikan terdaftar di scope window
+window.hitungsDanUpdateTotalPrice = hitungsDanUpdateTotalPrice;
+window.updateTotalPrice = hitungsDanUpdateTotalPrice;
