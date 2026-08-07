@@ -452,3 +452,56 @@ function toggleShowPassword() {
 
 // daftarkan fungsi ke scope global agar bisa dipanggil dari HTML
 window.toggleShowPassword = toggleShowPassword;
+
+// ==========================================
+// REALTIME LISTENER IZIN AKSES TOKO (KASIR)
+// ==========================================
+function initRealtimeTokoPermissions() {
+  if (typeof supabaseClient === 'undefined' || !supabaseClient) return;
+
+  const tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) 
+               ? currentToko.id 
+               : localStorage.getItem('toko_id');
+
+  if (!tokoId) return;
+
+  // Dengarkan perubahan data tabel 'toko' secara realtime
+  supabaseClient
+    .channel('realtime_toko_permissions')
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'toko',
+        filter: `id=eq.${tokoId}`
+      },
+      (payload) => {
+        console.log('⚡ PERUBAHAN IZIN AKSES REALTIME DITERIMA:', payload.new);
+        
+        // Update data toko aktif secara instan
+        if (payload.new) {
+          currentToko = payload.new;
+          
+          // Terapkan perubahan UI akses secara langsung
+          if (typeof applyUserPermissionsUI === 'function') {
+            applyUserPermissionsUI();
+          }
+
+          if (typeof showToast === 'function') {
+            showToast('Izin akses toko telah diperbarui oleh Owner! ⚡', 'info');
+          }
+        }
+      }
+    )
+    .subscribe();
+}
+
+// Jalankan listener saat pengguna selesai memuat profil
+const originalLoadUserProfile = loadUserProfile;
+if (typeof originalLoadUserProfile === 'function') {
+  loadUserProfile = async function(authUser) {
+    await originalLoadUserProfile(authUser);
+    initRealtimeTokoPermissions(); // Pasang pemicu realtime
+  };
+}
