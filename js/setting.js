@@ -729,53 +729,48 @@ document.addEventListener('click', function(e) {
 }, true);
 
 // ==========================================
-// 19. AUTOMATIC REALTIME TOTAL PRICE OBSERVER
+// FIX HITUNG AUTOMATIC TOTAL PRICE POS
 // ==========================================
-
 function paksaHitungTotalPriceDOM() {
   let total = 0;
 
-  const container = getCartContainer();
-  if (container) {
-    const allSubtotals = container.querySelectorAll('.subtotal-item-val, .font-black.text-slate-800');
-    allSubtotals.forEach(el => {
-      const txt = el.textContent || '';
-      if (txt.includes('Rp')) {
-        const num = parseFloat(txt.replace(/[^0-9]/g, '')) || 0;
-        if (num > 0) total += num;
-      }
-    });
-  }
-
-  if (total === 0 && window.keranjangPOS && window.keranjangPOS.length > 0) {
+  // 1. Prioritas Utama: Hitung langsung dari Array Keranjang POS
+  if (Array.isArray(window.keranjangPOS) && window.keranjangPOS.length > 0) {
     window.keranjangPOS.forEach(item => {
       let q = parseFloat(String(item.qty).replace(',', '.')) || 0;
-      let h = parseFloat(String(item.harga).replace(/[^0-9.]/g, '')) || 0;
+      let h = typeof item.harga === 'number' ? item.harga : (parseFloat(String(item.harga).replace(/[^0-9.]/g, '')) || 0);
       total += (q * h);
     });
+  } 
+  // 2. Fallback: Jika array kosong, hitung dari teks elemen subtotal di layar
+  else {
+    const container = getCartContainer();
+    if (container) {
+      const allSubtotals = container.querySelectorAll('.subtotal-item-val, p, span');
+      allSubtotals.forEach(el => {
+        const txt = (el.textContent || '').trim();
+        // Cari elemen yang ada teks "Rp" dan bukan pembungkus besar
+        if (txt.startsWith('Rp ') && el.children.length === 0) {
+          const num = parseFloat(txt.replace(/[^0-9]/g, '')) || 0;
+          if (num > 0) total += num;
+        }
+      });
+    }
   }
 
   window.totalHargaPOS = Math.round(total);
   const formattedTotal = 'Rp ' + window.totalHargaPOS.toLocaleString('id-ID');
 
+  // Update elemen Total Price berdasarkan ID spesifik modal POS di index.html (#totalPricePOS)
+  const mainPosTotalPrice = document.getElementById('totalPricePOS');
+  if (mainPosTotalPrice) {
+    mainPosTotalPrice.textContent = formattedTotal;
+  }
+
+  // Update elemen target ID cadangan lainnya
   ['total-price-pos', 'total_harga', 'totalPrice', 'grand-total', 'total-bayar'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.textContent = formattedTotal;
-  });
-
-  const allElements = document.querySelectorAll('p, div, span, h3, h4');
-  allElements.forEach(el => {
-    if (el.children.length === 0 && (el.textContent || '').trim().toUpperCase() === 'TOTAL PRICE') {
-      const parent = el.parentElement;
-      if (parent) {
-        const priceVal = parent.querySelector('p:not(:first-child), div:not(:first-child), span:not(:first-child), .text-lg, .font-black, .font-bold, h3, h4') 
-                      || el.nextElementSibling;
-        
-        if (priceVal && priceVal !== el) {
-          priceVal.textContent = formattedTotal;
-        }
-      }
-    }
   });
 }
 
