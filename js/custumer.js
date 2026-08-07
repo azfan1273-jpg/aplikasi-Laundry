@@ -1,13 +1,11 @@
 // ==========================================
-// FILE: js/custumer.js (VERSI FIX FULL & RENDER LIST)
+// FILE: js/custumer.js (VERSI FULL ALPHABET A-Z & RENDER LIST)
 // ==========================================
 
 var allPelanggan = window.allPelanggan || [];
 var selectedPelanggan = window.selectedPelanggan || null;
 
-// ==========================================
-// RENDER DAFTAR PELANGGAN TERURUT ALPHABET (A-Z) & DIBUNGKUS HEADER HURUF
-// ==========================================
+// FUNGSI UTAMA: RENDER DAFTAR PELANGGAN TERURUT ALPHABET (A-Z)
 async function renderPelangganPOS(keyword = '') {
   console.log("-> Memuat daftar pelanggan A-Z di Modal POS...");
 
@@ -138,37 +136,6 @@ async function renderPelangganPOS(keyword = '') {
   }
 }
 
-    // Render list pelanggan
-    container.innerHTML = filtered.map(item => {
-      const nama = item.nama || item.nama_pelanggan || 'Pelanggan';
-      const no_hp = item.no_hp || '-';
-      
-      return `
-        <div onclick="selectCustomer(${item.id}, '${nama.replace(/'/g, "\\'")}', '${no_hp}')" class="p-3 bg-white hover:bg-blue-50/50 rounded-2xl border border-slate-200/80 flex items-center justify-between cursor-pointer active:scale-[0.98] transition mb-2 shadow-sm hover:border-blue-300">
-          <div class="flex items-center gap-3">
-            <div class="w-9 h-9 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-black text-xs shrink-0">
-              ${nama.charAt(0).toUpperCase()}
-            </div>
-            <div class="truncate">
-              <p class="font-extrabold text-slate-800 text-xs truncate">${nama}</p>
-              <p class="text-[10px] text-slate-400 mt-0.5">HP: ${no_hp}</p>
-            </div>
-          </div>
-          <button type="button" class="bg-blue-50 text-blue-600 font-extrabold text-[11px] px-3 py-1.5 rounded-xl hover:bg-blue-600 hover:text-white transition shrink-0">
-            Pilih
-          </button>
-        </div>
-      `;
-    }).join('');
-
-  } catch (err) {
-    console.error('Error renderPelangganPOS:', err);
-    if (container) {
-      container.innerHTML = '<p class="text-xs text-rose-500 text-center py-6">Gagal memuat data pelanggan.</p>';
-    }
-  }
-}
-
 // FUNGSI UTAMA: SIMPAN PELANGGAN BARU
 async function simpanCustomerBaru(e) {
   if (e && e.preventDefault) e.preventDefault();
@@ -251,7 +218,6 @@ async function simpanCustomerBaru(e) {
     const formCustomer = document.getElementById('form-customer-baru');
     if (formCustomer) formCustomer.classList.add('hidden');
 
-    // Otomatis pilih pelanggan & refresh list
     selectCustomer(newCustomer.id, newCustomer.nama, newCustomer.no_hp);
     renderPelangganPOS();
 
