@@ -519,6 +519,8 @@ function bukaModalPilihLayanan() {
 
 // 12. SINKRONISASI PEMILIHAN ITEM KE KERANJANG
 function pilihLayananKeKeranjang(id, nama, harga, satuan) {
+  if (!window.keranjangPOS) window.keranjangPOS = [];
+
   const numHarga = typeof harga === 'number' ? harga : (parseFloat(String(harga).replace(/[^0-9.]/g, '')) || 0);
   const itemData = {
     id: id,
@@ -528,6 +530,28 @@ function pilihLayananKeKeranjang(id, nama, harga, satuan) {
     satuan: satuan || 'Kg',
     qty: 1
   };
+
+  if (typeof showToast === 'function') {
+    showToast(`"${nama}" ditambahkan!`, 'success');
+  }
+
+  const modalLayanan = document.getElementById('modal-layanan') || document.getElementById('modal-pilih-layanan');
+  if (modalLayanan) {
+    modalLayanan.classList.add('hidden');
+    modalLayanan.classList.remove('flex');
+    modalLayanan.style.display = 'none';
+  }
+
+  renderKeranjangPOS();
+  if (typeof window.hitungTotalPOSApp === 'function') window.hitungTotalPOSApp();
+}
+
+  const existingIndex = window.keranjangPOS.findIndex(item => item.id === id || item.nama_layanan === nama);
+  if (existingIndex !== -1) {
+    window.keranjangPOS[existingIndex].qty = (parseFloat(window.keranjangPOS[existingIndex].qty) || 1) + 1;
+  } else {
+    window.keranjangPOS.push(itemData);
+  }
 
   if (typeof window.tambahKeKeranjang === 'function') {
     try { window.tambahKeKeranjang(itemData); } catch(e) {}
