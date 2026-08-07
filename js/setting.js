@@ -754,52 +754,57 @@ window.hapusItemKeranjang = hapusItemKeranjang;
 window.hitungsDanUpdateTotalPrice = hitungsDanUpdateTotalPrice;
 
 // ==========================================
-// FIX TOTAL PRICE: HITUNG SEMUA ITEM DARI DOM & ARRAY
+// FIX MUTLAK: KALKULASI TOTAL PRICE POS
 // ==========================================
+
 function hitungsDanUpdateTotalPrice() {
+  const items = window.keranjangPOS || [];
   let total = 0;
 
-  // 1. CARI SEMUA ELEMEN SUB-TOTAL HARGA DARI TAMPILAN KERANJANG DI DOM
-  const container = getCartContainer();
-  if (container) {
-    const subtotalElements = container.querySelectorAll('.font-black.text-slate-800');
-    subtotalElements.forEach(el => {
-      const text = el.textContent || '';
-      if (text.includes('Rp')) {
-        // Ambil angka murni dari string misal "Rp 22.000" -> 22000
-        const num = parseFloat(text.replace(/[^0-9]/g, '')) || 0;
-        total += num;
-      }
-    });
-  }
+  // 1. Hitung total secara murni dari Array keranjangPOS
+  items.forEach(item => {
+    let q = item.qty;
+    if (typeof q === 'string') {
+      q = parseFloat(q.replace(',', '.')) || 0;
+    } else {
+      q = parseFloat(q) || 0;
+    }
 
-  // 2. FALLBACK JIKA DOM BELUM RENDER: HITUNG DARI ARRAY KERANJANG
-  if (total === 0 && window.keranjangPOS && window.keranjangPOS.length > 0) {
-    window.keranjangPOS.forEach(item => {
-      let q = parseFloat(String(item.qty).replace(',', '.')) || 0;
-      let h = parseFloat(String(item.harga).replace(/[^0-9.]/g, '')) || 0;
-      total += (q * h);
-    });
-  }
+    let h = item.harga;
+    if (typeof h === 'string') {
+      h = parseFloat(h.replace(/[^0-9.]/g, '')) || 0;
+    } else {
+      h = parseFloat(h) || 0;
+    }
+
+    total += (q * h);
+  });
 
   window.totalHargaPOS = Math.round(total);
   const formattedTotal = 'Rp ' + window.totalHargaPOS.toLocaleString('id-ID');
 
-  // 3. TEMBAK SEMUA TARGET ELEMEN TOTAL PRICE
+  console.log("-> Total Price Calculated:", window.totalHargaPOS, "Items count:", items.length);
+
+  // 2. Update elemen ID khusus jika ada
   ['total-price-pos', 'total_harga', 'totalPrice', 'grand-total', 'total-bayar'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.textContent = formattedTotal;
   });
 
-  // 4. TEMBAK TEKS TOTAL PRICE DI BAWAH KIRI MODAL
-  const allElements = document.querySelectorAll('p, div, span, h3, h4');
+  // 3. Cari teks "TOTAL PRICE" di dalam Modal Transaksi & Update angka di bawahnya
+  const modalOrder = document.getElementById('modal-order') 
+                  || document.getElementById('modal-transaksi') 
+                  || document.querySelector('.modal-order') 
+                  || document;
+
+  const allElements = modalOrder.querySelectorAll('*');
   allElements.forEach(el => {
+    // Hanya cek elemen teks paling dalam (leaf node)
     if (el.children.length === 0 && (el.textContent || '').trim().toUpperCase() === 'TOTAL PRICE') {
       const parent = el.parentElement;
       if (parent) {
-        const priceVal = parent.querySelector('p:not(:first-child), div:not(:first-child), span:not(:first-child), .text-lg, .font-black, .font-bold, h3, h4') 
-                      || el.nextElementSibling;
-        
+        // Cari elemen penampung nilai harga di dalam pembungkus yang sama
+        const priceVal = parent.querySelector('.text-lg, .font-black, .font-bold, .text-xl, h3, h4, p:not(:first-child)');
         if (priceVal && priceVal !== el) {
           priceVal.textContent = formattedTotal;
         }
@@ -808,7 +813,7 @@ function hitungsDanUpdateTotalPrice() {
   });
 }
 
-// UPDATE QTY MANUALLY & HUKUM RE-CALCULATE
+// FUNGSI UPDATE QTY MANUAL & HITUNG ULANG SUB-TOTAL
 function updateQtyManual(index, val) {
   if (!window.keranjangPOS || !window.keranjangPOS[index]) return;
 
@@ -818,22 +823,74 @@ function updateQtyManual(index, val) {
 
   window.keranjangPOS[index].qty = numVal;
 
-  // Update Tampilan Subtotal Item Ini
+  // Update tampilan subtotal item tersebut secara spesifik
+  const itemEl = document.getElementById(`cart-item-${index}`);
+  if (itemEl) {
+    const subtotalEl = itemEl.querySelector('.subtotal-item-val');
+    const h = parseFloat(window.keranjangPOS[index].harga) || 0;
+    if (subtotalEl) {
+      subtotalEl.textContent = 'Rp ' + Math.round(h * numVal).toLocaleString('id-ID');
+    }
+  }
+
+  // Hitung ulang Total Price Utama
+  hitungsDanUpdateTotalPrice();
+}
+
+// RENDER ULANG TAMPILAN KERANJANG & ATRIBUT ID SPESIFIK
+function renderKeranjangPOS() {
   const container = getCartContainer();
+  const items = window.keranjangPOS || [];
+
   if (container) {
-    const items = container.querySelectorAll('.flex.items-center.justify-between');
-    if (items[index]) {
-      const subtotalEl = items[index].querySelector('.font-black.text-slate-800:last-child') || items[index].querySelector('p:nth-last-child(2)');
-      const h = parseFloat(window.keranjangPOS[index].harga) || 0;
-      if (subtotalEl) {
-        subtotalEl.textContent = 'Rp ' + Math.round(h * numVal).toLocaleString('id-ID');
-      }
+    if (items.length === 0) {
+      container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4 italic">Belum ada layanan yang ditambahkan.</p>';
+    } else {
+      container.innerHTML = items.map((item, index) => {
+        const sat = (item.satuan || 'Kg').toLowerCase().trim();
+        const isKiloan = sat === 'kg' || sat === 'kilo' || sat === 'kiloan';
+        const currentQty = parseFloat(item.qty) || 0;
+        const subtotal = (item.harga || 0) * currentQty;
+
+        return `
+          <div id="cart-item-${index}" class="p-3 bg-white rounded-2xl border border-slate-200 flex items-center justify-between text-xs mb-2 shadow-sm">
+            <div class="truncate mr-2">
+              <p class="font-extrabold text-slate-800 text-xs truncate">${item.nama_layanan || item.nama}</p>
+              <p class="text-[10px] text-slate-400 mt-0.5">Rp ${(item.harga || 0).toLocaleString('id-ID')} / ${item.satuan}</p>
+            </div>
+
+            <div class="flex items-center gap-2.5 shrink-0">
+              <div class="flex items-center bg-slate-50 border border-slate-200 rounded-xl p-0.5">
+                <button type="button" onclick="ubahQtyKeranjang(${index}, -${isKiloan ? 0.5 : 1})" class="w-6 h-6 bg-white hover:bg-slate-200 rounded-lg text-slate-700 font-bold text-xs flex items-center justify-center active:scale-90 transition">-</button>
+                
+                <input 
+                  type="text" 
+                  inputmode="decimal"
+                  value="${currentQty}" 
+                  oninput="updateQtyManual(${index}, this.value)"
+                  class="w-14 text-center font-black text-xs text-slate-800 bg-transparent outline-none p-0 focus:text-blue-600"
+                />
+
+                <button type="button" onclick="ubahQtyKeranjang(${index}, ${isKiloan ? 0.5 : 1})" class="w-6 h-6 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg font-bold text-xs flex items-center justify-center active:scale-90 transition">+</button>
+              </div>
+
+              <!-- SUB TOTAL ITEM -->
+              <p class="subtotal-item-val font-black text-slate-800 text-xs min-w-[75px] text-right">
+                Rp ${Math.round(subtotal).toLocaleString('id-ID')}
+              </p>
+
+              <button type="button" onclick="hapusItemKeranjang(${index})" class="text-rose-400 hover:text-rose-600 font-bold text-xs p-1">✕</button>
+            </div>
+          </div>
+        `;
+      }).join('');
     }
   }
 
   hitungsDanUpdateTotalPrice();
 }
 
-// Pastikan terdaftar secara global
+// Regsitrasi Window Scope
 window.hitungsDanUpdateTotalPrice = hitungsDanUpdateTotalPrice;
 window.updateQtyManual = updateQtyManual;
+window.renderKeranjangPOS = renderKeranjangPOS;
