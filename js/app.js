@@ -413,11 +413,17 @@ async function simpanOrderPOS() {
       customerLabel.className = 'text-sm font-semibold text-gray-400 italic';
     }
 
+    // KODE BARU (AUTOREFRESH OTOMATIS)
     if (typeof renderKeranjangPOS === 'function') renderKeranjangPOS();
     tutupModalPOS();
 
-    // Reload daftar order di layar
-    if (typeof loadOrderDataList === 'function') loadOrderDataList();
+    // Refresh Otomatis Seluruh Data Layar Tanpa Reload Browser
+    setTimeout(() => {
+      if (typeof loadDataHome === 'function') loadDataHome();
+      if (typeof loadOrderDataList === 'function') loadOrderDataList();
+      if (typeof loadReport === 'function') loadReport();
+      if (typeof triggerManualRefresh === 'function') triggerManualRefresh();
+    }, 300);
 
   } catch (err) {
     console.error("Catch Error simpanOrderPOS:", err);
