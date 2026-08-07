@@ -347,7 +347,6 @@ async function simpanOrderPOS() {
   // 1. Ambil Data Pelanggan Terpilih
   const pelangganObj = window.selectedPelanggan || null;
   const pelangganId = pelangganObj ? pelangganObj.id : null;
-  const pelangganNama = pelangganObj ? pelangganObj.nama : 'Pelanggan Umum';
 
   // 2. Ambil Data Keranjang POS
   const keranjang = window.keranjangPOS || [];
@@ -374,15 +373,13 @@ async function simpanOrderPOS() {
     const userId = userRes?.data?.user?.id || null;
     let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) ? currentToko.id : localStorage.getItem('toko_id');
 
-    // Payload disesuaikan dengan struktur kolom tabel 'transaksi' kamu di Supabase
+    // Payload murni sesuai kolom tabel 'transaksi' di Supabase kamu
     const payload = {
       pelanggan_id: pelangganId,
       layanan_id: primaryItem ? primaryItem.id : null,
       berat_atau_jumlah: totalQty,
       total_harga: Math.round(totalHarga),
-      status_pembayaran: 'Belum Lunas',
-      status_laundry: 'Diterima',
-      nama_pelanggan: pelangganNama
+      status_pembayaran: 'Belum Lunas'
     };
 
     if (userId) payload.user_id = userId;
