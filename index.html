@@ -793,16 +793,15 @@
     </div>
   </div>
 
-<!-- MODAL POS TRANSAKSI -->
+  <!-- MODAL POS TRANSAKSI -->
   <div id="modalPOS" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-2xl w-full max-w-lg p-6 relative shadow-xl max-h-[90vh] overflow-y-auto">
+    <div class="bg-white rounded-2xl w-full max-w-lg p-6 relative shadow-xl">
       <button type="button" id="btnClosePOS" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 transition">
         ✕
       </button>
 
       <h2 class="text-xl font-bold mb-4">Buat Order Transaksi</h2>
 
-      <!-- 1. Section Pelanggan -->
       <div class="bg-gray-50 p-4 rounded-xl mb-4 flex items-center justify-between border border-gray-100">
         <div>
           <p class="text-xs text-gray-500 font-medium">Pelanggan</p>
@@ -813,8 +812,7 @@
         </button>
       </div>
 
-      <!-- 2. Section Layanan / Keranjang -->
-      <div class="bg-gray-50 p-4 rounded-xl mb-4 border border-gray-100">
+      <div class="bg-gray-50 p-4 rounded-xl mb-6 border border-gray-100">
         <div class="flex justify-between items-center mb-3">
           <p class="text-xs text-gray-500 font-medium">Daftar Layanan (Keranjang)</p>
           <button type="button" id="btnAddService" class="bg-cyan-100 hover:bg-cyan-200 text-cyan-800 text-xs font-semibold px-3 py-1.5 rounded-lg transition">
@@ -827,25 +825,6 @@
         </div>
       </div>
 
-      <!-- 3. Section Parfum & Catatan Order (TAMBAHAN BARU) -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-        <div>
-          <label class="block text-xs font-semibold text-gray-600 mb-1">Aroma Parfum</label>
-          <select id="pos_parfum" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold outline-none focus:border-indigo-500">
-            <option value="Standard">Standard / Original</option>
-            <option value="Lavender">Lavender</option>
-            <option value="Sakura">Sakura</option>
-            <option value="Lily">Lily</option>
-            <option value="Snappy">Snappy</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-gray-600 mb-1">Catatan Order</label>
-          <input type="text" id="pos_catatan" placeholder="Contoh: Luntur, Jangan Terlalu Panas" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold outline-none focus:border-indigo-500">
-        </div>
-      </div>
-
-      <!-- Footer Modal -->
       <div class="flex justify-between items-center pt-2 border-t border-gray-100">
         <div>
           <p class="text-[10px] text-gray-400 uppercase tracking-wider font-bold">TOTAL PRICE</p>
