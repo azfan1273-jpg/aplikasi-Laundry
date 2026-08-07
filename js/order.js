@@ -26,40 +26,24 @@ async function loadOrderDataList() {
   container.innerHTML = '<p class="text-xs text-slate-400 text-center py-10">Memuat data order...</p>';
 
   try {
-    // 1. Ambil ID Toko dari Profile Pengguna yang Aktif (Owner/Kasir)
-    let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) 
-                 ? currentToko.id 
-                 : (typeof currentUserProfile !== 'undefined' && currentUserProfile?.toko_id) 
-                 ? currentUserProfile.toko_id 
-                 : localStorage.getItem('toko_id');
+    let rawOrders = [];
 
-    // 2. Kueri relasi JOIN ke tabel pelanggan
-    let query = client.from('transaksi').select('*, pelanggan(nama, no_hp)');
-
-    // 3. Filter berdasarkan Toko ID agar Owner & Kasir berbagi data yang sama
-    if (tokoId) {
-      query = query.eq('toko_id', tokoId);
+    // 1. Jika data sudah ter-load di Beranda (globalTxCache), pakai data itu langsung
+    if (window.globalTxCache && window.globalTxCache.length > 0) {
+      rawOrders = window.globalTxCache;
     } else {
-      const userRes = await client.auth.getUser();
-      const userId = userRes?.data?.user?.id;
-      if (userId) query = query.eq('user_id', userId);
+      // 2. Jika belum ada cache, tarik dari Supabase persis seperti cara Beranda
+      let { data: listTx, error } = await client
+        .from('transaksi')
+        .select('*, pelanggan(nama, no_hp)')
+        .order('id', { ascending: false });
+
+      if (error) throw error;
+      rawOrders = listTx || [];
+      window.globalTxCache = rawOrders; // Simpan ke cache global
     }
 
-    let { data: orders, error } = await query.order('id', { ascending: false });
-
-    if (error || !orders) {
-      const fallback = await client.from('transaksi').select('*, pelanggan(nama, no_hp)').order('id', { ascending: false });
-      if (fallback.data) {
-        orders = fallback.data;
-        error = null;
-      }
-    }
-
-    if (error) throw error;
-
-    let rawOrders = orders || [];
-
-    // Filter status sesuai tab aktif
+    // 3. Filter status sesuai Tab Aktif (Antrian, Proses, Selesai, Batal)
     let filteredOrders = rawOrders.filter(o => {
       const st = (o.status_laundry || o.status || 'Diterima').trim();
       
@@ -80,6 +64,7 @@ async function loadOrderDataList() {
       return;
     }
 
+    // 4. Render tampilan daftar order
     container.innerHTML = filteredOrders.map(o => {
       const notaNum = o.id ? String(o.id).padStart(6, '0') : '000000';
       const namaPel = (o.pelanggan && o.pelanggan.nama) ? o.pelanggan.nama : (o.nama_pelanggan || 'Pelanggan Umum');
