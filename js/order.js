@@ -1,5 +1,5 @@
 // ==========================================
-// KONTROL DAFTAR ORDER & TRANSAKSI (FIX FULL)
+// KONTROL DAFTAR ORDER & TRANSAKSI (FIX TABEL TRANSAKSI)
 // ==========================================
 
 let currentFilterTab = 'Antrian';
@@ -26,9 +26,10 @@ async function loadOrderDataList() {
   container.innerHTML = '<p class="text-xs text-slate-400 text-center py-10">Memuat data order...</p>';
 
   try {
-    let query = client.from('orders').select('*');
+    // FIX: Memanggil tabel 'transaksi' (bukan 'orders')
+    let query = client.from('transaksi').select('*');
 
-    // 1. Filter toko_id / user_id yang fleksibel
+    // Filter berdasarkan toko_id / user_id
     let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) ? currentToko.id : localStorage.getItem('toko_id');
     const userRes = await client.auth.getUser();
     const userId = userRes?.data?.user?.id;
@@ -41,16 +42,25 @@ async function loadOrderDataList() {
 
     let { data: orders, error } = await query.order('id', { ascending: false });
 
+    // Fallback jika tidak ditemukan dengan toko_id/user_id, tarik seluruh transaksi
+    if (error || !orders) {
+      const fallback = await client.from('transaksi').select('*').order('id', { ascending: false });
+      if (fallback.data) {
+        orders = fallback.data;
+        error = null;
+      }
+    }
+
     if (error) throw error;
 
     let rawOrders = orders || [];
 
-    // 2. Filter berdasarkan Tab Status (Antrian, Proses, Selesai, Batal)
+    // Filter berdasarkan Tab Status
     let filteredOrders = rawOrders.filter(o => {
       const st = (o.status_laundry || o.status || 'Diterima').trim();
       
       if (currentFilterTab === 'Antrian') {
-        return st === 'Antrian' || st === 'Diterima' || st === 'Baru';
+        return st === 'Antrian' || st === 'Diterima' || st === 'Baru' || st === 'Proses';
       } else if (currentFilterTab === 'Proses') {
         return st === 'Proses' || st === 'Cuci' || st === 'Setrika';
       } else if (currentFilterTab === 'Selesai') {
@@ -134,7 +144,7 @@ function closeModalDetailOrder() {
   if (typeof closeModalWithHistory === 'function') closeModalWithHistory('modal-detail-order');
 }
 
-// Inisialisasi otomatis saat script dimuat
+// Inisialisasi otomatis
 document.addEventListener('DOMContentLoaded', () => {
   loadOrderDataList();
 });
