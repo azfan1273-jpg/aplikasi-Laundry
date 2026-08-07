@@ -504,8 +504,9 @@ async function hapusLayananBaru(id) {
 }
 
 // ==========================================
-// 11. BUKA MODAL & KERANJANG POS MULTI-ITEM (TANPA MACET)
+// FIX HYBRID KERANJANG POS (SINKRON DENGAN APP.JS / ORDER.JS)
 // ==========================================
+
 function bukaModalPilihLayanan() {
   console.log("-> Buka Modal Pilih Layanan...");
 
@@ -516,7 +517,6 @@ function bukaModalPilihLayanan() {
   if (modal) {
     modal.style.zIndex = '999999';
     modal.classList.add('z-[999999]');
-
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     modal.style.display = 'flex';
@@ -530,29 +530,44 @@ function bukaModalPilihLayanan() {
 function pilihLayananKeKeranjang(id, nama, harga, satuan) {
   console.log("-> Menambahkan ke keranjang:", nama);
 
-  if (!window.keranjangPOS) window.keranjangPOS = [];
-
   const numHarga = typeof harga === 'number' ? harga : (parseFloat(String(harga).replace(/[^0-9.]/g, '')) || 0);
+  const itemData = {
+    id: id,
+    nama_layanan: nama,
+    nama: nama,
+    harga: numHarga,
+    satuan: satuan || 'Kg',
+    qty: 1
+  };
 
-  const existingIndex = window.keranjangPOS.findIndex(item => item.id === id);
+  // 1. SINKRONKAN KE SKRIP BAWAAN APLIKASI JIKA ADA
+  if (typeof window.tambahKeKeranjang === 'function') {
+    try { window.tambahKeKeranjang(itemData); } catch(e) {}
+  }
+  if (typeof window.tambahLayananKeKeranjang === 'function') {
+    try { window.tambahLayananKeKeranjang(itemData); } catch(e) {}
+  }
+  if (Array.isArray(window.cartPOS)) {
+    const exist = window.cartPOS.find(i => i.id === id);
+    if (exist) exist.qty = (parseFloat(exist.qty) || 1) + 1;
+    else window.cartPOS.push(itemData);
+  }
+
+  // 2. SIMPAN KE KERANJANG POS GLOBAL KITA
+  if (!window.keranjangPOS) window.keranjangPOS = [];
+  const existingIndex = window.keranjangPOS.findIndex(item => item.id === id || item.nama_layanan === nama);
 
   if (existingIndex !== -1) {
     window.keranjangPOS[existingIndex].qty = (parseFloat(window.keranjangPOS[existingIndex].qty) || 1) + 1;
   } else {
-    window.keranjangPOS.push({
-      id: id,
-      nama_layanan: nama,
-      harga: numHarga,
-      satuan: satuan || 'Kg',
-      qty: 1
-    });
+    window.keranjangPOS.push(itemData);
   }
 
   if (typeof showToast === 'function') {
     showToast(`"${nama}" ditambahkan!`, 'success');
   }
 
-  // Sembunyikan Modal Pilih Layanan
+  // 3. SEMBUNYIKAN MODAL PILIHAN LAYANAN
   const modalLayanan = document.getElementById('modal-layanan') || document.getElementById('modal-pilih-layanan');
   if (modalLayanan) {
     modalLayanan.classList.add('hidden');
@@ -560,17 +575,21 @@ function pilihLayananKeKeranjang(id, nama, harga, satuan) {
     modalLayanan.style.display = 'none';
   }
 
-  // Render Ulang Keranjang Transaksi
-  renderKeranjangPOS();
+  // 4. RENDER ULANG TAMPILAN KERANJANG
+  setTimeout(() => {
+    if (typeof window.renderCart === 'function') try { window.renderCart(); } catch(e) {}
+    if (typeof window.updateCartUI === 'function') try { window.updateCartUI(); } catch(e) {}
+    renderKeranjangPOS();
+  }, 50);
 }
 
-// 12. PENCARI CONTAINER KERANJANG PRESISI
+// CARI CONTAINER KERANJANG LEBIH AGRESIF
 function getCartContainer() {
   let container = document.getElementById('cart-items-container') 
                || document.querySelector('[data-cart-container="true"]');
   if (container) return container;
 
-  const elements = Array.from(document.querySelectorAll('p, span, div'));
+  const elements = Array.from(document.querySelectorAll('p, span, div, section'));
   for (let el of elements) {
     if (el.children.length === 0 && el.textContent.toLowerCase().includes('belum ada layanan')) {
       container = el.parentElement;
@@ -585,8 +604,12 @@ function getCartContainer() {
   return null;
 }
 
-// 13. RENDER TAMPILAN KERANJANG DI MODAL ORDER
 function renderKeranjangPOS() {
+  // Ambil data gabungan jika ada variabel keranjang bawaan lain
+  if (Array.isArray(window.cartPOS) && window.cartPOS.length > 0) {
+    window.keranjangPOS = window.cartPOS;
+  }
+
   const container = getCartContainer();
   const items = window.keranjangPOS || [];
 
@@ -603,12 +626,11 @@ function renderKeranjangPOS() {
         return `
           <div class="p-3 bg-white rounded-2xl border border-slate-200 flex items-center justify-between text-xs mb-2 shadow-sm">
             <div class="truncate mr-2">
-              <p class="font-extrabold text-slate-800 text-xs truncate">${item.nama_layanan}</p>
+              <p class="font-extrabold text-slate-800 text-xs truncate">${item.nama_layanan || item.nama}</p>
               <p class="text-[10px] text-slate-400 mt-0.5">Rp ${(item.harga || 0).toLocaleString('id-ID')} / ${item.satuan}</p>
             </div>
 
             <div class="flex items-center gap-2.5 shrink-0">
-              <!-- INPUT QTY DESIMAL TIMBANGAN -->
               <div class="flex items-center bg-slate-50 border border-slate-200 rounded-xl p-0.5">
                 <button type="button" onclick="ubahQtyKeranjang(${index}, -${isKiloan ? 0.5 : 1})" class="w-6 h-6 bg-white hover:bg-slate-200 rounded-lg text-slate-700 font-bold text-xs flex items-center justify-center active:scale-90 transition">-</button>
                 
@@ -623,12 +645,10 @@ function renderKeranjangPOS() {
                 <button type="button" onclick="ubahQtyKeranjang(${index}, ${isKiloan ? 0.5 : 1})" class="w-6 h-6 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg font-bold text-xs flex items-center justify-center active:scale-90 transition">+</button>
               </div>
 
-              <!-- SUB TOTAL -->
               <p class="font-black text-slate-800 text-xs min-w-[75px] text-right">
                 Rp ${Math.round(subtotal).toLocaleString('id-ID')}
               </p>
 
-              <!-- HAPUS ITEM -->
               <button type="button" onclick="hapusItemKeranjang(${index})" class="text-rose-400 hover:text-rose-600 font-bold text-xs p-1">✕</button>
             </div>
           </div>
@@ -638,72 +658,6 @@ function renderKeranjangPOS() {
   }
 
   hitungsDanUpdateTotalPrice();
-}
-
-// 14. UPDATE QTY DARI KETIK MANUAL
-function updateQtyManual(index, val) {
-  if (!window.keranjangPOS || !window.keranjangPOS[index]) return;
-
-  let cleanVal = String(val).replace(',', '.');
-  let numVal = parseFloat(cleanVal);
-  if (isNaN(numVal) || numVal < 0) numVal = 0;
-
-  window.keranjangPOS[index].qty = numVal;
-  hitungsDanUpdateTotalPrice();
-}
-
-// 15. UBAH QTY TOMBOL + / -
-function ubahQtyKeranjang(index, delta) {
-  if (!window.keranjangPOS || !window.keranjangPOS[index]) return;
-
-  let currentQty = parseFloat(window.keranjangPOS[index].qty) || 0;
-  let newQty = currentQty + delta;
-
-  if (newQty <= 0) {
-    window.keranjangPOS.splice(index, 1);
-  } else {
-    window.keranjangPOS[index].qty = Math.round(newQty * 100) / 100;
-  }
-
-  renderKeranjangPOS();
-}
-
-// 16. HAPUS ITEM KERANJANG
-function hapusItemKeranjang(index) {
-  if (!window.keranjangPOS) return;
-  window.keranjangPOS.splice(index, 1);
-  renderKeranjangPOS();
-}
-
-// 17. HITUNG TOTAL PRICE REALTIME
-function hitungsDanUpdateTotalPrice() {
-  const items = window.keranjangPOS || [];
-  let total = 0;
-
-  items.forEach(item => {
-    let q = item.qty;
-    if (typeof q === 'string') q = parseFloat(q.replace(',', '.')) || 0;
-    let h = parseFloat(item.harga) || 0;
-    total += (q * h);
-  });
-
-  window.totalHargaPOS = Math.round(total);
-  const formattedTotal = 'Rp ' + window.totalHargaPOS.toLocaleString('id-ID');
-
-  ['total-price-pos', 'total_harga', 'totalPrice', 'grand-total'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = formattedTotal;
-  });
-
-  const allDivs = document.querySelectorAll('div, section, p, span');
-  allDivs.forEach(parent => {
-    if ((parent.textContent || '').toUpperCase().includes('TOTAL PRICE')) {
-      const priceVal = parent.querySelector('.text-lg, .font-black, .font-bold, .text-xl, h3, h4') || parent.nextElementSibling;
-      if (priceVal && !priceVal.textContent.toUpperCase().includes('TOTAL PRICE')) {
-        priceVal.textContent = formattedTotal;
-      }
-    }
-  });
 }
 
 // ==========================================
