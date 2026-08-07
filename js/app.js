@@ -241,6 +241,10 @@ function bukaModalPOS() {
     modalPos.classList.remove('hidden');
     modalPos.classList.add('flex');
   }
+  if (typeof renderKeranjangPOS === 'function') {
+    renderKeranjangPOS();
+  }
+  hitungTotalPOSApp();
 }
 
 function tutupModalPOS() {
@@ -410,28 +414,13 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==========================================
-// FIX TRANSAKSI & AUTOMATIC TOTAL PRICE CALCULATOR
+// AUTOMATIC TOTAL PRICE CALCULATOR (AMAN/RINGAN)
 // ==========================================
 
-// 1. Dengar event klik di tombol "+ Tambah Layanan"
-document.addEventListener('click', function(e) {
-  const btn = e.target.closest('button') || e.target;
-  if (!btn) return;
-
-  const txt = (btn.textContent || '').trim().toLowerCase();
-  
-  if (txt.includes('tambah layanan') || txt === '+ tambah layanan') {
-    if (typeof bukaModalPilihLayanan === 'function') {
-      bukaModalPilihLayanan();
-    }
-  }
-});
-
-// 2. Kalkulator Otomatis Menjumlahkan Seluruh Subtotal di Modal Order
 function hitungTotalPOSApp() {
   let total = 0;
 
-  // Hitung langsung dari Array global jika ada
+  // 1. Hitung langsung dari Array keranjangPOS jika ada
   if (window.keranjangPOS && window.keranjangPOS.length > 0) {
     window.keranjangPOS.forEach(item => {
       let q = parseFloat(String(item.qty).replace(',', '.')) || 0;
@@ -439,7 +428,7 @@ function hitungTotalPOSApp() {
       total += (q * h);
     });
   } else {
-    // Fallback: hitung dari DOM teks harga di modal
+    // Fallback: hitung dari DOM jika array belum terisi
     const modalOrder = document.getElementById('modal-order') 
                     || document.getElementById('modalPOS') 
                     || document.getElementById('modal-transaksi')
@@ -463,23 +452,23 @@ function hitungTotalPOSApp() {
 
   const formattedTotal = 'Rp ' + Math.round(total).toLocaleString('id-ID');
 
-  // UPDATE LANGSUNG KE ID DARI INDEX.HTML
+  // 2. Update langsung ke ID target tanpa loop observer
   const targetIds = ['totalPricePOS', 'total-price-pos', 'total_harga', 'totalPrice', 'grand-total', 'total-bayar'];
   targetIds.forEach(id => {
     const el = document.getElementById(id);
-    if (el) {
+    if (el && el.textContent !== formattedTotal) {
       el.textContent = formattedTotal;
     }
   });
 
-  // Fallback update elemen berdasarkan teks "TOTAL PRICE"
+  // Fallback update elemen berdasarkan label TOTAL PRICE
   const priceElements = document.querySelectorAll('p, span, div');
   priceElements.forEach(el => {
     if (el.children.length === 0 && el.textContent.trim().toUpperCase() === 'TOTAL PRICE') {
       const parent = el.parentElement;
       if (parent) {
         const priceVal = parent.querySelector('.text-lg, .font-black, .font-bold, .text-xl, h3, h4') || el.nextElementSibling;
-        if (priceVal && priceVal !== el) {
+        if (priceVal && priceVal !== el && priceVal.textContent !== formattedTotal) {
           priceVal.textContent = formattedTotal;
         }
       }
@@ -487,13 +476,8 @@ function hitungTotalPOSApp() {
   });
 }
 
-// 3. Jalankan Pemantau Perubahan DOM Otomatis
-const posAppObserver = new MutationObserver(() => {
-  hitungTotalPOSApp();
-});
-
-if (document.body) {
-  posAppObserver.observe(document.body, { childList: true, subtree: true, characterData: true });
-}
+// Dengar event interaksi tanpa pemicu perulangan otomatis
+document.addEventListener('click', () => setTimeout(hitungTotalPOSApp, 50));
+document.addEventListener('input', () => setTimeout(hitungTotalPOSApp, 50));
 
 window.hitungTotalPOSApp = hitungTotalPOSApp;
