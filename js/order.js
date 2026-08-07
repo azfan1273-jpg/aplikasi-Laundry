@@ -257,3 +257,69 @@ function closeModalDetailOrder() {
 window.openModalDetailOrder = openModalDetailOrder;
 window.actionLanjutProses = actionLanjutProses;
 window.closeModalDetailOrder = closeModalDetailOrder;
+
+// ==========================================
+// FIX ACTION BAYAR & METODE PEMBAYARAN
+// ==========================================
+
+function actionBayarOrder() {
+  if (!activeOrderDetail) return;
+
+  const modalPembayaran = document.getElementById('modal-pembayaran');
+  const totalLabel = document.getElementById('pembayaran-total-label');
+
+  if (totalLabel) {
+    const hrg = Math.round(activeOrderDetail.total_harga || 0).toLocaleString('id-ID');
+    totalLabel.textContent = `Total Bayar: Rp ${hrg}`;
+  }
+
+  if (modalPembayaran) {
+    modalPembayaran.classList.remove('hidden');
+    modalPembayaran.classList.add('flex');
+  }
+}
+
+function closeModalPembayaran() {
+  const modalPembayaran = document.getElementById('modal-pembayaran');
+  if (modalPembayaran) {
+    modalPembayaran.classList.add('hidden');
+    modalPembayaran.classList.remove('flex');
+  }
+}
+
+async function prosesBayarFinal(metode) {
+  if (!activeOrderDetail) return;
+
+  const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
+  if (!client) return;
+
+  try {
+    const { error } = await client
+      .from('transaksi')
+      .update({
+        status_pembayaran: 'Lunas'
+      })
+      .eq('id', activeOrderDetail.id);
+
+    if (error) throw error;
+
+    if (typeof showToast === 'function') {
+      showToast(`Pembayaran Rp ${Math.round(activeOrderDetail.total_harga || 0).toLocaleString('id-ID')} (${metode}) Berhasil! 🎉`, "success");
+    }
+
+    closeModalPembayaran();
+    closeModalDetailOrder();
+
+    if (typeof loadOrderDataList === 'function') loadOrderDataList();
+    if (typeof loadDataHome === 'function') loadDataHome();
+
+  } catch (err) {
+    console.error("Error prosesBayarFinal:", err);
+    if (typeof showToast === 'function') showToast("Gagal memproses pembayaran", "error");
+  }
+}
+
+// Expose fungsi ke scope global
+window.actionBayarOrder = actionBayarOrder;
+window.closeModalPembayaran = closeModalPembayaran;
+window.prosesBayarFinal = prosesBayarFinal;
