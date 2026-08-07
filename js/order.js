@@ -26,10 +26,9 @@ async function loadOrderDataList() {
   container.innerHTML = '<p class="text-xs text-slate-400 text-center py-10">Memuat data order...</p>';
 
   try {
-    // FIX: Memanggil tabel 'transaksi' (bukan 'orders')
-    let query = client.from('transaksi').select('*');
+    // Kueri relasi JOIN ke tabel pelanggan untuk ambil nama
+    let query = client.from('transaksi').select('*, pelanggan(nama, no_hp)');
 
-    // Filter berdasarkan toko_id / user_id
     let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) ? currentToko.id : localStorage.getItem('toko_id');
     const userRes = await client.auth.getUser();
     const userId = userRes?.data?.user?.id;
@@ -42,9 +41,8 @@ async function loadOrderDataList() {
 
     let { data: orders, error } = await query.order('id', { ascending: false });
 
-    // Fallback jika tidak ditemukan dengan toko_id/user_id, tarik seluruh transaksi
     if (error || !orders) {
-      const fallback = await client.from('transaksi').select('*').order('id', { ascending: false });
+      const fallback = await client.from('transaksi').select('*, pelanggan(nama, no_hp)').order('id', { ascending: false });
       if (fallback.data) {
         orders = fallback.data;
         error = null;
@@ -55,7 +53,6 @@ async function loadOrderDataList() {
 
     let rawOrders = orders || [];
 
-    // Filter berdasarkan Tab Status
     let filteredOrders = rawOrders.filter(o => {
       const st = (o.status_laundry || o.status || 'Diterima').trim();
       
@@ -78,7 +75,8 @@ async function loadOrderDataList() {
 
     container.innerHTML = filteredOrders.map(o => {
       const notaNum = o.id ? String(o.id).padStart(6, '0') : '000000';
-      const namaPel = o.nama_pelanggan || o.pelanggan_nama || (o.pelanggan ? o.pelanggan.nama : 'Pelanggan');
+      // Prioritaskan nama dari relasi tabel pelanggan
+      const namaPel = (o.pelanggan && o.pelanggan.nama) ? o.pelanggan.nama : (o.nama_pelanggan || 'Pelanggan Umum');
       const totalHarga = o.total_harga ? 'Rp ' + Math.round(o.total_harga).toLocaleString('id-ID') : 'Rp 0';
       const statusText = o.status_laundry || o.status || 'Diterima';
 
@@ -96,7 +94,7 @@ async function loadOrderDataList() {
   } catch (err) {
     console.error("Error loadOrderDataList:", err);
     if (container) {
-      container.innerHTML = `<p class="text-xs text-rose-500 text-center py-10">Gagal memuat data order: ${err.message || err}</p>`;
+      container.innerHTML = `<p class="text-xs text-rose-500 text-center py-10">Gagal memuat data order</p>`;
     }
   }
 }

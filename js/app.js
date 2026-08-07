@@ -570,3 +570,107 @@ if (document.body) {
 }
 
 window.hitungTotalPOSApp = hitungTotalPOSApp;
+
+// ==========================================
+// FIX POINT 1 & 3: LOAD DATA BERANDA & REPORT REALTIME
+// ==========================================
+async function loadDataHome() {
+  const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
+  if (!client) return;
+
+  try {
+    const { data: listTx, error } = await client
+      .from('transaksi')
+      .select('*, pelanggan(nama)')
+      .order('id', { ascending: false });
+
+    if (error) throw error;
+
+    const allData = listTx || [];
+    window.globalTxCache = allData;
+
+    const todayStr = new Date().toDateString();
+
+    let countAktif = 0;
+    let countHarusSelesai = 0;
+    let countTerlambat = 0;
+    let countSelesai = 0;
+
+    let omsetHariIni = 0;
+    let countMasukHariIni = 0;
+    let htmlMasukHariIni = '';
+
+    allData.forEach(item => {
+      const st = (item.status_laundry || item.status || 'Diterima').trim();
+      const itemDateStr = item.created_at ? new Date(item.created_at).toDateString() : '';
+
+      // 1. Ringkasan Cucian (Aktif = Bukan Selesai & Bukan Batal)
+      if (st !== 'Selesai' && st !== 'Batal') {
+        countAktif++;
+      }
+      if (st === 'Harus Selesai') countHarusSelesai++;
+      if (st === 'Terlambat') countTerlambat++;
+      if (st === 'Selesai') countSelesai++;
+
+      // 2. Keuangan & Masuk Hari Ini
+      if (itemDateStr === todayStr) {
+        if (st !== 'Batal') {
+          omsetHariIni += (item.total_harga || 0);
+        }
+        countMasukHariIni++;
+
+        const notaNum = String(item.id).padStart(6, '0');
+        const namaPel = (item.pelanggan && item.pelanggan.nama) ? item.pelanggan.nama : 'Pelanggan Umum';
+        const totalHargaFormatted = 'Rp ' + Math.round(item.total_harga || 0).toLocaleString('id-ID');
+
+        htmlMasukHariIni += `
+          <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-100 flex justify-between items-center text-xs mb-1.5">
+            <div>
+              <p class="font-extrabold text-slate-800 text-xs">Nota #${notaNum} - ${namaPel}</p>
+              <p class="text-[10px] text-slate-400 mt-0.5">${totalHargaFormatted}</p>
+            </div>
+            <span class="text-[9px] bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded-lg uppercase">${st}</span>
+          </div>
+        `;
+      }
+    });
+
+    // Update Elemen UI Beranda
+    const elAktif = document.getElementById('stat-aktif');
+    const elHarus = document.getElementById('stat-harus-selesai');
+    const elLate = document.getElementById('stat-terlambat');
+    const elSelesai = document.getElementById('stat-selesai');
+    const elOmset = document.getElementById('stat-omset');
+    const elCountMasuk = document.getElementById('count-masuk');
+    const elListHome = document.getElementById('list-home');
+
+    if (elAktif) elAktif.textContent = countAktif;
+    if (elHarus) elHarus.textContent = countHarusSelesai;
+    if (elLate) elLate.textContent = countTerlambat;
+    if (elSelesai) elSelesai.textContent = countSelesai;
+    if (elOmset) elOmset.textContent = 'Rp ' + Math.round(omsetHariIni).toLocaleString('id-ID');
+    if (elCountMasuk) elCountMasuk.textContent = countMasukHariIni + ' Order';
+
+    if (elListHome) {
+      if (countMasukHariIni === 0) {
+        elListHome.innerHTML = '<p class="text-xs text-slate-400 text-center py-6">Belum ada orderan masuk hari ini.</p>';
+      } else {
+        elListHome.innerHTML = htmlMasukHariIni;
+      }
+    }
+
+    // Panggil ulang laporan agar statistik di tab Report ikut ter-update
+    if (typeof loadReport === 'function') {
+      loadReport();
+    }
+
+  } catch (err) {
+    console.error("Error loadDataHome:", err);
+  }
+}
+
+// Inisialisasi otomatis load data home saat aplikasi siap
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(loadDataHome, 300);
+});
+window.loadDataHome = loadDataHome;
