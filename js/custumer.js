@@ -5,16 +5,16 @@
 var allPelanggan = window.allPelanggan || [];
 var selectedPelanggan = window.selectedPelanggan || null;
 
-// FUNGSI UTAMA: RENDER DAFTAR PELANGGAN DI MODAL POS
+// ==========================================
+// RENDER DAFTAR PELANGGAN TERURUT ALPHABET (A-Z) & DIBUNGKUS HEADER HURUF
+// ==========================================
 async function renderPelangganPOS(keyword = '') {
-  console.log("-> Memuat daftar pelanggan di Modal POS...");
+  console.log("-> Memuat daftar pelanggan A-Z di Modal POS...");
 
-  // Cari container list di Modal Pelanggan
   let container = document.getElementById('list-pelanggan-container')
                || document.querySelector('#modal-pelanggan .scroll-area')
                || document.querySelector('#modal-pelanggan .space-y-2');
 
-  // Fallback pencarian tempat teks "Memuat pelanggan..."
   if (!container) {
     const allP = document.querySelectorAll('#modal-pelanggan p, #modal-pelanggan div');
     allP.forEach(el => {
@@ -34,9 +34,8 @@ async function renderPelangganPOS(keyword = '') {
   }
 
   try {
-    let query = client.from('pelanggan').select('*').order('id', { ascending: false });
+    let query = client.from('pelanggan').select('*');
 
-    // Tambah filter toko_id jika ada
     let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) ? currentToko.id : localStorage.getItem('toko_id');
     if (tokoId) {
       query = query.eq('toko_id', tokoId);
@@ -46,7 +45,7 @@ async function renderPelangganPOS(keyword = '') {
 
     if (error) throw error;
 
-    const { data: listPelanggan, error } = await query;
+    let rawData = listPelanggan || [];
 
     // 1. URUTKAN DATA SESUAI ALPHABET A-Z NAMA PELANGGAN
     rawData.sort((a, b) => {
