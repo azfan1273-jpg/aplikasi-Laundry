@@ -172,7 +172,9 @@ function toggleFabMenu() {
     mulaiAnimasiTransaksi();
 }
 
-// 5. NAVIGASI TAB UTAMA
+// ==========================================
+// 5. NAVIGASI TAB UTAMA (DENGAN AUTOLOAD ORDER)
+// ==========================================
 function switchTab(tabName) {
   const sections = document.querySelectorAll('.page-section');
   sections.forEach(sec => sec.classList.remove('active'));
@@ -192,6 +194,11 @@ function switchTab(tabName) {
   if (activeNavBtn) {
     activeNavBtn.classList.remove('text-slate-400', 'font-medium');
     activeNavBtn.classList.add('text-blue-600', 'font-bold');
+  }
+
+  // AUTOMATIC LOAD DATA SAAT TAB PILEH DITEKAN
+  if (tabName === 'order' && typeof loadOrderDataList === 'function') {
+    loadOrderDataList();
   }
 }
 
