@@ -26,17 +26,23 @@ async function loadOrderDataList() {
   container.innerHTML = '<p class="text-xs text-slate-400 text-center py-10">Memuat data order...</p>';
 
   try {
-    // Kueri relasi JOIN ke tabel pelanggan untuk ambil nama
+    // 1. Ambil ID Toko dari Profile Pengguna yang Aktif (Owner/Kasir)
+    let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) 
+                 ? currentToko.id 
+                 : (typeof currentUserProfile !== 'undefined' && currentUserProfile?.toko_id) 
+                 ? currentUserProfile.toko_id 
+                 : localStorage.getItem('toko_id');
+
+    // 2. Kueri relasi JOIN ke tabel pelanggan
     let query = client.from('transaksi').select('*, pelanggan(nama, no_hp)');
 
-    let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) ? currentToko.id : localStorage.getItem('toko_id');
-    const userRes = await client.auth.getUser();
-    const userId = userRes?.data?.user?.id;
-
+    // 3. Filter berdasarkan Toko ID agar Owner & Kasir berbagi data yang sama
     if (tokoId) {
       query = query.eq('toko_id', tokoId);
-    } else if (userId) {
-      query = query.eq('user_id', userId);
+    } else {
+      const userRes = await client.auth.getUser();
+      const userId = userRes?.data?.user?.id;
+      if (userId) query = query.eq('user_id', userId);
     }
 
     let { data: orders, error } = await query.order('id', { ascending: false });
@@ -53,12 +59,11 @@ async function loadOrderDataList() {
 
     let rawOrders = orders || [];
 
-    // FIX: PERBAIKAN LOGIKA FILTER STATUS ORDER
+    // Filter status sesuai tab aktif
     let filteredOrders = rawOrders.filter(o => {
       const st = (o.status_laundry || o.status || 'Diterima').trim();
       
       if (currentFilterTab === 'Antrian') {
-        // Hapus "st === 'Proses'" dari sini agar tidak muncul di tab Antrian
         return st === 'Antrian' || st === 'Diterima' || st === 'Baru';
       } else if (currentFilterTab === 'Proses') {
         return st === 'Proses' || st === 'Cuci' || st === 'Setrika';
@@ -77,7 +82,6 @@ async function loadOrderDataList() {
 
     container.innerHTML = filteredOrders.map(o => {
       const notaNum = o.id ? String(o.id).padStart(6, '0') : '000000';
-      // Prioritaskan nama dari relasi tabel pelanggan
       const namaPel = (o.pelanggan && o.pelanggan.nama) ? o.pelanggan.nama : (o.nama_pelanggan || 'Pelanggan Umum');
       const totalHarga = o.total_harga ? 'Rp ' + Math.round(o.total_harga).toLocaleString('id-ID') : 'Rp 0';
       const statusText = o.status_laundry || o.status || 'Diterima';
