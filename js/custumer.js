@@ -1,9 +1,98 @@
 // ==========================================
-// FILE: js/custumer.js (VERSI FIX & FULL)
+// FILE: js/custumer.js (VERSI FIX FULL & RENDER LIST)
 // ==========================================
 
 var allPelanggan = window.allPelanggan || [];
 var selectedPelanggan = window.selectedPelanggan || null;
+
+// FUNGSI UTAMA: RENDER DAFTAR PELANGGAN DI MODAL POS
+async function renderPelangganPOS(keyword = '') {
+  console.log("-> Memuat daftar pelanggan di Modal POS...");
+
+  // Cari container list di Modal Pelanggan
+  let container = document.getElementById('list-pelanggan-container')
+               || document.querySelector('#modal-pelanggan .scroll-area')
+               || document.querySelector('#modal-pelanggan .space-y-2');
+
+  // Fallback pencarian tempat teks "Memuat pelanggan..."
+  if (!container) {
+    const allP = document.querySelectorAll('#modal-pelanggan p, #modal-pelanggan div');
+    allP.forEach(el => {
+      if (el.textContent.includes('Memuat pelanggan')) {
+        container = el.parentElement;
+      }
+    });
+  }
+
+  if (!container) return;
+
+  const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
+
+  if (!client) {
+    container.innerHTML = '<p class="text-xs text-rose-500 text-center py-6">Koneksi database belum siap.</p>';
+    return;
+  }
+
+  try {
+    let query = client.from('pelanggan').select('*').order('id', { ascending: false });
+
+    // Tambah filter toko_id jika ada
+    let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) ? currentToko.id : localStorage.getItem('toko_id');
+    if (tokoId) {
+      query = query.eq('toko_id', tokoId);
+    }
+
+    const { data: listPelanggan, error } = await query;
+
+    if (error) throw error;
+
+    window.allPelanggan = listPelanggan || [];
+
+    // Filter berdasarkan live search kata kunci
+    let filtered = window.allPelanggan;
+    if (keyword && keyword.trim() !== '') {
+      const cleanKey = keyword.trim().toLowerCase();
+      filtered = filtered.filter(p => 
+        (p.nama || p.nama_pelanggan || '').toLowerCase().includes(cleanKey) ||
+        (p.no_hp || '').toLowerCase().includes(cleanKey)
+      );
+    }
+
+    if (!filtered || filtered.length === 0) {
+      container.innerHTML = `<div class="text-center py-8"><p class="text-xs text-slate-400 font-bold">Pelanggan ${keyword ? '"' + keyword + '"' : ''} tidak ditemukan.</p></div>`;
+      return;
+    }
+
+    // Render list pelanggan
+    container.innerHTML = filtered.map(item => {
+      const nama = item.nama || item.nama_pelanggan || 'Pelanggan';
+      const no_hp = item.no_hp || '-';
+      
+      return `
+        <div onclick="selectCustomer(${item.id}, '${nama.replace(/'/g, "\\'")}', '${no_hp}')" class="p-3 bg-white hover:bg-blue-50/50 rounded-2xl border border-slate-200/80 flex items-center justify-between cursor-pointer active:scale-[0.98] transition mb-2 shadow-sm hover:border-blue-300">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-black text-xs shrink-0">
+              ${nama.charAt(0).toUpperCase()}
+            </div>
+            <div class="truncate">
+              <p class="font-extrabold text-slate-800 text-xs truncate">${nama}</p>
+              <p class="text-[10px] text-slate-400 mt-0.5">HP: ${no_hp}</p>
+            </div>
+          </div>
+          <button type="button" class="bg-blue-50 text-blue-600 font-extrabold text-[11px] px-3 py-1.5 rounded-xl hover:bg-blue-600 hover:text-white transition shrink-0">
+            Pilih
+          </button>
+        </div>
+      `;
+    }).join('');
+
+  } catch (err) {
+    console.error('Error renderPelangganPOS:', err);
+    if (container) {
+      container.innerHTML = '<p class="text-xs text-rose-500 text-center py-6">Gagal memuat data pelanggan.</p>';
+    }
+  }
+}
 
 // FUNGSI UTAMA: SIMPAN PELANGGAN BARU
 async function simpanCustomerBaru(e) {
@@ -11,7 +100,6 @@ async function simpanCustomerBaru(e) {
 
   console.log("-> Memproses Simpan Customer Baru...");
 
-  // Cari input Nama dari berbagai ID/Placeholder
   const namaInput = document.getElementById('new_nama_pelanggan')
                  || document.getElementById('nama_pelanggan')
                  || document.getElementById('pelanggan_nama')
@@ -20,7 +108,6 @@ async function simpanCustomerBaru(e) {
                  || document.querySelector('#modal-pilih-pelanggan input[placeholder*="Nama"]')
                  || document.querySelector('input[placeholder*="Nama"]');
 
-  // Cari input No HP
   const hpInput = document.getElementById('new_no_hp')
                || document.getElementById('no_hp_pelanggan')
                || document.getElementById('pelanggan_hp')
@@ -56,11 +143,8 @@ async function simpanCustomerBaru(e) {
       no_hp: no_hp
     };
 
-    if (userId) {
-      payload.user_id = userId;
-    }
+    if (userId) payload.user_id = userId;
 
-    // Ambil toko_id jika ada
     let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) ? currentToko.id : localStorage.getItem('toko_id');
     if (tokoId) payload.toko_id = tokoId;
 
@@ -83,19 +167,18 @@ async function simpanCustomerBaru(e) {
     if (typeof showToast === 'function') showToast('Pelanggan "' + nama + '" tersimpan!', 'success');
     else alert('Berhasil! Pelanggan "' + nama + '" telah tersimpan.');
 
-    // Masukkan ke Cache Global
     if (!window.allPelanggan) window.allPelanggan = [];
     window.allPelanggan.unshift(newCustomer);
 
-    // Reset Input Form
     if (namaInput) namaInput.value = '';
     if (hpInput) hpInput.value = '';
 
     const formCustomer = document.getElementById('form-customer-baru');
     if (formCustomer) formCustomer.classList.add('hidden');
 
-    // Otomatis pilih pelanggan
+    // Otomatis pilih pelanggan & refresh list
     selectCustomer(newCustomer.id, newCustomer.nama, newCustomer.no_hp);
+    renderPelangganPOS();
 
   } catch (err) {
     console.error('Catch Error simpan customer:', err);
@@ -146,6 +229,19 @@ function closeModalPilihPelanggan() {
   }
 }
 
+// EVENT LISTENER PENCARIAN REALTIME DI MODAL PELANGGAN
+document.addEventListener('input', function(e) {
+  const target = e.target;
+  if (!target) return;
+
+  const modalPelanggan = target.closest('#modal-pelanggan') || target.closest('#modal-pilih-pelanggan');
+
+  if (modalPelanggan && target.matches('input[type="text"], input:not([type])')) {
+    const keyword = target.value.trim();
+    renderPelangganPOS(keyword);
+  }
+});
+
 // HANDLER EVENT LISTENER AUTOMATIS SAAT TOMBOL DIKLIK
 document.addEventListener('click', function(e) {
   const btn = e.target.closest('button') || e.target;
@@ -163,6 +259,9 @@ document.addEventListener('click', function(e) {
 });
 
 // Registrasi Fungsi Global
+window.renderPelangganPOS = renderPelangganPOS;
+window.fetchPelanggan = renderPelangganPOS;
+window.openModalPilihPelanggan = renderPelangganPOS;
 window.simpanCustomerBaruAsli = simpanCustomerBaru;
 window.simpanCustomerBaru = simpanCustomerBaru;
 window.simpanPelangganBaru = simpanCustomerBaru;
