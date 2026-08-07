@@ -105,7 +105,16 @@ html, body {
   transform: rotate(180deg); 
 }
 
-/* Kunci posisi tombol bayar agar selalu rata kanan di footer modal */
-#modal-detail-order .border-t button {
-  margin-left: auto !important;
+/* PAKSA TOMBOL BAYAR MENEMPEL DI POJOK KANAN BAWAH MODAL */
+#modal-detail-order .bg-white.rounded-b-3xl,
+#modal-detail-order .p-4.border-t {
+  position: relative !important;
+}
+
+#modal-detail-order button[onclick*="actionBayarOrder"] {
+  position: absolute !important;
+  right: 16px !important;
+  bottom: 12px !important;
+  margin: 0 !important;
+  z-index: 10 !important;
 }
