@@ -104,3 +104,8 @@ html, body {
 .rotate-180 { 
   transform: rotate(180deg); 
 }
+
+/* Kunci posisi tombol bayar agar selalu rata kanan di footer modal */
+#modal-detail-order .border-t button {
+  margin-left: auto !important;
+}
