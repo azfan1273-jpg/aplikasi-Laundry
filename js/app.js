@@ -418,7 +418,7 @@ function hitungTotalPOSApp() {
   const items = window.keranjangPOS || [];
   let total = 0;
 
-  // Hitung total dari keranjang
+  // Hitung perkalian Qty x Harga tiap item
   items.forEach(item => {
     let q = parseFloat(String(item.qty).replace(',', '.')) || 0;
     let h = parseFloat(String(item.harga).replace(/[^0-9.]/g, '')) || 0;
@@ -428,19 +428,33 @@ function hitungTotalPOSApp() {
   const totalFix = Math.round(total);
   const formattedTotal = 'Rp ' + totalFix.toLocaleString('id-ID');
 
-  // TARGET ID DARI INDEX.HTML (termasuk totalPricePOS)
-  const targetIds = ['totalPricePOS', 'total-price-pos', 'total_harga', 'totalPrice', 'grand-total', 'total-bayar'];
-  
-  targetIds.forEach(id => {
+  // Update elemen yang memiliki ID Total
+  ['total-price-pos', 'total_harga', 'totalPrice', 'grand-total', 'total-bayar'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) {
-      el.textContent = formattedTotal;
+    if (el) el.textContent = formattedTotal;
+  });
+
+  // Update elemen teks yang berlabel "TOTAL PRICE"
+  document.querySelectorAll('p, div, span, h3, h4').forEach(el => {
+    if (el.children.length === 0 && (el.textContent || '').trim().toUpperCase() === 'TOTAL PRICE') {
+      const parent = el.parentElement;
+      if (parent) {
+        const priceVal = parent.querySelector('.text-lg, .font-black, .font-bold, .text-xl, h3, h4') || el.nextElementSibling;
+        if (priceVal && priceVal !== el) {
+          priceVal.textContent = formattedTotal;
+        }
+      }
     }
   });
 }
 
-// Jalankan kalkulasi setiap ada perubahan/klik/input
-document.addEventListener('click', () => setTimeout(hitungTotalPOSApp, 50));
-document.addEventListener('input', () => setTimeout(hitungTotalPOSApp, 50));
+// Pasang Observer otomatis untuk memantau perubahan keranjang
+const observerPOS = new MutationObserver(() => {
+  hitungTotalPOSApp();
+});
+
+if (document.body) {
+  observerPOS.observe(document.body, { childList: true, subtree: true, characterData: true });
+}
 
 window.hitungTotalPOSApp = hitungTotalPOSApp;
