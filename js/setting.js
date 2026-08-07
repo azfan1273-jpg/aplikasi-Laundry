@@ -700,7 +700,9 @@ document.addEventListener('click', function(e) {
 
   const text = (target.textContent || '').trim().toLowerCase();
 
-  if (text.includes('tambah layanan') || text.includes('layanan baru') || text === '+') {
+  // Hanya picu pendaftaran modal jika tombol mengandung frasa "tambah layanan" secara spesifik
+  // dan BUKAN tombol "+" penambah qty di dalam keranjang
+  if (text.includes('tambah layanan') || text.includes('layanan baru')) {
     if (target.type !== 'submit' && !target.closest('#modal-kelola-layanan')) {
       e.preventDefault();
       e.stopPropagation();

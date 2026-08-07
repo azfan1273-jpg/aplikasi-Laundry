@@ -297,11 +297,14 @@ function closeModalPilihPelanggan() {
   }
 }
 
+// FIX 1: FUNGSI MENUTUP MODAL PILIH LAYANAN
 function closeModalPilihLayanan() {
-  const modal = document.getElementById('modal-layanan');
+  const modal = document.getElementById('modal-layanan') 
+             || document.getElementById('modal-pilih-layanan');
   if (modal) {
     modal.classList.add('hidden');
     modal.classList.remove('flex');
+    modal.style.display = 'none';
   }
 }
 
@@ -333,8 +336,7 @@ function tambahLayananBaru(e) {
 function handleProsesPesan(e) {
   if (e) { e.preventDefault(); e.stopPropagation(); }
 
-  const customerLabel = document.getElementById('selectedCustomerName')?.textContent?.trim();
-  const cartContainer = document.getElementById('cartItemsContainer');
+  const customerLabel = document.getElementById('selectedCustomerName')?.textContent?.trim() || '';
   
   // 1. Cek Pelanggan
   if (!customerLabel || customerLabel.includes('Silahkan Pilih Customer Terlebih Dahulu.')) {
@@ -346,8 +348,10 @@ function handleProsesPesan(e) {
     return;
   }
 
-  // 2. Cek Keranjang Layanan
-  if (!cartContainer || cartContainer.textContent.includes('Belum ada layanan yang ditambahkan.')) {
+  // 2. Cek Keranjang Layanan (Periksa Array Keranjang Global)
+  const hasCartItems = Array.isArray(window.keranjangPOS) && window.keranjangPOS.length > 0;
+  
+  if (!hasCartItems) {
     if (typeof showToast === 'function') {
       showToast('Harap isi kolom Layanan Terlebih dahul..!!', 'error');
     } else {
