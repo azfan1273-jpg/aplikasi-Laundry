@@ -529,18 +529,6 @@ function pilihLayananKeKeranjang(id, nama, harga, satuan) {
     qty: 1
   };
 
-  if (typeof window.tambahKeKeranjang === 'function') {
-    try { window.tambahKeKeranjang(itemData); } catch(e) {}
-  }
-  if (typeof window.tambahLayananKeKeranjang === 'function') {
-    try { window.tambahLayananKeKeranjang(itemData); } catch(e) {}
-  }
-  if (Array.isArray(window.cartPOS)) {
-    const exist = window.cartPOS.find(i => i.id === id);
-    if (exist) exist.qty = (parseFloat(exist.qty) || 1) + 1;
-    else window.cartPOS.push(itemData);
-  }
-
   if (!window.keranjangPOS) window.keranjangPOS = [];
   const existingIndex = window.keranjangPOS.findIndex(item => item.id === id || item.nama_layanan === nama);
 
@@ -561,17 +549,14 @@ function pilihLayananKeKeranjang(id, nama, harga, satuan) {
     modalLayanan.style.display = 'none';
   }
 
-  setTimeout(() => {
-    if (typeof window.renderCart === 'function') try { window.renderCart(); } catch(e) {}
-    if (typeof window.updateCartUI === 'function') try { window.updateCartUI(); } catch(e) {}
-    renderKeranjangPOS();
-    paksaHitungTotalPriceDOM();
-  }, 50);
+  renderKeranjangPOS();
+  setTimeout(hitungDanUpdateTotalPrice, 50);
 }
 
-// 13. PENCARI CONTAINER KERANJANG
+// 13. PENCARI CONTAINER KERANJANG UNIVERSAL (PADA APP.JS & SETTING.JS)
 function getCartContainer() {
-  let container = document.getElementById('cart-items-container') 
+  let container = document.getElementById('cartItemsContainer')
+               || document.getElementById('cart-items-container') 
                || document.querySelector('[data-cart-container="true"]');
   if (container) return container;
 
@@ -581,7 +566,7 @@ function getCartContainer() {
       container = el.parentElement;
       if (container) {
         container.setAttribute('data-cart-container', 'true');
-        container.id = 'cart-items-container';
+        container.id = 'cartItemsContainer';
         return container;
       }
     }
@@ -609,7 +594,7 @@ function updateQtyManual(index, val) {
     }
   }
 
-  paksaHitungTotalPriceDOM();
+  hitungDanUpdateTotalPrice();
 }
 
 // 15. UBAH QTY TOMBOL + / -
@@ -626,7 +611,7 @@ function ubahQtyKeranjang(index, delta) {
   }
 
   renderKeranjangPOS();
-  paksaHitungTotalPriceDOM();
+  hitungDanUpdateTotalPrice();
 }
 
 // 16. HAPUS ITEM DARI KERANJANG
@@ -634,15 +619,11 @@ function hapusItemKeranjang(index) {
   if (!window.keranjangPOS) return;
   window.keranjangPOS.splice(index, 1);
   renderKeranjangPOS();
-  paksaHitungTotalPriceDOM();
+  hitungDanUpdateTotalPrice();
 }
 
 // 17. RENDER TAMPILAN KERANJANG TRANSAKSI
 function renderKeranjangPOS() {
-  if (Array.isArray(window.cartPOS) && window.cartPOS.length > 0) {
-    window.keranjangPOS = window.cartPOS;
-  }
-
   const container = getCartContainer();
   const items = window.keranjangPOS || [];
 
@@ -690,79 +671,30 @@ function renderKeranjangPOS() {
     }
   }
 
-  paksaHitungTotalPriceDOM();
+  hitungDanUpdateTotalPrice();
 }
 
-// 18. EVENT LISTENER AUTOMATIS UNTUK TOMBOL
-document.addEventListener('click', function(e) {
-  const target = e.target.closest('button') || e.target;
-  if (!target) return;
-
-  const text = (target.textContent || '').trim().toLowerCase();
-
-  if (text.includes('tambah layanan') || text.includes('layanan baru') || text === '+') {
-    if (target.type !== 'submit' && !target.closest('#modal-kelola-layanan')) {
-      e.preventDefault();
-      e.stopPropagation();
-
-      const modalLayanan = document.getElementById('modal-layanan') 
-                        || document.getElementById('modal-pilih-layanan')
-                        || document.querySelector('.modal-layanan');
-
-      if (modalLayanan) {
-        modalLayanan.style.zIndex = '999999';
-        modalLayanan.classList.remove('hidden');
-        modalLayanan.classList.add('flex');
-        modalLayanan.style.display = 'flex';
-        
-        if (typeof renderLayananPOS === 'function') {
-          renderLayananPOS();
-        }
-      }
-    }
-  }
-
-  if (text.includes('simpan layanan baru') || text.includes('simpan layanan')) {
-    e.preventDefault();
-    prosesSimpanLayananBaru(e);
-  }
-}, true);
-
-// ==========================================
-// 19. AUTOMATIC REALTIME TOTAL PRICE OBSERVER
-// ==========================================
-
-function paksaHitungTotalPriceDOM() {
+// 18. KALKULASI MUTLAK TOTAL PRICE
+function hitungDanUpdateTotalPrice() {
+  const items = window.keranjangPOS || [];
   let total = 0;
 
-  const container = getCartContainer();
-  if (container) {
-    const allSubtotals = container.querySelectorAll('.subtotal-item-val, .font-black.text-slate-800');
-    allSubtotals.forEach(el => {
-      const txt = el.textContent || '';
-      if (txt.includes('Rp')) {
-        const num = parseFloat(txt.replace(/[^0-9]/g, '')) || 0;
-        if (num > 0) total += num;
-      }
-    });
-  }
-
-  if (total === 0 && window.keranjangPOS && window.keranjangPOS.length > 0) {
-    window.keranjangPOS.forEach(item => {
-      let q = parseFloat(String(item.qty).replace(',', '.')) || 0;
-      let h = parseFloat(String(item.harga).replace(/[^0-9.]/g, '')) || 0;
-      total += (q * h);
-    });
-  }
+  items.forEach(item => {
+    let q = parseFloat(String(item.qty).replace(',', '.')) || 0;
+    let h = parseFloat(String(item.harga).replace(/[^0-9.]/g, '')) || 0;
+    total += (q * h);
+  });
 
   window.totalHargaPOS = Math.round(total);
   const formattedTotal = 'Rp ' + window.totalHargaPOS.toLocaleString('id-ID');
 
+  // Direct ID Update
   ['total-price-pos', 'total_harga', 'totalPrice', 'grand-total', 'total-bayar'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.textContent = formattedTotal;
   });
 
+  // Target elemen teks TOTAL PRICE
   const allElements = document.querySelectorAll('p, div, span, h3, h4');
   allElements.forEach(el => {
     if (el.children.length === 0 && (el.textContent || '').trim().toUpperCase() === 'TOTAL PRICE') {
@@ -779,12 +711,13 @@ function paksaHitungTotalPriceDOM() {
   });
 }
 
+// Pemantau DOM Otomatis
 let priceObserver = null;
 function startTotalPriceObserver() {
   if (priceObserver) return;
 
   priceObserver = new MutationObserver(() => {
-    paksaHitungTotalPriceDOM();
+    hitungDanUpdateTotalPrice();
   });
 
   priceObserver.observe(document.body, {
@@ -797,11 +730,11 @@ function startTotalPriceObserver() {
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     startTotalPriceObserver();
-    paksaHitungTotalPriceDOM();
+    hitungDanUpdateTotalPrice();
   });
 } else {
   startTotalPriceObserver();
-  paksaHitungTotalPriceDOM();
+  hitungDanUpdateTotalPrice();
 }
 
 // REGISTRASI GLOBAL SCOPE WINDOW
@@ -826,5 +759,5 @@ window.renderKeranjangPOS = renderKeranjangPOS;
 window.updateQtyManual = updateQtyManual;
 window.ubahQtyKeranjang = ubahQtyKeranjang;
 window.hapusItemKeranjang = hapusItemKeranjang;
-window.hitungsDanUpdateTotalPrice = paksaHitungTotalPriceDOM;
-window.paksaHitungTotalPriceDOM = paksaHitungTotalPriceDOM;
+window.hitungsDanUpdateTotalPrice = hitungDanUpdateTotalPrice;
+window.hitungDanUpdateTotalPrice = hitungDanUpdateTotalPrice;
