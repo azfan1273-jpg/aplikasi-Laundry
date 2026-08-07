@@ -141,7 +141,6 @@ async function actionBatalkanOrder() {
         .from('transaksi')
         .update({ 
           status_laundry: 'Batal',
-          status: 'Batal' 
         })
         .eq('id', window.currentSelectedOrderId);
 
@@ -181,7 +180,7 @@ let activeOrderDetail = null;
 async function openModalDetailOrder(orderId) {
   // Simpan ID Order ke variabel global
   window.currentSelectedOrderId = orderId;
-  
+
   const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
   if (!client) return;
 
