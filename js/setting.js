@@ -1,9 +1,9 @@
 // ==========================================
-// FILE: js/setting.js (MODUL SETTING, LAYANAN, & TRANSAKSI POS)
+// FILE: js/setting.js (MODUL SETTING, LAYANAN, & POS TRANSAKSI FULL FIX)
 // ==========================================
 
-window.keranjangPOS = window.keranjangPOS || [];
-window.allLayananCache = window.allLayananCache || [];
+if (!window.keranjangPOS) window.keranjangPOS = [];
+if (!window.allLayananCache) window.allLayananCache = [];
 
 // 1. TOGGLE ACCORDION JENDELA AKUN
 function toggleAccordion(accId) {
@@ -147,11 +147,9 @@ function renderKelolaLayananList() {
 }
 
 // ==========================================
-// 6. RENDER DAFTAR LAYANAN (KILOAN & SATUAN + LIVE SEARCH + EDIT ✏️)
+// 6. RENDER DAFTAR LAYANAN (KILOAN & SATUAN + EDIT ✏️)
 // ==========================================
 async function renderLayananPOS(keyword = '') {
-  console.log("-> Rendering Layanan POS dengan kata kunci:", keyword);
-
   let container = document.getElementById('list-layanan-container')
                || document.querySelector('#modal-layanan .scroll-area')
                || document.querySelector('#modal-layanan .space-y-2');
@@ -182,7 +180,7 @@ async function renderLayananPOS(keyword = '') {
 
     let rawData = listLayanan || [];
 
-    // BACA URUTAN REORDER DARI LOCALSTORAGE
+    // BACA URUTAN REORDER LOCALSTORAGE
     const savedOrderJson = localStorage.getItem('layanan_custom_order');
     if (savedOrderJson) {
       try {
@@ -194,9 +192,7 @@ async function renderLayananPOS(keyword = '') {
           if (indexB === -1) indexB = 999;
           return indexA - indexB;
         });
-      } catch (e) {
-        console.warn("Gagal parse saved order:", e);
-      }
+      } catch (e) {}
     } else {
       rawData.sort((a, b) => b.id - a.id);
     }
@@ -212,7 +208,7 @@ async function renderLayananPOS(keyword = '') {
       );
     }
 
-    // PEMISAHAN KILOAN VS SATUAN
+    // KILOAN VS SATUAN
     const listKiloan = filtered.filter(item => {
       const sat = (item.satuan || 'kg').toLowerCase().trim();
       return sat === 'kg' || sat === 'kilo' || sat === 'kiloan';
@@ -223,20 +219,13 @@ async function renderLayananPOS(keyword = '') {
       return sat !== 'kg' && sat !== 'kilo' && sat !== 'kiloan';
     });
 
-    // SINGLE ITEM TEMPLATE
     const renderSingleItem = (item) => `
       <div data-id="${item.id}" class="layanan-item p-2.5 bg-white rounded-xl border border-slate-100 text-xs flex justify-between items-center hover:border-blue-300 transition-all">
         <div class="flex items-center gap-2">
-          <!-- REORDER BUTTONS -->
           <div class="flex flex-col gap-0.5">
-            <button type="button" onclick="geserPosisiLayanan(${item.id}, 'up')" class="w-5 h-4 bg-slate-100 hover:bg-blue-100 text-slate-600 hover:text-blue-600 rounded flex items-center justify-center font-bold text-[9px] active:scale-90 transition">
-              ▲
-            </button>
-            <button type="button" onclick="geserPosisiLayanan(${item.id}, 'down')" class="w-5 h-4 bg-slate-100 hover:bg-blue-100 text-slate-600 hover:text-blue-600 rounded flex items-center justify-center font-bold text-[9px] active:scale-90 transition">
-              ▼
-            </button>
+            <button type="button" onclick="geserPosisiLayanan(${item.id}, 'up')" class="w-5 h-4 bg-slate-100 hover:bg-blue-100 text-slate-600 hover:text-blue-600 rounded flex items-center justify-center font-bold text-[9px] active:scale-90 transition">▲</button>
+            <button type="button" onclick="geserPosisiLayanan(${item.id}, 'down')" class="w-5 h-4 bg-slate-100 hover:bg-blue-100 text-slate-600 hover:text-blue-600 rounded flex items-center justify-center font-bold text-[9px] active:scale-90 transition">▼</button>
           </div>
-
           <div>
             <p class="font-extrabold text-slate-800 text-xs">${item.nama_layanan}</p>
             <p class="text-[10px] text-slate-400 mt-0.5">
@@ -265,9 +254,7 @@ async function renderLayananPOS(keyword = '') {
             <span class="text-sm">🧺</span>
             <h4 class="font-black text-xs text-slate-700 tracking-wide uppercase">Layanan Kiloan (${listKiloan.length})</h4>
           </div>
-          <div class="space-y-2">
-            ${listKiloan.map(renderSingleItem).join('')}
-          </div>
+          <div class="space-y-2">${listKiloan.map(renderSingleItem).join('')}</div>
         </div>
       `;
     }
@@ -279,9 +266,7 @@ async function renderLayananPOS(keyword = '') {
             <span class="text-sm">👔</span>
             <h4 class="font-black text-xs text-slate-700 tracking-wide uppercase">Layanan Satuan (${listSatuan.length})</h4>
           </div>
-          <div class="space-y-2">
-            ${listSatuan.map(renderSingleItem).join('')}
-          </div>
+          <div class="space-y-2">${listSatuan.map(renderSingleItem).join('')}</div>
         </div>
       `;
     }
@@ -298,7 +283,7 @@ async function renderLayananPOS(keyword = '') {
   }
 }
 
-// 7. FUNGSI GESER URUTAN POSISI LAYANAN (▲ ▼)
+// 7. GESER POSISI LAYANAN
 function geserPosisiLayanan(id, direction) {
   if (!window.allLayananCache || window.allLayananCache.length === 0) return;
 
@@ -319,9 +304,7 @@ function geserPosisiLayanan(id, direction) {
   renderLayananPOS();
 }
 
-// ==========================================
-// 8. MODAL DINAMIS EDIT LAYANAN & HAPUS
-// ==========================================
+// 8. MODAL EDIT LAYANAN
 function bukaModalEditLayanan(id) {
   const item = (window.allLayananCache || []).find(l => l.id === id);
   if (!item) return;
@@ -330,12 +313,12 @@ function bukaModalEditLayanan(id) {
   if (!modalEdit) {
     modalEdit = document.createElement('div');
     modalEdit.id = 'modal-edit-layanan';
-    modalEdit.className = 'fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[10000] flex items-center justify-center p-4 hidden';
+    modalEdit.className = 'fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100000] flex items-center justify-center p-4 hidden';
     document.body.appendChild(modalEdit);
   }
 
   modalEdit.innerHTML = `
-    <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl space-y-4 border border-slate-100 animate-in fade-in zoom-in duration-200">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl space-y-4 border border-slate-100">
       <div class="flex justify-between items-center border-b pb-3 border-slate-100">
         <h3 class="font-extrabold text-slate-800 text-sm">Edit Layanan</h3>
         <button type="button" onclick="tutupModalEditLayanan()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-bold hover:bg-slate-200 transition">✕</button>
@@ -431,7 +414,7 @@ async function simpanPerubahanLayanan(e, id) {
   }
 }
 
-// 9. SIMPAN LAYANAN BARU (MASTER FORM)
+// 9. SIMPAN LAYANAN BARU
 async function prosesSimpanLayananBaru(e) {
   if (e && e.preventDefault) e.preventDefault();
 
@@ -499,7 +482,7 @@ async function prosesSimpanLayananBaru(e) {
   }
 }
 
-// 10. HAPUS LAYANAN DARI DATABASE
+// 10. HAPUS LAYANAN
 async function hapusLayananBaru(id) {
   if (!confirm('Yakin ingin menghapus layanan ini secara permanen?')) return;
 
@@ -521,19 +504,18 @@ async function hapusLayananBaru(id) {
 }
 
 // ==========================================
-// 11. BUKA MODAL LAYANAN & MULTI-ITEM KERANJANG POS
+// 11. BUKA MODAL & KERANJANG POS MULTI-ITEM (TANPA MACET)
 // ==========================================
 function bukaModalPilihLayanan() {
-  console.log("-> Membuka Modal Pilih Layanan (Z-Index High)...");
+  console.log("-> Buka Modal Pilih Layanan...");
 
   let modal = document.getElementById('modal-layanan') 
            || document.getElementById('modal-pilih-layanan')
            || document.querySelector('.modal-layanan');
 
   if (modal) {
-    // Paksa Z-Index tertinggi agar tampil di depan modal transaksi
-    modal.style.zIndex = '99999';
-    modal.classList.add('z-[99999]');
+    modal.style.zIndex = '999999';
+    modal.classList.add('z-[999999]');
 
     modal.classList.remove('hidden');
     modal.classList.add('flex');
@@ -546,7 +528,7 @@ function bukaModalPilihLayanan() {
 }
 
 function pilihLayananKeKeranjang(id, nama, harga, satuan) {
-  console.log("-> Memilih layanan ke keranjang:", nama);
+  console.log("-> Menambahkan ke keranjang:", nama);
 
   if (!window.keranjangPOS) window.keranjangPOS = [];
 
@@ -570,7 +552,7 @@ function pilihLayananKeKeranjang(id, nama, harga, satuan) {
     showToast(`"${nama}" ditambahkan!`, 'success');
   }
 
-  // Sembunyikan HANYA modal pilihan layanan
+  // Sembunyikan Modal Pilih Layanan
   const modalLayanan = document.getElementById('modal-layanan') || document.getElementById('modal-pilih-layanan');
   if (modalLayanan) {
     modalLayanan.classList.add('hidden');
@@ -578,10 +560,11 @@ function pilihLayananKeKeranjang(id, nama, harga, satuan) {
     modalLayanan.style.display = 'none';
   }
 
+  // Render Ulang Keranjang Transaksi
   renderKeranjangPOS();
 }
 
-// 12. CARI KONTRAINER KERANJANG SECARA AKURAT
+// 12. PENCARI CONTAINER KERANJANG PRESISI
 function getCartContainer() {
   let container = document.getElementById('cart-items-container') 
                || document.querySelector('[data-cart-container="true"]');
@@ -614,7 +597,6 @@ function renderKeranjangPOS() {
       container.innerHTML = items.map((item, index) => {
         const sat = (item.satuan || 'Kg').toLowerCase().trim();
         const isKiloan = sat === 'kg' || sat === 'kilo' || sat === 'kiloan';
-        const stepVal = isKiloan ? "0.01" : "1";
         const currentQty = parseFloat(item.qty) || 0;
         const subtotal = (item.harga || 0) * currentQty;
 
@@ -626,7 +608,7 @@ function renderKeranjangPOS() {
             </div>
 
             <div class="flex items-center gap-2.5 shrink-0">
-              <!-- INPUT QTY BISA DIKETIK MANUAL & TIMBANGAN DESIMAL -->
+              <!-- INPUT QTY DESIMAL TIMBANGAN -->
               <div class="flex items-center bg-slate-50 border border-slate-200 rounded-xl p-0.5">
                 <button type="button" onclick="ubahQtyKeranjang(${index}, -${isKiloan ? 0.5 : 1})" class="w-6 h-6 bg-white hover:bg-slate-200 rounded-lg text-slate-700 font-bold text-xs flex items-center justify-center active:scale-90 transition">-</button>
                 
@@ -641,7 +623,7 @@ function renderKeranjangPOS() {
                 <button type="button" onclick="ubahQtyKeranjang(${index}, ${isKiloan ? 0.5 : 1})" class="w-6 h-6 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg font-bold text-xs flex items-center justify-center active:scale-90 transition">+</button>
               </div>
 
-              <!-- SUB TOTAL PER ITEM -->
+              <!-- SUB TOTAL -->
               <p class="font-black text-slate-800 text-xs min-w-[75px] text-right">
                 Rp ${Math.round(subtotal).toLocaleString('id-ID')}
               </p>
@@ -658,7 +640,7 @@ function renderKeranjangPOS() {
   hitungsDanUpdateTotalPrice();
 }
 
-// 14. UPDATE QTY DARI INPUT KETIK MANUAL
+// 14. UPDATE QTY DARI KETIK MANUAL
 function updateQtyManual(index, val) {
   if (!window.keranjangPOS || !window.keranjangPOS[index]) return;
 
@@ -693,7 +675,7 @@ function hapusItemKeranjang(index) {
   renderKeranjangPOS();
 }
 
-// 17. KALKULASI TOTAL PRICE REALTIME
+// 17. HITUNG TOTAL PRICE REALTIME
 function hitungsDanUpdateTotalPrice() {
   const items = window.keranjangPOS || [];
   let total = 0;
@@ -725,7 +707,7 @@ function hitungsDanUpdateTotalPrice() {
 }
 
 // ==========================================
-// 18. EVENT LISTENERS AUTOMATIS & SEARCH
+// 18. EVENT LISTENERS AUTOMATIS
 // ==========================================
 document.addEventListener('input', function(e) {
   const target = e.target;
@@ -759,7 +741,7 @@ document.addEventListener('click', function(e) {
 });
 
 // ==========================================
-// 19. REGISTRASI GLOBAL WINDOW SCOPE
+// 19. REGISTRASI GLOBAL WINDOW
 // ==========================================
 window.toggleAccordion = toggleAccordion;
 window.toggleFormTambahKasir = toggleFormTambahKasir;
