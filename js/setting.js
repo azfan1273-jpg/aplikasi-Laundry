@@ -654,7 +654,10 @@ function getCartContainer() {
   return null;
 }
 
-// RENDER ITEM KERANJANG DI MODAL ORDER
+// ==========================================
+// RENDER KERANJANG DENGAN INPUT QTY DESIMAL (2 ANGKA DIBELAKANG KOMA)
+// ==========================================
+
 function renderKeranjangPOS() {
   const container = getCartContainer();
   const items = window.keranjangPOS || [];
@@ -663,31 +666,47 @@ function renderKeranjangPOS() {
     if (items.length === 0) {
       container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4 italic">Belum ada layanan yang ditambahkan.</p>';
     } else {
-      container.innerHTML = items.map((item, index) => `
-        <div class="p-3 bg-white rounded-2xl border border-slate-200 flex items-center justify-between text-xs mb-2 shadow-sm">
-          <div class="truncate mr-2">
-            <p class="font-extrabold text-slate-800 text-xs truncate">${item.nama_layanan}</p>
-            <p class="text-[10px] text-slate-400 mt-0.5">Rp ${(item.harga || 0).toLocaleString('id-ID')} / ${item.satuan}</p>
-          </div>
+      container.innerHTML = items.map((item, index) => {
+        // Tentukan kelipatan step: Kiloan bisa 0.1 atau 0.01, Satuan angka bulat 1
+        const sat = (item.satuan || 'Kg').toLowerCase().trim();
+        const isKiloan = sat === 'kg' || sat === 'kilo' || sat === 'kiloan';
+        const stepVal = isKiloan ? "0.01" : "1";
 
-          <div class="flex items-center gap-2.5 shrink-0">
-            <!-- PENGATUR QTY / JUMLAH -->
-            <div class="flex items-center bg-slate-50 border border-slate-200 rounded-xl p-0.5">
-              <button type="button" onclick="ubahQtyKeranjang(${index}, -1)" class="w-6 h-6 bg-white hover:bg-slate-200 rounded-lg text-slate-700 font-bold text-xs flex items-center justify-center active:scale-90 transition">-</button>
-              <span class="px-2 font-black text-xs text-slate-800">${item.qty}</span>
-              <button type="button" onclick="ubahQtyKeranjang(${index}, 1)" class="w-6 h-6 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg font-bold text-xs flex items-center justify-center active:scale-90 transition">+</button>
+        return `
+          <div class="p-3 bg-white rounded-2xl border border-slate-200 flex items-center justify-between text-xs mb-2 shadow-sm">
+            <div class="truncate mr-2">
+              <p class="font-extrabold text-slate-800 text-xs truncate">${item.nama_layanan}</p>
+              <p class="text-[10px] text-slate-400 mt-0.5">Rp ${(item.harga || 0).toLocaleString('id-ID')} / ${item.satuan}</p>
             </div>
 
-            <!-- SUB TOTAL ITEM -->
-            <p class="font-black text-slate-800 text-xs min-w-[65px] text-right">
-              Rp ${((item.harga || 0) * (item.qty || 1)).toLocaleString('id-ID')}
-            </p>
+            <div class="flex items-center gap-2.5 shrink-0">
+              <!-- INPUT QTY DESIMAL & BISA DIKETIK MANUAL -->
+              <div class="flex items-center bg-slate-50 border border-slate-200 rounded-xl p-0.5">
+                <button type="button" onclick="ubahQtyKeranjang(${index}, -${isKiloan ? 0.5 : 1})" class="w-6 h-6 bg-white hover:bg-slate-200 rounded-lg text-slate-700 font-bold text-xs flex items-center justify-center active:scale-90 transition">-</button>
+                
+                <input 
+                  type="number" 
+                  step="${stepVal}" 
+                  min="0.01" 
+                  value="${parseFloat(item.qty || 1)}" 
+                  oninput="updateQtyManual(${index}, this.value)"
+                  class="w-14 text-center font-black text-xs text-slate-800 bg-transparent outline-none p-0 focus:text-blue-600"
+                />
 
-            <!-- HAPUS ITEM -->
-            <button type="button" onclick="hapusItemKeranjang(${index})" class="text-rose-400 hover:text-rose-600 font-bold text-xs p-1">✕</button>
+                <button type="button" onclick="ubahQtyKeranjang(${index}, ${isKiloan ? 0.5 : 1})" class="w-6 h-6 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg font-bold text-xs flex items-center justify-center active:scale-90 transition">+</button>
+              </div>
+
+              <!-- SUB TOTAL ITEM -->
+              <p class="font-black text-slate-800 text-xs min-w-[70px] text-right">
+                Rp ${((item.harga || 0) * (parseFloat(item.qty) || 0)).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+              </p>
+
+              <!-- HAPUS ITEM -->
+              <button type="button" onclick="hapusItemKeranjang(${index})" class="text-rose-400 hover:text-rose-600 font-bold text-xs p-1">✕</button>
+            </div>
           </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
     }
   }
 
@@ -695,37 +714,49 @@ function renderKeranjangPOS() {
   hitungsDanUpdateTotalPrice();
 }
 
-// UBAH QTY ITEM KERANJANG
+// FUNGSI UPDATE QTY DARI INPUT MANUAL KETIK
+function updateQtyManual(index, val) {
+  if (!window.keranjangPOS || !window.keranjangPOS[index]) return;
+
+  let numVal = parseFloat(val);
+  if (isNaN(numVal) || numVal < 0) numVal = 0;
+
+  window.keranjangPOS[index].qty = numVal;
+
+  // Update Total Price tanpa merender ulang DOM input biar cursor tidak hilang saat mengetik
+  hitungsDanUpdateTotalPrice();
+}
+
+// FUNGSI GESER TOMBOL + / -
 function ubahQtyKeranjang(index, delta) {
   if (!window.keranjangPOS || !window.keranjangPOS[index]) return;
 
-  window.keranjangPOS[index].qty = (window.keranjangPOS[index].qty || 1) + delta;
+  let currentQty = parseFloat(window.keranjangPOS[index].qty) || 0;
+  let newQty = currentQty + delta;
 
-  if (window.keranjangPOS[index].qty <= 0) {
+  if (newQty <= 0) {
     window.keranjangPOS.splice(index, 1);
+  } else {
+    // Bulatkan ke 2 desimal
+    window.keranjangPOS[index].qty = Math.round(newQty * 100) / 100;
   }
 
   renderKeranjangPOS();
 }
 
-// HAPUS ITEM DARI KERANJANG
-function hapusItemKeranjang(index) {
-  if (!window.keranjangPOS) return;
-  window.keranjangPOS.splice(index, 1);
-  renderKeranjangPOS();
-}
-
-// HITUNG TOTAL HARGA DAN UPDATE KE UI
+// HITUNG TOTAL HARGA
 function hitungsDanUpdateTotalPrice() {
   const items = window.keranjangPOS || [];
   let total = 0;
 
   items.forEach(item => {
-    total += (item.harga || 0) * (item.qty || 1);
+    const q = parseFloat(item.qty) || 0;
+    const h = parseFloat(item.harga) || 0;
+    total += q * h;
   });
 
-  window.totalHargaPOS = total;
-  const formattedTotal = 'Rp ' + total.toLocaleString('id-ID');
+  window.totalHargaPOS = Math.round(total);
+  const formattedTotal = 'Rp ' + window.totalHargaPOS.toLocaleString('id-ID');
 
   // Update elemen ID langsung
   const totalPriceEl = document.getElementById('total-price-pos') || document.getElementById('total_harga');
@@ -748,11 +779,10 @@ function hitungsDanUpdateTotalPrice() {
   });
 }
 
-// REGISTER GLOBAL WINDOW
-window.pilihLayananKeKeranjang = pilihLayananKeKeranjang;
+// Register Global Window
+window.updateQtyManual = updateQtyManual;
 window.renderKeranjangPOS = renderKeranjangPOS;
 window.ubahQtyKeranjang = ubahQtyKeranjang;
-window.hapusItemKeranjang = hapusItemKeranjang;
 window.hitungsDanUpdateTotalPrice = hitungsDanUpdateTotalPrice;
 
 // FUNGSI UTAMA: SIMPAN LAYANAN BARU
