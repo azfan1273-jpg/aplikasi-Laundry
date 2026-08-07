@@ -296,145 +296,175 @@ async function renderLayananPOS(keyword = '') {
 }
 
 // ==========================================
-// MODAL DYNAMIC: EDIT & HAPUS LAYANAN
+// RENDER DAFTAR LAYANAN (DENGAN LIVE FILTER & DUA GRUP)
 // ==========================================
+async function renderLayananPOS(keyword = '') {
+  console.log("-> Filtering layanan dengan kata kunci:", keyword);
 
-function bukaModalEditLayanan(id) {
-  const item = (window.allLayananCache || []).find(l => l.id === id);
-  if (!item) return;
+  let container = document.getElementById('list-layanan-container')
+               || document.querySelector('#modal-layanan .scroll-area')
+               || document.querySelector('#modal-layanan .space-y-2');
 
-  let modalEdit = document.getElementById('modal-edit-layanan');
-
-  // Buat modal dinamis jika belum ada di HTML
-  if (!modalEdit) {
-    modalEdit = document.createElement('div');
-    modalEdit.id = 'modal-edit-layanan';
-    modalEdit.className = 'fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 hidden';
-    document.body.appendChild(modalEdit);
+  if (!container) {
+    const allP = document.querySelectorAll('#modal-layanan p, #modal-layanan div');
+    allP.forEach(el => {
+      if (el.textContent.includes('Memuat layanan')) {
+        container = el.parentElement;
+      }
+    });
   }
 
-  modalEdit.innerHTML = `
-    <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl space-y-4 border border-slate-100 animate-in fade-in zoom-in duration-200">
-      <div class="flex justify-between items-center border-b pb-3 border-slate-100">
-        <h3 class="font-extrabold text-slate-800 text-sm">Edit Layanan</h3>
-        <button type="button" onclick="tutupModalEditLayanan()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-bold hover:bg-slate-200 transition">✕</button>
+  if (!container) return;
+
+  const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
+  if (!client) return;
+
+  try {
+    let query = client.from('layanan').select('*');
+    let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) ? currentToko.id : localStorage.getItem('toko_id');
+    if (tokoId) {
+      query = query.eq('toko_id', tokoId);
+    }
+
+    const { data: listLayanan, error } = await query;
+    if (error) throw error;
+
+    let rawData = listLayanan || [];
+
+    // BACA URUTAN TERSIMPAN DARI LOCALSTORAGE
+    const savedOrderJson = localStorage.getItem('layanan_custom_order');
+    if (savedOrderJson) {
+      try {
+        const savedOrderIds = JSON.parse(savedOrderJson);
+        rawData.sort((a, b) => {
+          let indexA = savedOrderIds.indexOf(a.id);
+          let indexB = savedOrderIds.indexOf(b.id);
+          if (indexA === -1) indexA = 999;
+          if (indexB === -1) indexB = 999;
+          return indexA - indexB;
+        });
+      } catch (e) {
+        console.warn("Gagal parse saved order:", e);
+      }
+    } else {
+      rawData.sort((a, b) => b.id - a.id);
+    }
+
+    window.allLayananCache = rawData;
+
+    // 1. FILTER REALTIME BERDASARKAN KATA KUNCI PENCARIAN
+    let filtered = window.allLayananCache;
+    if (keyword && keyword.trim() !== '') {
+      const cleanKey = keyword.trim().toLowerCase();
+      filtered = filtered.filter(item => 
+        (item.nama_layanan || '').toLowerCase().includes(cleanKey)
+      );
+    }
+
+    // 2. MEMISAHKAN LAYANAN TERFILTER MENJADI 2 GRUP
+    const listKiloan = filtered.filter(item => {
+      const sat = (item.satuan || 'kg').toLowerCase().trim();
+      return sat === 'kg' || sat === 'kilo' || sat === 'kiloan';
+    });
+
+    const listSatuan = filtered.filter(item => {
+      const sat = (item.satuan || 'kg').toLowerCase().trim();
+      return sat !== 'kg' && sat !== 'kilo' && sat !== 'kiloan';
+    });
+
+    // TEMPLATE ITEM SINGLE
+    const renderSingleItem = (item) => `
+      <div data-id="${item.id}" class="layanan-item p-2.5 bg-white rounded-xl border border-slate-100 text-xs flex justify-between items-center hover:border-blue-300 transition-all">
+        <div class="flex items-center gap-2">
+          <!-- TOMBOL REORDER -->
+          <div class="flex flex-col gap-0.5">
+            <button type="button" onclick="geserPosisiLayanan(${item.id}, 'up')" class="w-5 h-4 bg-slate-100 hover:bg-blue-100 text-slate-600 hover:text-blue-600 rounded flex items-center justify-center font-bold text-[9px] active:scale-90 transition">
+              ▲
+            </button>
+            <button type="button" onclick="geserPosisiLayanan(${item.id}, 'down')" class="w-5 h-4 bg-slate-100 hover:bg-blue-100 text-slate-600 hover:text-blue-600 rounded flex items-center justify-center font-bold text-[9px] active:scale-90 transition">
+              ▼
+            </button>
+          </div>
+
+          <div>
+            <p class="font-extrabold text-slate-800 text-xs">${item.nama_layanan}</p>
+            <p class="text-[10px] text-slate-400 mt-0.5">
+              Rp ${(item.harga || 0).toLocaleString('id-ID')} / ${item.satuan || 'Kg'} • Est: ${item.estimasi_hari || 1} Hari
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-1.5">
+          <button type="button" onclick="pilihLayananKeKeranjang(${item.id}, '${item.nama_layanan}', ${item.harga}, '${item.satuan}')" class="bg-blue-600 text-white font-bold text-[11px] px-3 py-1.5 rounded-xl shadow-sm hover:bg-blue-700 active:scale-95 transition">
+            + Pilih
+          </button>
+          <button type="button" onclick="bukaModalEditLayanan(${item.id})" class="text-slate-600 hover:text-blue-600 font-bold text-[11px] bg-slate-100 hover:bg-blue-50 px-2 py-1.5 rounded-xl transition" title="Edit Layanan">
+            ✏️
+          </button>
+        </div>
       </div>
+    `;
 
-      <form onsubmit="simpanPerubahanLayanan(event, ${item.id})" class="space-y-3 text-xs">
-        <div>
-          <label class="font-bold text-slate-600 mb-1 block">Nama Layanan</label>
-          <input type="text" id="edit_nama_layanan" value="${item.nama_layanan || ''}" class="w-full p-3 border border-slate-200 rounded-xl font-bold outline-none focus:border-blue-500" required />
-        </div>
+    let htmlOutput = '';
 
-        <div class="grid grid-cols-2 gap-2">
-          <div>
-            <label class="font-bold text-slate-600 mb-1 block">Harga (Rp)</label>
-            <input type="number" id="edit_harga_layanan" value="${item.harga || 0}" class="w-full p-3 border border-slate-200 rounded-xl font-bold outline-none focus:border-blue-500" required />
+    // GRUP 1: LAYANAN KILOAN
+    if (listKiloan.length > 0) {
+      htmlOutput += `
+        <div class="p-3 bg-slate-50/80 rounded-2xl border-2 border-slate-200/80 mb-4 space-y-2">
+          <div class="flex items-center gap-1.5 pb-1 border-b border-slate-200">
+            <span class="text-sm">🧺</span>
+            <h4 class="font-black text-xs text-slate-700 tracking-wide uppercase">Layanan Kiloan (${listKiloan.length})</h4>
           </div>
-          <div>
-            <label class="font-bold text-slate-600 mb-1 block">Satuan</label>
-            <select id="edit_satuan_layanan" class="w-full p-3 border border-slate-200 rounded-xl font-bold outline-none focus:border-blue-500 bg-white">
-              <option value="Kg" ${item.satuan === 'Kg' ? 'selected' : ''}>Kg</option>
-              <option value="Pcs" ${item.satuan === 'Pcs' ? 'selected' : ''}>Pcs</option>
-              <option value="Meter" ${item.satuan === 'Meter' ? 'selected' : ''}>Meter</option>
-              <option value="Pasang" ${item.satuan === 'Pasang' ? 'selected' : ''}>Pasang</option>
-            </select>
+          <div class="space-y-2">
+            ${listKiloan.map(renderSingleItem).join('')}
           </div>
         </div>
-
-        <div>
-          <label class="font-bold text-slate-600 mb-1 block">Estimasi Selesai (Hari)</label>
-          <input type="number" step="0.1" id="edit_estimasi_hari" value="${item.estimasi_hari || 1}" class="w-full p-3 border border-slate-200 rounded-xl font-bold outline-none focus:border-blue-500" required />
-        </div>
-
-        <div class="pt-2 flex gap-2">
-          <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-3 rounded-xl shadow-md active:scale-95 transition">
-            Simpan Perubahan
-          </button>
-          <button type="button" onclick="hapusLayananBaru(${item.id})" class="bg-rose-50 hover:bg-rose-100 text-rose-600 font-extrabold px-3 py-3 rounded-xl transition" title="Hapus Permanen">
-            🗑️ Hapus
-          </button>
-        </div>
-      </form>
-    </div>
-  `;
-
-  modalEdit.classList.remove('hidden');
-}
-
-function tutupModalEditLayanan() {
-  const modalEdit = document.getElementById('modal-edit-layanan');
-  if (modalEdit) {
-    modalEdit.classList.add('hidden');
-  }
-}
-
-async function simpanPerubahanLayanan(e, id) {
-  if (e && e.preventDefault) e.preventDefault();
-
-  const nama = document.getElementById('edit_nama_layanan')?.value?.trim();
-  const harga = parseFloat(document.getElementById('edit_harga_layanan')?.value) || 0;
-  const satuan = document.getElementById('edit_satuan_layanan')?.value || 'Kg';
-  const estimasi = parseFloat(document.getElementById('edit_estimasi_hari')?.value) || 1;
-
-  if (!nama || harga <= 0) {
-    alert('Harap isi Nama dan Harga Layanan yang valid!');
-    return;
-  }
-
-  const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
-  if (!client) return;
-
-  try {
-    const { error } = await client
-      .from('layanan')
-      .update({
-        nama_layanan: nama,
-        harga: harga,
-        satuan: satuan,
-        estimasi_hari: estimasi
-      })
-      .eq('id', id);
-
-    if (error) {
-      alert('Gagal memperbarui layanan: ' + error.message);
-      return;
+      `;
     }
 
-    if (typeof showToast === 'function') showToast('Layanan berhasil diperbarui!', 'success');
-    else alert('Layanan berhasil diperbarui!');
+    // GRUP 2: LAYANAN SATUAN
+    if (listSatuan.length > 0) {
+      htmlOutput += `
+        <div class="p-3 bg-slate-50/80 rounded-2xl border-2 border-slate-200/80 mb-2 space-y-2">
+          <div class="flex items-center gap-1.5 pb-1 border-b border-slate-200">
+            <span class="text-sm">👔</span>
+            <h4 class="font-black text-xs text-slate-700 tracking-wide uppercase">Layanan Satuan (${listSatuan.length})</h4>
+          </div>
+          <div class="space-y-2">
+            ${listSatuan.map(renderSingleItem).join('')}
+          </div>
+        </div>
+      `;
+    }
 
-    tutupModalEditLayanan();
-    renderLayananPOS();
+    if (!htmlOutput) {
+      htmlOutput = `<div class="text-center py-8 bg-slate-50 rounded-2xl border border-dashed border-slate-200"><p class="text-xs text-slate-400 font-bold">Layanan "${keyword}" tidak ditemukan.</p></div>`;
+    }
+
+    container.innerHTML = htmlOutput;
 
   } catch (err) {
-    console.error('Error simpanPerubahanLayanan:', err);
+    console.error('Error renderLayananPOS:', err);
+    if (container) container.innerHTML = '<p class="text-xs text-rose-500 text-center py-4">Gagal memuat daftar layanan.</p>';
   }
 }
 
-// Override hapusLayananBaru agar menutup modal edit otomatis
-const originalHapusLayananBaru = hapusLayananBaru;
-hapusLayananBaru = async function(id) {
-  if (!confirm('Yakin ingin menghapus layanan ini?')) return;
+// ==========================================
+// EVENT LISTENER SEARCH REALTIME INPUT
+// ==========================================
+document.addEventListener('input', function(e) {
+  const target = e.target;
+  if (!target) return;
 
-  const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
-  if (!client) return;
+  // Tangkap input pencarian layanan di modal
+  const placeholderText = (target.placeholder || '').toLowerCase();
+  const inputId = (target.id || '').toLowerCase();
 
-  try {
-    const { error } = await client.from('layanan').delete().eq('id', id);
-    if (error) {
-      alert('Gagal menghapus layanan: ' + error.message);
-      return;
-    }
-    if (typeof showToast === 'function') showToast('Layanan berhasil dihapus!', 'info');
-    else alert('Layanan berhasil dihapus!');
-
-    tutupModalEditLayanan();
-    renderLayananPOS();
-  } catch (err) {
-    console.error('Catch hapus layanan:', err);
+  if (placeholderText.includes('cari') || placeholderText.includes('layanan') || inputId.includes('search') || inputId.includes('cari')) {
+    const keyword = target.value;
+    renderLayananPOS(keyword);
   }
-};
+});
 
 // Register Window Scope Global
 window.bukaModalEditLayanan = bukaModalEditLayanan;
