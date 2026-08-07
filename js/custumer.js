@@ -46,9 +46,18 @@ async function renderPelangganPOS(keyword = '') {
 
     if (error) throw error;
 
-    window.allPelanggan = listPelanggan || [];
+    const { data: listPelanggan, error } = await query;
 
-    // Filter berdasarkan live search kata kunci
+    // 1. URUTKAN DATA SESUAI ALPHABET A-Z NAMA PELANGGAN
+    rawData.sort((a, b) => {
+      const namaA = (a.nama || a.nama_pelanggan || '').toLowerCase();
+      const namaB = (b.nama || b.nama_pelanggan || '').toLowerCase();
+      return namaA.localeCompare(namaB);
+    });
+
+    window.allPelanggan = rawData;
+
+    // 2. FILTER SEARCH KEYWORD
     let filtered = window.allPelanggan;
     if (keyword && keyword.trim() !== '') {
       const cleanKey = keyword.trim().toLowerCase();
@@ -62,6 +71,73 @@ async function renderPelangganPOS(keyword = '') {
       container.innerHTML = `<div class="text-center py-8"><p class="text-xs text-slate-400 font-bold">Pelanggan ${keyword ? '"' + keyword + '"' : ''} tidak ditemukan.</p></div>`;
       return;
     }
+
+    // 3. KELOMPOKKAN PELANGGAN BERDASARKAN HURUF PERTAMA (ALPHABET GROUPING)
+    const grouped = {};
+    filtered.forEach(p => {
+      const nama = (p.nama || p.nama_pelanggan || 'Pelanggan').trim();
+      const initial = nama.charAt(0).toUpperCase();
+      const letter = /[A-Z]/.test(initial) ? initial : '#';
+
+      if (!grouped[letter]) {
+        grouped[letter] = [];
+      }
+      grouped[letter].push(p);
+    });
+
+    // 4. RENDER HTML BERDASARKAN GRUP ALPHABET
+    let htmlOutput = '';
+
+    Object.keys(grouped).sort().forEach(letter => {
+      const pelList = grouped[letter];
+
+      htmlOutput += `
+        <div class="mb-3 space-y-2">
+          <!-- HEADER HURUF ALPHABET -->
+          <div class="flex items-center gap-2 px-1">
+            <div class="w-6 h-6 bg-blue-600 text-white font-black text-[11px] rounded-lg flex items-center justify-center shadow-sm">
+              ${letter}
+            </div>
+            <div class="h-[1px] flex-1 bg-slate-200"></div>
+          </div>
+
+          <!-- LIST PELANGGAN DI BAWAH HURUF -->
+          <div class="space-y-2">
+            ${pelList.map(item => {
+              const nama = item.nama || item.nama_pelanggan || 'Pelanggan';
+              const no_hp = item.no_hp || '-';
+
+              return `
+                <div onclick="selectCustomer(${item.id}, '${nama.replace(/'/g, "\\'")}', '${no_hp}')" class="p-3 bg-white hover:bg-blue-50/50 rounded-2xl border border-slate-200/80 flex items-center justify-between cursor-pointer active:scale-[0.98] transition shadow-sm hover:border-blue-300">
+                  <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-black text-xs shrink-0">
+                      ${nama.charAt(0).toUpperCase()}
+                    </div>
+                    <div class="truncate">
+                      <p class="font-extrabold text-slate-800 text-xs truncate">${nama}</p>
+                      <p class="text-[10px] text-slate-400 mt-0.5">HP: ${no_hp}</p>
+                    </div>
+                  </div>
+                  <button type="button" class="bg-blue-50 text-blue-600 font-extrabold text-[11px] px-3 py-1.5 rounded-xl hover:bg-blue-600 hover:text-white transition shrink-0">
+                    Pilih
+                  </button>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    });
+
+    container.innerHTML = htmlOutput;
+
+  } catch (err) {
+    console.error('Error renderPelangganPOS:', err);
+    if (container) {
+      container.innerHTML = '<p class="text-xs text-rose-500 text-center py-6">Gagal memuat data pelanggan.</p>';
+    }
+  }
+}
 
     // Render list pelanggan
     container.innerHTML = filtered.map(item => {
