@@ -564,21 +564,164 @@ function simpanUrutanLayanan(container) {
   console.log("Urutan posisi layanan baru disimpan:", orderIds);
 }
 
-// Fungsi Memilih Layanan ke Transaksi
+// ==========================================
+// KERANJANG TRANSAKSI POS & KALKULASI TOTAL
+// ==========================================
+
+window.keranjangPOS = window.keranjangPOS || [];
+
+// FUNGSI MEMILIH LAYANAN KE KERANJANG
 function pilihLayananKeKeranjang(id, nama, harga, satuan) {
-  if (typeof window.tambahKeKeranjang === 'function') {
-    window.tambahKeKeranjang({ id, nama_layanan: nama, harga, satuan, qty: 1 });
-  } else if (typeof window.selectLayanan === 'function') {
-    window.selectLayanan(id, nama, harga, satuan);
+  if (!window.keranjangPOS) window.keranjangPOS = [];
+
+  // Cek apakah layanan sudah ada di keranjang
+  const existingIndex = window.keranjangPOS.findIndex(item => item.id === id);
+
+  if (existingIndex !== -1) {
+    // Jika sudah ada, tambahkan qty + 1
+    window.keranjangPOS[existingIndex].qty = (window.keranjangPOS[existingIndex].qty || 1) + 1;
   } else {
-    if (typeof showToast === 'function') showToast(`Layanan ${nama} dipilih!`, 'success');
+    // Jika belum ada, masukkan item baru
+    window.keranjangPOS.push({
+      id: id,
+      nama_layanan: nama,
+      harga: parseFloat(harga) || 0,
+      satuan: satuan || 'Kg',
+      qty: 1
+    });
+  }
+
+  if (typeof showToast === 'function') {
+    showToast(`"${nama}" berhasil ditambahkan ke keranjang!`, 'success');
   }
 
   // Tutup Modal Pilih Layanan
   if (typeof closeModalPilihLayanan === 'function') {
     closeModalPilihLayanan();
+  } else {
+    const modalLayanan = document.getElementById('modal-layanan') || document.getElementById('modal-pilih-layanan');
+    if (modalLayanan) {
+      modalLayanan.classList.add('hidden');
+      modalLayanan.classList.remove('flex');
+    }
   }
+
+  // Render ulang Tampilan Keranjang & Total Price
+  renderKeranjangPOS();
 }
+
+// FUNGSI RENDER TAMPILAN KERANJANG DI MODAL BUAT ORDER
+function renderKeranjangPOS() {
+  const container = document.getElementById('cart-items-container')
+               || document.querySelector('#modal-order .scroll-area')
+               || document.querySelector('#modal-order .space-y-2')
+               || document.querySelector('div:has(> p:contains("Belum ada layanan"))');
+
+  // Fallback pencarian kontainer tempat teks "Belum ada layanan..."
+  let cartContainer = container;
+  if (!cartContainer) {
+    const allDivs = document.querySelectorAll('p, div');
+    allDivs.forEach(el => {
+      if (el.textContent.includes('Belum ada layanan')) {
+        cartContainer = el.parentElement;
+      }
+    });
+  }
+
+  const items = window.keranjangPOS || [];
+
+  if (cartContainer) {
+    if (items.length === 0) {
+      cartContainer.innerHTML = '<p class="text-xs text-slate-400 text-center py-4 italic">Belum ada layanan yang ditambahkan.</p>';
+    } else {
+      cartContainer.innerHTML = items.map((item, index) => `
+        <div class="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-center justify-between text-xs mb-2 shadow-sm">
+          <div class="truncate mr-2">
+            <p class="font-extrabold text-slate-800 text-xs truncate">${item.nama_layanan}</p>
+            <p class="text-[10px] text-slate-500 mt-0.5">Rp ${(item.harga || 0).toLocaleString('id-ID')} / ${item.satuan}</p>
+          </div>
+
+          <div class="flex items-center gap-3 shrink-0">
+            <!-- PENGATUR QTY / JUMLAH -->
+            <div class="flex items-center bg-white border border-slate-200 rounded-xl p-0.5">
+              <button type="button" onclick="ubahQtyKeranjang(${index}, -1)" class="w-6 h-6 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 font-bold text-xs flex items-center justify-center active:scale-90 transition">-</button>
+              <span class="px-2.5 font-black text-xs text-slate-800">${item.qty}</span>
+              <button type="button" onclick="ubahQtyKeranjang(${index}, 1)" class="w-6 h-6 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg font-bold text-xs flex items-center justify-center active:scale-90 transition">+</button>
+            </div>
+
+            <!-- SUB TOTAL ITEM -->
+            <p class="font-black text-slate-800 text-xs min-w-[70px] text-right">
+              Rp ${((item.harga || 0) * (item.qty || 1)).toLocaleString('id-ID')}
+            </p>
+
+            <!-- HAPUS ITEM -->
+            <button type="button" onclick="hapusItemKeranjang(${index})" class="text-rose-400 hover:text-rose-600 font-bold text-xs p-1">✕</button>
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+
+  // UBAH & KALKULASI TOTAL PRICE
+  hitungsDanUpdateTotalPrice();
+}
+
+// UBAH QTY ITEM KERANJANG
+function ubahQtyKeranjang(index, delta) {
+  if (!window.keranjangPOS || !window.keranjangPOS[index]) return;
+
+  window.keranjangPOS[index].qty = (window.keranjangPOS[index].qty || 1) + delta;
+
+  if (window.keranjangPOS[index].qty <= 0) {
+    window.keranjangPOS.splice(index, 1);
+  }
+
+  renderKeranjangPOS();
+}
+
+// HAPUS ITEM DARI KERANJANG
+function hapusItemKeranjang(index) {
+  if (!window.keranjangPOS) return;
+  window.keranjangPOS.splice(index, 1);
+  renderKeranjangPOS();
+}
+
+// KALKULASI HITUNG TOTAL PRICE
+function hitungsDanUpdateTotalPrice() {
+  const items = window.keranjangPOS || [];
+  let total = 0;
+
+  items.forEach(item => {
+    total += (item.harga || 0) * (item.qty || 1);
+  });
+
+  // Cari label Total Price di UI
+  const allElements = document.querySelectorAll('p, div, span, h3, h4');
+  allElements.forEach(el => {
+    const txt = el.textContent.trim().toLowerCase();
+    if (txt === 'total price' || txt === 'total' || txt.includes('total bayar')) {
+      const targetVal = el.nextElementSibling || el.parentElement.querySelector('.text-lg, .font-black, .font-extrabold');
+      if (targetVal) {
+        targetVal.textContent = 'Rp ' + total.toLocaleString('id-ID');
+      }
+    }
+  });
+
+  // Fallback ID langsung jika ada
+  const totalPriceEl = document.getElementById('total-price-pos') || document.getElementById('total_harga');
+  if (totalPriceEl) {
+    totalPriceEl.textContent = 'Rp ' + total.toLocaleString('id-ID');
+  }
+
+  window.totalHargaPOS = total;
+}
+
+// Register Global Scope Window
+window.pilihLayananKeKeranjang = pilihLayananKeKeranjang;
+window.renderKeranjangPOS = renderKeranjangPOS;
+window.ubahQtyKeranjang = ubahQtyKeranjang;
+window.hapusItemKeranjang = hapusItemKeranjang;
+window.hitungsDanUpdateTotalPrice = hitungsDanUpdateTotalPrice;
 
 // FUNGSI UTAMA: SIMPAN LAYANAN BARU
 async function prosesSimpanLayananBaru(e) {
