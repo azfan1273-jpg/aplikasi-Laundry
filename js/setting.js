@@ -571,23 +571,9 @@ function pilihLayananKeKeranjang(id, nama, harga, satuan) {
 
 // 13. PENCARI CONTAINER KERANJANG
 function getCartContainer() {
-  let container = document.getElementById('cart-items-container') 
-               || document.querySelector('[data-cart-container="true"]');
-  if (container) return container;
-
-  const elements = Array.from(document.querySelectorAll('p, span, div, section'));
-  for (let el of elements) {
-    if (el.children.length === 0 && el.textContent.toLowerCase().includes('belum ada layanan')) {
-      container = el.parentElement;
-      if (container) {
-        container.setAttribute('data-cart-container', 'true');
-        container.id = 'cart-items-container';
-        return container;
-      }
-    }
-  }
-
-  return null;
+  return document.getElementById('cartItemsContainer') 
+      || document.getElementById('cart-items-container') 
+      || document.querySelector('[data-cart-container="true"]');
 }
 
 // 14. UPDATE QTY KETIK MANUAL
@@ -733,50 +719,9 @@ document.addEventListener('click', function(e) {
 // ==========================================
 
 function paksaHitungTotalPriceDOM() {
-  let total = 0;
-
-  const container = getCartContainer();
-  if (container) {
-    const allSubtotals = container.querySelectorAll('.subtotal-item-val, .font-black.text-slate-800');
-    allSubtotals.forEach(el => {
-      const txt = el.textContent || '';
-      if (txt.includes('Rp')) {
-        const num = parseFloat(txt.replace(/[^0-9]/g, '')) || 0;
-        if (num > 0) total += num;
-      }
-    });
+  if (typeof window.hitungTotalPOSApp === 'function') {
+    window.hitungTotalPOSApp();
   }
-
-  if (total === 0 && window.keranjangPOS && window.keranjangPOS.length > 0) {
-    window.keranjangPOS.forEach(item => {
-      let q = parseFloat(String(item.qty).replace(',', '.')) || 0;
-      let h = parseFloat(String(item.harga).replace(/[^0-9.]/g, '')) || 0;
-      total += (q * h);
-    });
-  }
-
-  window.totalHargaPOS = Math.round(total);
-  const formattedTotal = 'Rp ' + window.totalHargaPOS.toLocaleString('id-ID');
-
-  ['total-price-pos', 'total_harga', 'totalPrice', 'grand-total', 'total-bayar'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = formattedTotal;
-  });
-
-  const allElements = document.querySelectorAll('p, div, span, h3, h4');
-  allElements.forEach(el => {
-    if (el.children.length === 0 && (el.textContent || '').trim().toUpperCase() === 'TOTAL PRICE') {
-      const parent = el.parentElement;
-      if (parent) {
-        const priceVal = parent.querySelector('p:not(:first-child), div:not(:first-child), span:not(:first-child), .text-lg, .font-black, .font-bold, h3, h4') 
-                      || el.nextElementSibling;
-        
-        if (priceVal && priceVal !== el) {
-          priceVal.textContent = formattedTotal;
-        }
-      }
-    }
-  });
 }
 
 let priceObserver = null;
