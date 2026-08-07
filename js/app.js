@@ -285,11 +285,11 @@ function handleTambahLayanan(e) {
     modalLayanan.classList.add('flex');
   }
   
-  if (typeof openModalPilihLayanan === 'function') {
-    try { openModalPilihLayanan(); } catch (err) { console.log(err); }
-  }
+  // Panggil fungsi pemuat data layanan
   if (typeof renderLayananPOS === 'function') {
-    try { renderLayananPOS(); } catch (err) { console.log(err); }
+    renderLayananPOS();
+  } else if (typeof openModalPilihLayanan === 'function') {
+    openModalPilihLayanan();
   }
 }
 
@@ -414,13 +414,12 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==========================================
-// AUTOMATIC TOTAL PRICE CALCULATOR (AMAN/RINGAN)
+// AUTOMATIC TOTAL PRICE CALCULATOR
 // ==========================================
 
 function hitungTotalPOSApp() {
   let total = 0;
 
-  // 1. Hitung langsung dari Array keranjangPOS jika ada
   if (window.keranjangPOS && window.keranjangPOS.length > 0) {
     window.keranjangPOS.forEach(item => {
       let q = parseFloat(String(item.qty).replace(',', '.')) || 0;
@@ -428,7 +427,6 @@ function hitungTotalPOSApp() {
       total += (q * h);
     });
   } else {
-    // Fallback: hitung dari DOM jika array belum terisi
     const modalOrder = document.getElementById('modal-order') 
                     || document.getElementById('modalPOS') 
                     || document.getElementById('modal-transaksi')
@@ -452,7 +450,6 @@ function hitungTotalPOSApp() {
 
   const formattedTotal = 'Rp ' + Math.round(total).toLocaleString('id-ID');
 
-  // 2. Update langsung ke ID target tanpa loop observer
   const targetIds = ['totalPricePOS', 'total-price-pos', 'total_harga', 'totalPrice', 'grand-total', 'total-bayar'];
   targetIds.forEach(id => {
     const el = document.getElementById(id);
@@ -461,7 +458,6 @@ function hitungTotalPOSApp() {
     }
   });
 
-  // Fallback update elemen berdasarkan label TOTAL PRICE
   const priceElements = document.querySelectorAll('p, span, div');
   priceElements.forEach(el => {
     if (el.children.length === 0 && el.textContent.trim().toUpperCase() === 'TOTAL PRICE') {
@@ -476,7 +472,6 @@ function hitungTotalPOSApp() {
   });
 }
 
-// Dengar event interaksi tanpa pemicu perulangan otomatis
 document.addEventListener('click', () => setTimeout(hitungTotalPOSApp, 50));
 document.addEventListener('input', () => setTimeout(hitungTotalPOSApp, 50));
 
