@@ -380,6 +380,8 @@ async function simpanOrderPOS() {
       berat_atau_jumlah: totalQty,
       total_harga: Math.round(totalHarga),
       status_pembayaran: 'Belum Lunas'
+      parfum: document.getElementById('pos_parfum')?.value || 'Standard',
+      catatan: document.getElementById('pos_catatan')?.value?.trim() || ''
     };
 
     if (userId) payload.user_id = userId;
@@ -405,6 +407,8 @@ async function simpanOrderPOS() {
     // Reset Form Modal POS
     window.keranjangPOS = [];
     window.selectedPelanggan = null;
+    if (document.getElementById('pos_catatan')) document.getElementById('pos_catatan').value = '';
+    if (document.getElementById('pos_parfum')) document.getElementById('pos_parfum').value = 'Standard';
     
     const customerLabel = document.getElementById('selectedCustomerName');
     if (customerLabel) {
