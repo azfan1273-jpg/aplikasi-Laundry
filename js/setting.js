@@ -774,21 +774,6 @@ function paksaHitungTotalPriceDOM() {
   });
 }
 
-let priceObserver = null;
-function startTotalPriceObserver() {
-  if (priceObserver) return;
-
-  priceObserver = new MutationObserver(() => {
-    paksaHitungTotalPriceDOM();
-  });
-
-  priceObserver.observe(document.body, {
-    childList: true,
-    subtree: true,
-    characterData: true
-  });
-}
-
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     startTotalPriceObserver();
