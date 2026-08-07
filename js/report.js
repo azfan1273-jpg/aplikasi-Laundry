@@ -651,3 +651,45 @@ function updateProgressTargetOmset() {
 // Daftarkan ke scope Global
 window.simpanTargetOmset = simpanTargetOmset;
 window.updateProgressTargetOmset = updateProgressTargetOmset;
+
+// ==========================================
+// FIX: KONTROL TOMBOL KEMBALI & SILANG MODAL LAPORAN
+// ==========================================
+function paksaTutupModalLaporan() {
+  const modalLaporan = document.getElementById('modal-detail-laporan') 
+                    || document.getElementById('modal-sub-report')
+                    || document.getElementById('modal-report');
+
+  if (modalLaporan) {
+    modalLaporan.classList.add('hidden');
+    modalLaporan.classList.remove('flex');
+    modalLaporan.style.display = 'none';
+  }
+
+  if (typeof closeModalWithHistory === 'function') {
+    closeModalWithHistory('modal-detail-laporan');
+  }
+}
+
+// HANDLER CLICK AUTOMATIS UNTUK PANAH (←) DAN SILANG (✕)
+document.addEventListener('click', function(e) {
+  const target = e.target;
+  if (!target) return;
+
+  // Cek teks tombol atau elemen panah kembali
+  const textContent = (target.textContent || '').trim();
+  const isBackArrow = textContent === '←' || textContent.includes('←') || target.closest('.btn-back-report');
+  const isCloseBtn = textContent === '✕' || textContent === 'x' || textContent === 'X';
+
+  // Jika diklik di dalam modal laporan
+  const inReportModal = target.closest('#modal-detail-laporan') || target.closest('.modal-laporan');
+
+  if (inReportModal && (isBackArrow || isCloseBtn)) {
+    e.preventDefault();
+    e.stopPropagation();
+    paksaTutupModalLaporan();
+  }
+});
+
+// Daftarkan ke scope Global
+window.paksaTutupModalLaporan = paksaTutupModalLaporan;
