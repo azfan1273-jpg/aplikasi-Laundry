@@ -118,8 +118,9 @@ function closeModalEditOrder() {
 }
 
 // --- GEMBOK AKSES BATALKAN ORDER ---
-function actionBatalkanOrder() {
-  if (typeof getTokoPermissions === 'function' && typeof currentUserProfile !== 'undefined' && currentUserProfile) {
+async function actionBatalkanOrder() {
+  // 1. Cek Hak Akses Kasir
+  if (typeof getTokoPermissions === 'function' && typeof currentUserProfile !== 'undefined') {
     const perms = getTokoPermissions();
     if (currentUserProfile.role !== 'owner' && !perms.is_manager && !perms.akses_edit_order) {
       if (typeof showToast === 'function') showToast("Kasir tidak diizinkan membatalkan order!", "error");
@@ -127,9 +128,47 @@ function actionBatalkanOrder() {
     }
   }
 
+  const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
+  if (!client || !window.currentSelectedOrderId) {
+    if (typeof showToast === 'function') showToast("ID Order tidak ditemukan!", "error");
+    return;
+  }
+
   if (confirm("Apakah Anda yakin ingin membatalkan order ini?")) {
-    if (typeof showToast === 'function') showToast("Order dibatalkan.", "info");
-    closeModalDetailOrder();
+    try {
+      // 2. Kirim Perubahan Status ke Supabase
+      const { error } = await client
+        .from('transaksi')
+        .update({ 
+          status_laundry: 'Batal',
+          status: 'Batal' 
+        })
+        .eq('id', window.currentSelectedOrderId);
+
+      if (error) {
+        if (typeof showToast === 'function') showToast('Gagal membatalkan order: ' + error.message, 'error');
+        return;
+      }
+
+      if (typeof showToast === 'function') showToast("Order berhasil dibatalkan. ❌", "success");
+      
+      // 3. Tutup Modal
+      if (typeof closeModalDetailOrder === 'function') closeModalDetailOrder();
+
+      // 4. Auto Refresh & Langsung Buka Tab Batal
+      setTimeout(() => {
+        if (typeof loadDataHome === 'function') loadDataHome();
+        if (typeof loadReport === 'function') loadReport();
+        if (typeof filterOrderTab === 'function') {
+          filterOrderTab('Batal');
+        } else if (typeof loadOrderDataList === 'function') {
+          loadOrderDataList();
+        }
+      }, 300);
+
+    } catch (err) {
+      console.error('Error actionBatalkanOrder:', err);
+    }
   }
 }
 
