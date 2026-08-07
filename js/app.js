@@ -241,10 +241,6 @@ function bukaModalPOS() {
     modalPos.classList.remove('hidden');
     modalPos.classList.add('flex');
   }
-  if (typeof renderKeranjangPOS === 'function') {
-    renderKeranjangPOS();
-  }
-  hitungTotalPOSApp();
 }
 
 function tutupModalPOS() {
@@ -285,21 +281,11 @@ function handleTambahLayanan(e) {
     modalLayanan.classList.add('flex');
   }
   
-  // Panggil seluruh kemungkinan fungsi render/load layanan
-  if (typeof window.openModalPilihLayanan === 'function') {
-    try { window.openModalPilihLayanan(); } catch (err) { console.log(err); }
+  if (typeof openModalPilihLayanan === 'function') {
+    try { openModalPilihLayanan(); } catch (err) { console.log(err); }
   }
-  if (typeof window.bukaModalPilihLayanan === 'function') {
-    try { window.bukaModalPilihLayanan(); } catch (err) { console.log(err); }
-  }
-  if (typeof window.renderLayananPOS === 'function') {
-    try { window.renderLayananPOS(); } catch (err) { console.log(err); }
-  }
-  if (typeof window.renderLayananList === 'function') {
-    try { window.renderLayananList(); } catch (err) { console.log(err); }
-  }
-  if (typeof window.renderDaftarLayanan === 'function') {
-    try { window.renderDaftarLayanan(); } catch (err) { console.log(err); }
+  if (typeof renderLayananPOS === 'function') {
+    try { renderLayananPOS(); } catch (err) { console.log(err); }
   }
 }
 
@@ -362,9 +348,9 @@ function handleProsesPesan(e) {
   // 2. Cek Keranjang Layanan
   if (!cartContainer || cartContainer.textContent.includes('Belum ada layanan yang ditambahkan.')) {
     if (typeof showToast === 'function') {
-      showToast('Harap isi kolom Layanan Terlebih dahulu..!!', 'error');
+      showToast('Harap isi kolom Layanan Terlebih dahul..!!', 'error');
     } else {
-      alert('Harap isi kolom Layanan Terlebih dahulu..!!');
+      alert('Harap isi kolom Layanan Terlebih dahul..!!');
     }
     return;
   }
@@ -409,6 +395,13 @@ function initPOSListeners() {
   }
 }
 
+// Pembungkus bukaModalPOS
+const originalBukaModalPOS = bukaModalPOS;
+bukaModalPOS = function() {
+  if (typeof originalBukaModalPOS === 'function') originalBukaModalPOS();
+  initPOSListeners();
+};
+
 // Inisialisasi Load
 document.addEventListener('DOMContentLoaded', () => {
   console.log('App JS terload dengan aman.');
@@ -420,33 +413,87 @@ document.addEventListener('DOMContentLoaded', () => {
 // FIX TRANSAKSI & AUTOMATIC TOTAL PRICE CALCULATOR
 // ==========================================
 
+// 1. Dengar event klik di tombol "+ Tambah Layanan"
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('button') || e.target;
+  if (!btn) return;
+
+  const txt = (btn.textContent || '').trim().toLowerCase();
+  
+  if (txt.includes('tambah layanan') || txt === '+ tambah layanan') {
+    if (typeof bukaModalPilihLayanan === 'function') {
+      bukaModalPilihLayanan();
+    }
+  }
+});
+
+// 2. Kalkulator Otomatis Menjumlahkan Seluruh Subtotal di Modal Order
 function hitungTotalPOSApp() {
-  const items = window.keranjangPOS || [];
   let total = 0;
 
-  // Hitung total harga berdasarkan array keranjangPOS
-  items.forEach(item => {
-    let q = parseFloat(String(item.qty).replace(',', '.')) || 0;
-    let h = parseFloat(String(item.harga).replace(/[^0-9.]/g, '')) || 0;
-    total += (q * h);
-  });
+  // Hitung langsung dari Array global jika ada
+  if (window.keranjangPOS && window.keranjangPOS.length > 0) {
+    window.keranjangPOS.forEach(item => {
+      let q = parseFloat(String(item.qty).replace(',', '.')) || 0;
+      let h = parseFloat(String(item.harga).replace(/[^0-9.]/g, '')) || 0;
+      total += (q * h);
+    });
+  } else {
+    // Fallback: hitung dari DOM teks harga di modal
+    const modalOrder = document.getElementById('modal-order') 
+                    || document.getElementById('modalPOS') 
+                    || document.getElementById('modal-transaksi')
+                    || document;
 
-  const totalFix = Math.round(total);
-  const formattedTotal = 'Rp ' + totalFix.toLocaleString('id-ID');
+    const priceElements = modalOrder.querySelectorAll('p, span, div');
+    priceElements.forEach(el => {
+      if (el.children.length === 0 && el.textContent.includes('Rp')) {
+        const parent = el.parentElement;
+        const textUpper = (parent?.textContent || '').toUpperCase();
+        
+        if (!textUpper.includes('TOTAL PRICE')) {
+          const num = parseFloat(el.textContent.replace(/[^0-9]/g, '')) || 0;
+          if (num > 0 && parent.querySelector('button, input')) {
+            total += num;
+          }
+        }
+      }
+    });
+  }
 
-  // Tembak langsung ID totalPricePOS yang ada di index.html baris 840
+  const formattedTotal = 'Rp ' + Math.round(total).toLocaleString('id-ID');
+
+  // UPDATE LANGSUNG KE ID DARI INDEX.HTML
   const targetIds = ['totalPricePOS', 'total-price-pos', 'total_harga', 'totalPrice', 'grand-total', 'total-bayar'];
-  
   targetIds.forEach(id => {
     const el = document.getElementById(id);
     if (el) {
       el.textContent = formattedTotal;
     }
   });
+
+  // Fallback update elemen berdasarkan teks "TOTAL PRICE"
+  const priceElements = document.querySelectorAll('p, span, div');
+  priceElements.forEach(el => {
+    if (el.children.length === 0 && el.textContent.trim().toUpperCase() === 'TOTAL PRICE') {
+      const parent = el.parentElement;
+      if (parent) {
+        const priceVal = parent.querySelector('.text-lg, .font-black, .font-bold, .text-xl, h3, h4') || el.nextElementSibling;
+        if (priceVal && priceVal !== el) {
+          priceVal.textContent = formattedTotal;
+        }
+      }
+    }
+  });
 }
 
-// Dengar event interaksi klik dan input tanpa bentrok Observer
-document.addEventListener('click', () => setTimeout(hitungTotalPOSApp, 50));
-document.addEventListener('input', () => setTimeout(hitungTotalPOSApp, 50));
+// 3. Jalankan Pemantau Perubahan DOM Otomatis
+const posAppObserver = new MutationObserver(() => {
+  hitungTotalPOSApp();
+});
+
+if (document.body) {
+  posAppObserver.observe(document.body, { childList: true, subtree: true, characterData: true });
+}
 
 window.hitungTotalPOSApp = hitungTotalPOSApp;
