@@ -955,6 +955,73 @@ async function updateTokoPermissions(keyPermission, isChecked) {
 
 window.updateTokoPermissions = updateTokoPermissions;
 
+// ==========================================
+// LOAD STATUS SAKELAR IZIN KASIR DARI DATABASE
+// ==========================================
+function loadPermissionsToForm() {
+  if (typeof currentToko === 'undefined' || !currentToko) return;
+
+  let perms = currentToko.permissions || {};
+  if (typeof perms === 'string') {
+    try { perms = JSON.parse(perms); } catch (e) { perms = {}; }
+  }
+
+  // Pasang status checked pada sakelar di HTML sesuai data Supabase
+  const elManager = document.getElementById('perm_is_manager');
+  const elLaporan = document.getElementById('perm_akses_laporan');
+  const elLayanan = document.getElementById('perm_akses_layanan');
+  const elPengeluaran = document.getElementById('perm_akses_pengeluaran');
+  const elEditOrder = document.getElementById('perm_akses_edit_order');
+
+  if (elManager) elManager.checked = !!perms.is_manager;
+  if (elLaporan) elLaporan.checked = !!perms.akses_laporan;
+  if (elLayanan) elLayanan.checked = !!perms.akses_layanan;
+  if (elPengeluaran) elPengeluaran.checked = !!perms.akses_pengeluaran;
+  if (elEditOrder) elEditOrder.checked = !!perms.akses_edit_order;
+}
+
+// Perbarui juga fungsi updateTokoPermissions agar instan
+async function updateTokoPermissions(keyPermission, isChecked) {
+  const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
+  if (!client) return;
+
+  let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) ? currentToko.id : localStorage.getItem('toko_id');
+  if (!tokoId) return;
+
+  let currentPerms = (currentToko && currentToko.permissions) ? currentToko.permissions : {};
+  if (typeof currentPerms === 'string') {
+    try { currentPerms = JSON.parse(currentPerms); } catch (e) { currentPerms = {}; }
+  }
+
+  currentPerms[keyPermission] = isChecked;
+
+  try {
+    const { data, error } = await client
+      .from('toko')
+      .update({ permissions: currentPerms })
+      .eq('id', tokoId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    if (data) {
+      currentToko = data;
+      if (typeof showToast === 'function') {
+        showToast('Izin akses diperbarui! ⚡', 'success');
+      }
+    }
+  } catch (err) {
+    console.error('Error update permissions:', err);
+    if (typeof showToast === 'function') {
+      showToast('Gagal memperbarui izin', 'error');
+    }
+  }
+}
+
+window.loadPermissionsToForm = loadPermissionsToForm;
+window.updateTokoPermissions = updateTokoPermissions;
+
 // REGISTRASI GLOBAL SCOPE WINDOW
 window.toggleAccordion = toggleAccordion;
 window.toggleFormTambahKasir = toggleFormTambahKasir;

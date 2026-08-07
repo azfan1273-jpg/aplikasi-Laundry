@@ -71,6 +71,9 @@ async function loadUserProfile(authUser) {
 
     showAuthScreen(false);
     applyUserPermissionsUI();
+    if (typeof loadPermissionsToForm === 'function') {
+      loadPermissionsToForm();
+    }
 
     // Load data dashboard
     if (typeof loadDataHome === 'function') loadDataHome();
