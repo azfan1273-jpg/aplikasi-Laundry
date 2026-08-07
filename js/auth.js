@@ -419,3 +419,24 @@ async function updateAccountModalEmail() {
 document.addEventListener('DOMContentLoaded', () => {
   updateAccountModalEmail();
 });
+
+// ==========================================
+// FUNGSI SHOW / HIDE PASSWORD
+// ==========================================
+function toggleShowPassword() {
+  const passInput = document.getElementById('auth_password');
+  const eyeIcon = document.getElementById('eye-icon-pass');
+
+  if (!passInput) return;
+
+  if (passInput.type === 'password') {
+    passInput.type = 'text';
+    if (eyeIcon) eyeIcon.textContent = '🙈'; // Ikon saat password terlihat
+  } else {
+    passInput.type = 'password';
+    if (eyeIcon) eyeIcon.textContent = '👁️'; // Ikon saat password tersembunyi
+  }
+}
+
+// daftarkan fungsi ke scope global agar bisa dipanggil dari HTML
+window.toggleShowPassword = toggleShowPassword;
