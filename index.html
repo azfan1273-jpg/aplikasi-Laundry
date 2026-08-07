@@ -526,9 +526,7 @@
     </div>
   </div>
 
- <!-- ========================================== -->
   <!-- LAUNCHER TRANSAKSI ANIMASI (GRID 2x2) -->
-  <!-- ========================================== -->
   <div id="transaksi-animator-container" class="fixed inset-0 z-50 pointer-events-none">
     
     <!-- Backdrop Gelap -->
@@ -582,8 +580,6 @@
     </button>
 
   </div>
-        
-        
 
   <!-- MODALS -->
   <div id="modal-detail-laporan" onclick="closeOnBackdrop(event, 'modal-detail-laporan')" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
@@ -665,7 +661,6 @@
     <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 max-h-[85vh] flex flex-col shadow-2xl" onclick="event.stopPropagation()">
       <div class="flex justify-between items-center border-b pb-3 shrink-0">
         <h3 class="font-black text-slate-900 text-base">Kelola Daftar Layanan</h3>
-        <!-- 3. Fix Tombol X Kelola Layanan (Lingkaran Merah) -->
         <button type="button" onclick="closeModalKelolaLayanan()" class="w-8 h-8 bg-slate-100 hover:bg-slate-200 rounded-full font-bold text-slate-500 flex items-center justify-center transition">✕</button>
       </div>
 
@@ -682,7 +677,6 @@
           </select>
         </div>
         <input id="new_estimasi_hari" type="number" step="0.1" placeholder="Estimasi Selesai (Hari / misal: 1 atau 0.5)" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl outline-none font-bold">
-        <!-- 2. Fix Tombol Simpan Layanan Baru -->
         <button type="button" onclick="tambahLayananBaru(event)" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-2.5 rounded-xl shadow-sm transition">Simpan Layanan Baru</button>
       </div>
 
@@ -695,6 +689,7 @@
     </div>
   </div>
 
+  <!-- MODAL DETAIL ORDER -->
   <div id="modal-detail-order" onclick="closeOnBackdrop(event, 'modal-detail-order')" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[85] flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
     <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl flex flex-col max-h-[85vh] overflow-hidden shadow-2xl" onclick="event.stopPropagation()">
       <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-white shrink-0">
@@ -757,12 +752,12 @@
         </div>
       </div>
 
-      <div class="p-3.5 border-t border-slate-100 bg-white shadow-lg flex items-center justify-between shrink-0">
+      <div class="p-3.5 border-t border-slate-100 bg-white shadow-lg flex items-center justify-between shrink-0 w-full">
         <div>
           <p class="text-[10px] font-bold text-slate-400 uppercase">Total Price</p>
-          <h2 id="detail-total-price" class="text-lg font-black text-blue-600">Rp 0</h2>
+          <h2 id="detail-total-price" class="text-base font-black text-blue-600">Rp 0</h2>
         </div>
-        <button onclick="actionBayarOrder()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs px-5 py-3 rounded-2xl shadow-md active:scale-[0.98] transition">
+        <button onclick="actionBayarOrder()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs px-4 py-2.5 rounded-xl shadow-md active:scale-95 transition shrink-0">
           💵 BAYAR NOW
         </button>
       </div>
@@ -797,49 +792,40 @@
   <!-- MODAL POS TRANSAKSI -->
   <div id="modalPOS" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
     <div class="bg-white rounded-2xl w-full max-w-lg p-6 relative shadow-xl">
-      
-      <!-- 1. Tombol Close (X) -->
       <button type="button" id="btnClosePOS" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 transition">
         ✕
       </button>
 
       <h2 class="text-xl font-bold mb-4">Buat Order Transaksi</h2>
 
-      <!-- Section Pelanggan -->
       <div class="bg-gray-50 p-4 rounded-xl mb-4 flex items-center justify-between border border-gray-100">
         <div>
           <p class="text-xs text-gray-500 font-medium">Pelanggan</p>
           <p id="selectedCustomerName" class="text-sm font-semibold text-gray-400 italic">Silahkan Pilih Customer Terlebih Dahulu.</p>
         </div>
-        <!-- 2. Tombol Cari -->
         <button type="button" id="btnSearchCustomer" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition">
           CARI
         </button>
       </div>
 
-      <!-- Section Daftar Layanan / Keranjang -->
       <div class="bg-gray-50 p-4 rounded-xl mb-6 border border-gray-100">
         <div class="flex justify-between items-center mb-3">
           <p class="text-xs text-gray-500 font-medium">Daftar Layanan (Keranjang)</p>
-          <!-- 3. Tombol + Tambah Layanan -->
           <button type="button" id="btnAddService" class="bg-cyan-100 hover:bg-cyan-200 text-cyan-800 text-xs font-semibold px-3 py-1.5 rounded-lg transition">
             + Tambah Layanan
           </button>
         </div>
         
-        <!-- Container Keranjang -->
         <div id="cartItemsContainer">
           <p class="text-xs text-gray-400 text-center py-4 italic">Belum ada layanan yang ditambahkan.</p>
         </div>
       </div>
 
-      <!-- Section Total Price & Tombol Pesan -->
       <div class="flex justify-between items-center pt-2 border-t border-gray-100">
         <div>
           <p class="text-[10px] text-gray-400 uppercase tracking-wider font-bold">TOTAL PRICE</p>
           <p id="totalPricePOS" class="text-xl font-extrabold text-gray-800">Rp 0</p>
         </div>
-        <!-- 4. Tombol PESAN -->
         <button type="button" id="btnSubmitPOS" class="bg-red-500 hover:bg-red-600 text-white font-bold px-6 py-2.5 rounded-xl shadow-md transition">
           PESAN
         </button>
@@ -853,7 +839,6 @@
     <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 max-h-[85vh] flex flex-col" onclick="event.stopPropagation()">
       <div class="flex justify-between items-center border-b pb-2 shrink-0">
         <h4 class="font-extrabold text-slate-800 text-sm">Pilih Customer</h4>
-        <!-- 3. Fix Tombol X Pelanggan -->
         <button type="button" onclick="closeModalPilihPelanggan()" class="text-slate-400 font-bold hover:text-slate-600 w-7 h-7 flex items-center justify-center rounded-full hover:bg-slate-100">✕</button>
       </div>
       <input id="search-pelanggan" onkeyup="filterPelangganList()" type="text" placeholder="Masukkan Nama atau No Hp" class="w-full p-3 border border-slate-300 rounded-xl text-xs outline-none focus:border-blue-500 shrink-0">
@@ -864,7 +849,6 @@
       <div id="form-customer-baru" class="space-y-2 pt-2 border-t hidden shrink-0">
         <input id="new_nama_pelanggan" type="text" placeholder="Nama Pelanggan Baru" class="w-full p-2.5 border rounded-xl text-xs">
         <input id="new_no_hp" type="tel" placeholder="No HP / WhatsApp" class="w-full p-2.5 border rounded-xl text-xs">
-        <!-- 1. Fix Tombol Simpan Customer -->
         <button type="button" onclick="simpanCustomerBaru(event)" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2.5 rounded-xl shadow-md transition">Simpan Customer</button>
       </div>
     </div>
@@ -876,12 +860,9 @@
         <h4 class="font-extrabold text-slate-800 text-sm">Pilih Layanan</h4>
         
         <div class="flex items-center gap-2">
-          <!-- Tombol + Tambah Layanan Baru (Buka Modal Kelola Layanan) -->
           <button type="button" onclick="openModalKelolaLayanan()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] px-2.5 py-1 rounded-lg transition shadow-sm">
             + Tambah Layanan
           </button>
-          
-          <!-- Tombol Close (X) -->
           <button type="button" onclick="closeModalPilihLayanan()" class="text-slate-400 hover:text-slate-600 font-bold w-7 h-7 rounded-full flex items-center justify-center hover:bg-slate-100">✕</button>
         </div>
       </div>
@@ -912,13 +893,54 @@
     </div>
   </nav>
 
-  
+  <!-- MODAL METODE PEMBAYARAN -->
+  <div id="modal-pembayaran" onclick="closeOnBackdrop(event, 'modal-pembayaran')" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[95] flex items-center justify-center p-4 hidden">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl" onclick="event.stopPropagation()">
+      <div class="flex justify-between items-center border-b pb-2">
+        <div>
+          <h3 class="font-extrabold text-slate-900 text-sm">Metode Pembayaran</h3>
+          <p id="pembayaran-total-label" class="text-[10px] text-blue-600 font-bold mt-0.5">Total Bayar: Rp 0</p>
+        </div>
+        <button onclick="closeModalPembayaran()" class="w-7 h-7 bg-slate-100 hover:bg-slate-200 rounded-full font-bold text-slate-500 text-xs flex items-center justify-center">✕</button>
+      </div>
+
+      <div class="space-y-2 text-xs">
+        <p class="font-bold text-slate-600 text-[11px]">Pilih Metode Pembayaran:</p>
+        
+        <!-- 1. Tunai -->
+        <button onclick="prosesBayarFinal('Tunai')" class="w-full p-3 bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 rounded-2xl flex items-center justify-between font-bold text-slate-800 transition active:scale-[0.98]">
+          <span class="flex items-center gap-2">💵 Tunai (Cash)</span>
+          <span class="text-[10px] text-emerald-600">Pilih ➔</span>
+        </button>
+
+        <!-- 2. Token LNDR -->
+        <button onclick="prosesBayarFinal('Token LNDR')" class="w-full p-3 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 rounded-2xl flex items-center justify-between font-bold text-slate-800 transition active:scale-[0.98]">
+          <span class="flex items-center gap-2">🪙 Token LNDR</span>
+          <span class="text-[10px] text-blue-600">Pilih ➔</span>
+        </button>
+
+        <!-- 3. Transfer Bank -->
+        <button onclick="prosesBayarFinal('Transfer Bank')" class="w-full p-3 bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 rounded-2xl flex items-center justify-between font-bold text-slate-800 transition active:scale-[0.98]">
+          <span class="flex items-center gap-2">🏦 Transfer Bank</span>
+          <span class="text-[10px] text-indigo-600">Pilih ➔</span>
+        </button>
+      </div>
+
+      <!-- SECTION QRIS -->
+      <div class="border-t border-slate-100 pt-3 space-y-2 text-center">
+        <p class="font-bold text-slate-600 text-[11px] text-left">📱 QRIS Pembayaran</p>
+        <div id="qris-container" class="p-4 bg-slate-50 border border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center min-h-[110px]">
+          <p class="text-xs font-bold text-slate-400 italic">Silahkan upload QRIS anda</p>
+        </div>
+        <button onclick="prosesBayarFinal('QRIS')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-2.5 rounded-xl shadow-md text-xs active:scale-[0.98] transition">
+          ✅ Selesai Bayar via QRIS
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- PANGGIL SELURUH BERKAS JS SECARA BERURUTAN -->
-  <!-- 1. Tambahkan baris CDN Supabase ini di paling atas! -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  
-  <!-- 2. Baru panggil koneksi js/supabase.js milikmu -->
   <script src="js/supabase.js"></script>
   <script src="js/utils.js"></script>
   <script src="js/auth.js"></script>
@@ -930,8 +952,8 @@
   <script src="js/app.js"></script>
 
   <script src="https://unpkg.com/vconsole@latest/dist/vconsole.min.js"></script>
-<script>
-  var vConsole = new VConsole();
-</script>
+  <script>
+    var vConsole = new VConsole();
+  </script>
 </body>
 </html>
