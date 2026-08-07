@@ -754,31 +754,45 @@ window.hapusItemKeranjang = hapusItemKeranjang;
 window.hitungsDanUpdateTotalPrice = hitungsDanUpdateTotalPrice;
 
 // ==========================================
-// FIX PENUH: KALKULASI & UPDATE TOTAL PRICE REALTIME
+// FIX TOTAL PRICE: HITUNG SEMUA ITEM DARI DOM & ARRAY
 // ==========================================
 function hitungsDanUpdateTotalPrice() {
-  const items = window.keranjangPOS || [];
   let total = 0;
 
-  // 1. Hitung total dari seluruh item di keranjang
-  items.forEach(item => {
-    let q = item.qty;
-    if (typeof q === 'string') q = parseFloat(q.replace(',', '.')) || 0;
-    let h = parseFloat(item.harga) || 0;
-    total += (q * h);
-  });
+  // 1. CARI SEMUA ELEMEN SUB-TOTAL HARGA DARI TAMPILAN KERANJANG DI DOM
+  const container = getCartContainer();
+  if (container) {
+    const subtotalElements = container.querySelectorAll('.font-black.text-slate-800');
+    subtotalElements.forEach(el => {
+      const text = el.textContent || '';
+      if (text.includes('Rp')) {
+        // Ambil angka murni dari string misal "Rp 22.000" -> 22000
+        const num = parseFloat(text.replace(/[^0-9]/g, '')) || 0;
+        total += num;
+      }
+    });
+  }
+
+  // 2. FALLBACK JIKA DOM BELUM RENDER: HITUNG DARI ARRAY KERANJANG
+  if (total === 0 && window.keranjangPOS && window.keranjangPOS.length > 0) {
+    window.keranjangPOS.forEach(item => {
+      let q = parseFloat(String(item.qty).replace(',', '.')) || 0;
+      let h = parseFloat(String(item.harga).replace(/[^0-9.]/g, '')) || 0;
+      total += (q * h);
+    });
+  }
 
   window.totalHargaPOS = Math.round(total);
   const formattedTotal = 'Rp ' + window.totalHargaPOS.toLocaleString('id-ID');
 
-  // 2. Tembak elemen berdasarkan ID langsung jika ada
+  // 3. TEMBAK SEMUA TARGET ELEMEN TOTAL PRICE
   ['total-price-pos', 'total_harga', 'totalPrice', 'grand-total', 'total-bayar'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.textContent = formattedTotal;
   });
 
-  // 3. Pindai DOM secara presisi mencari teks TOTAL PRICE
-  const allElements = document.querySelectorAll('#modal-order *, .modal-order *, div, p, span, h3, h4');
+  // 4. TEMBAK TEKS TOTAL PRICE DI BAWAH KIRI MODAL
+  const allElements = document.querySelectorAll('p, div, span, h3, h4');
   allElements.forEach(el => {
     if (el.children.length === 0 && (el.textContent || '').trim().toUpperCase() === 'TOTAL PRICE') {
       const parent = el.parentElement;
@@ -792,21 +806,34 @@ function hitungsDanUpdateTotalPrice() {
       }
     }
   });
-
-  // 4. Fallback: Cari elemen berawalan "Rp 0" di bawah label TOTAL PRICE
-  if (total > 0) {
-    const rpElements = document.querySelectorAll('p, div, span, h3, h4');
-    rpElements.forEach(el => {
-      if (el.children.length === 0 && (el.textContent || '').trim().startsWith('Rp 0')) {
-        const textUpper = (el.parentElement?.textContent || '').toUpperCase();
-        if (textUpper.includes('TOTAL') || textUpper.includes('PRICE')) {
-          el.textContent = formattedTotal;
-        }
-      }
-    });
-  }
 }
 
-// Pastikan terdaftar di scope window
+// UPDATE QTY MANUALLY & HUKUM RE-CALCULATE
+function updateQtyManual(index, val) {
+  if (!window.keranjangPOS || !window.keranjangPOS[index]) return;
+
+  let cleanVal = String(val).replace(',', '.');
+  let numVal = parseFloat(cleanVal);
+  if (isNaN(numVal) || numVal < 0) numVal = 0;
+
+  window.keranjangPOS[index].qty = numVal;
+
+  // Update Tampilan Subtotal Item Ini
+  const container = getCartContainer();
+  if (container) {
+    const items = container.querySelectorAll('.flex.items-center.justify-between');
+    if (items[index]) {
+      const subtotalEl = items[index].querySelector('.font-black.text-slate-800:last-child') || items[index].querySelector('p:nth-last-child(2)');
+      const h = parseFloat(window.keranjangPOS[index].harga) || 0;
+      if (subtotalEl) {
+        subtotalEl.textContent = 'Rp ' + Math.round(h * numVal).toLocaleString('id-ID');
+      }
+    }
+  }
+
+  hitungsDanUpdateTotalPrice();
+}
+
+// Pastikan terdaftar secara global
 window.hitungsDanUpdateTotalPrice = hitungsDanUpdateTotalPrice;
-window.updateTotalPrice = hitungsDanUpdateTotalPrice;
+window.updateQtyManual = updateQtyManual;
