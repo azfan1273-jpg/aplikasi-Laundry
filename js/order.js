@@ -133,16 +133,127 @@ function actionBatalkanOrder() {
   }
 }
 
-function openModalDetailOrder(orderId) {
+// ==========================================
+// FIX MODAL DETAIL ORDER & AKSI PROSES STATUS
+// ==========================================
+
+let activeOrderDetail = null;
+
+async function openModalDetailOrder(orderId) {
+  const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
+  if (!client) return;
+
   const modal = document.getElementById('modal-detail-order');
-  if (modal) modal.classList.remove('hidden');
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+
+  try {
+    // Tarik detail data dari tabel 'transaksi' beserta relasi pelanggan
+    const { data: order, error } = await client
+      .from('transaksi')
+      .select('*, pelanggan(nama, no_hp)')
+      .eq('id', orderId)
+      .maybeSingle();
+
+    if (error || !order) {
+      console.error("Gagal mengambil detail order:", error);
+      return;
+    }
+
+    activeOrderDetail = order;
+
+    // Isikan data ke elemen UI Modal
+    const notaIdEl = document.getElementById('detail-nota-id');
+    const namaPelEl = document.getElementById('detail-nama-pelanggan');
+    const hpPelEl = document.getElementById('detail-hp-pelanggan');
+    const statusBayarEl = document.getElementById('detail-status-bayar');
+    const tglMasukEl = document.getElementById('detail-tgl-masuk');
+    const totalPriceEl = document.getElementById('detail-total-price');
+
+    const notaNum = String(order.id).padStart(6, '0');
+    const namaPel = (order.pelanggan && order.pelanggan.nama) ? order.pelanggan.nama : (order.nama_pelanggan || 'Pelanggan Umum');
+    const hpPel = (order.pelanggan && order.pelanggan.no_hp) ? order.pelanggan.no_hp : '08-';
+    const totalHargaFormatted = 'Rp ' + Math.round(order.total_harga || 0).toLocaleString('id-ID');
+
+    if (notaIdEl) notaIdEl.textContent = `Nota #${notaNum}`;
+    if (namaPelEl) namaPelEl.textContent = namaPel;
+    if (hpPelEl) hpPelEl.textContent = hpPel;
+    if (statusBayarEl) statusBayarEl.textContent = order.status_pembayaran || 'Belum Lunas';
+    if (tglMasukEl) tglMasukEl.textContent = order.created_at ? new Date(order.created_at).toLocaleDateString('id-ID') : '-';
+    if (totalPriceEl) totalPriceEl.textContent = totalHargaFormatted;
+
+    // Update teks tombol proses sesuai status saat ini
+    const btnProses = document.getElementById('btn-lanjut-proses');
+    if (btnProses) {
+      const st = (order.status_laundry || order.status || 'Diterima').trim();
+      if (st === 'Diterima' || st === 'Antrian') {
+        btnProses.textContent = '⚡ Lanjut Proses Order (Ke Proses)';
+      } else if (st === 'Proses') {
+        btnProses.textContent = '✅ Tandai Selesai Order';
+      } else {
+        btnProses.textContent = '🎉 Order Sudah Selesai';
+      }
+    }
+
+  } catch (err) {
+    console.error("Error openModalDetailOrder:", err);
+  }
+}
+
+// FIX ERROR: FUNGSI LANJUT PROSES ORDER
+async function actionLanjutProses() {
+  if (!activeOrderDetail) return;
+
+  const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
+  if (!client) return;
+
+  const currentStatus = (activeOrderDetail.status_laundry || activeOrderDetail.status || 'Diterima').trim();
+  let nextStatus = 'Proses';
+
+  if (currentStatus === 'Diterima' || currentStatus === 'Antrian') {
+    nextStatus = 'Proses';
+  } else if (currentStatus === 'Proses') {
+    nextStatus = 'Selesai';
+  } else {
+    if (typeof showToast === 'function') showToast("Order ini sudah selesai!", "info");
+    return;
+  }
+
+  try {
+    const { error } = await client
+      .from('transaksi')
+      .update({ status_laundry: nextStatus })
+      .eq('id', activeOrderDetail.id);
+
+    if (error) throw error;
+
+    if (typeof showToast === 'function') {
+      showToast(`Status Order #${activeOrderDetail.id} diubah jadi ${nextStatus}! 🎉`, "success");
+    }
+
+    closeModalDetailOrder();
+    
+    // Refresh daftar order & data beranda
+    if (typeof loadOrderDataList === 'function') loadOrderDataList();
+    if (typeof loadDataHome === 'function') loadDataHome();
+
+  } catch (err) {
+    console.error("Error actionLanjutProses:", err);
+    if (typeof showToast === 'function') showToast("Gagal memperbarui status order", "error");
+  }
 }
 
 function closeModalDetailOrder() {
-  if (typeof closeModalWithHistory === 'function') closeModalWithHistory('modal-detail-order');
+  const modal = document.getElementById('modal-detail-order');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
 }
 
-// Inisialisasi otomatis
-document.addEventListener('DOMContentLoaded', () => {
-  loadOrderDataList();
-});
+// Expose fungsi ke scope global
+window.openModalDetailOrder = openModalDetailOrder;
+window.actionLanjutProses = actionLanjutProses;
+window.closeModalDetailOrder = closeModalDetailOrder;
