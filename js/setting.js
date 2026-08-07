@@ -909,6 +909,52 @@ document.addEventListener('DOMContentLoaded', () => {
   renderParfumOptionsPOS();
 });
 
+// ==========================================
+// UPDATE REALTIME PERMISSIONS TOKO KE SUPABASE
+// ==========================================
+async function updateTokoPermissions(keyPermission, isChecked) {
+  const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
+  if (!client) return;
+
+  let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) ? currentToko.id : localStorage.getItem('toko_id');
+  if (!tokoId) return;
+
+  // 1. Ambil permissions lama
+  let currentPerms = (currentToko && currentToko.permissions) ? currentToko.permissions : {};
+  if (typeof currentPerms === 'string') {
+    try { currentPerms = JSON.parse(currentPerms); } catch (e) { currentPerms = {}; }
+  }
+
+  // 2. Perbarui nilai kunci yang diubah Owner
+  currentPerms[keyPermission] = isChecked;
+
+  try {
+    // 3. Simpan perubahan ke tabel 'toko'
+    const { data, error } = await client
+      .from('toko')
+      .update({ permissions: currentPerms })
+      .eq('id', tokoId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    if (data) {
+      currentToko = data; // Perbarui state toko global
+      if (typeof showToast === 'function') {
+        showToast('Izin akses berhasil diperbarui! ⚡', 'success');
+      }
+    }
+  } catch (err) {
+    console.error('Error update permissions:', err);
+    if (typeof showToast === 'function') {
+      showToast('Gagal memperbarui izin ke database', 'error');
+    }
+  }
+}
+
+window.updateTokoPermissions = updateTokoPermissions;
+
 // REGISTRASI GLOBAL SCOPE WINDOW
 window.toggleAccordion = toggleAccordion;
 window.toggleFormTambahKasir = toggleFormTambahKasir;
