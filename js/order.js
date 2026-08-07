@@ -53,11 +53,13 @@ async function loadOrderDataList() {
 
     let rawOrders = orders || [];
 
+    // FIX: PERBAIKAN LOGIKA FILTER STATUS ORDER
     let filteredOrders = rawOrders.filter(o => {
       const st = (o.status_laundry || o.status || 'Diterima').trim();
       
       if (currentFilterTab === 'Antrian') {
-        return st === 'Antrian' || st === 'Diterima' || st === 'Baru' || st === 'Proses';
+        // Hapus "st === 'Proses'" dari sini agar tidak muncul di tab Antrian
+        return st === 'Antrian' || st === 'Diterima' || st === 'Baru';
       } else if (currentFilterTab === 'Proses') {
         return st === 'Proses' || st === 'Cuci' || st === 'Setrika';
       } else if (currentFilterTab === 'Selesai') {
