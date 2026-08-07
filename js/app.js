@@ -71,7 +71,7 @@ function closeModalKelolaLayanan() {
     modal.classList.remove('flex');
   }
 }
-// test saja
+
 // 3. FUNGSI MENUTUP MODAL (AMAN)
 function closeModalWithHistory(modalId) {
   const modal = document.getElementById(modalId);
@@ -241,6 +241,10 @@ function bukaModalPOS() {
     modalPos.classList.remove('hidden');
     modalPos.classList.add('flex');
   }
+  if (typeof renderKeranjangPOS === 'function') {
+    renderKeranjangPOS();
+  }
+  hitungTotalPOSApp();
 }
 
 function tutupModalPOS() {
@@ -308,7 +312,6 @@ function closeModalPilihLayanan() {
 // --- WRAPPER SIMPAN PELANGGAN & LAYANAN BARU ---
 function simpanCustomerBaru(e) {
   if (e && e.preventDefault) e.preventDefault();
-  // Langsung panggil fungsi dari js/custumer.js
   if (typeof window.simpanCustomerBaruAsli === 'function') {
     window.simpanCustomerBaruAsli(e);
   } else if (typeof window.prosesSimpanCustomerBaru === 'function') {
@@ -349,9 +352,9 @@ function handleProsesPesan(e) {
   // 2. Cek Keranjang Layanan
   if (!cartContainer || cartContainer.textContent.includes('Belum ada layanan yang ditambahkan.')) {
     if (typeof showToast === 'function') {
-      showToast('Harap isi kolom Layanan Terlebih dahul..!!', 'error');
+      showToast('Harap isi kolom Layanan Terlebih dahulu..!!', 'error');
     } else {
-      alert('Harap isi kolom Layanan Terlebih dahul..!!');
+      alert('Harap isi kolom Layanan Terlebih dahulu..!!');
     }
     return;
   }
@@ -396,13 +399,6 @@ function initPOSListeners() {
   }
 }
 
-// Pembungkus bukaModalPOS
-const originalBukaModalPOS = bukaModalPOS;
-bukaModalPOS = function() {
-  if (typeof originalBukaModalPOS === 'function') originalBukaModalPOS();
-  initPOSListeners();
-};
-
 // Inisialisasi Load
 document.addEventListener('DOMContentLoaded', () => {
   console.log('App JS terload dengan aman.');
@@ -411,14 +407,14 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==========================================
-// MESIN UTAMA KALKULATOR TOTAL PRICE POS
+// FIX TRANSAKSI & AUTOMATIC TOTAL PRICE CALCULATOR
 // ==========================================
 
 function hitungTotalPOSApp() {
   const items = window.keranjangPOS || [];
   let total = 0;
 
-  // Hitung perkalian Qty x Harga tiap item
+  // Hitung total harga berdasarkan array keranjangPOS
   items.forEach(item => {
     let q = parseFloat(String(item.qty).replace(',', '.')) || 0;
     let h = parseFloat(String(item.harga).replace(/[^0-9.]/g, '')) || 0;
@@ -428,33 +424,19 @@ function hitungTotalPOSApp() {
   const totalFix = Math.round(total);
   const formattedTotal = 'Rp ' + totalFix.toLocaleString('id-ID');
 
-  // Update elemen yang memiliki ID Total
-  ['total-price-pos', 'total_harga', 'totalPrice', 'grand-total', 'total-bayar'].forEach(id => {
+  // Tembak langsung ID totalPricePOS yang ada di index.html baris 840
+  const targetIds = ['totalPricePOS', 'total-price-pos', 'total_harga', 'totalPrice', 'grand-total', 'total-bayar'];
+  
+  targetIds.forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.textContent = formattedTotal;
-  });
-
-  // Update elemen teks yang berlabel "TOTAL PRICE"
-  document.querySelectorAll('p, div, span, h3, h4').forEach(el => {
-    if (el.children.length === 0 && (el.textContent || '').trim().toUpperCase() === 'TOTAL PRICE') {
-      const parent = el.parentElement;
-      if (parent) {
-        const priceVal = parent.querySelector('.text-lg, .font-black, .font-bold, .text-xl, h3, h4') || el.nextElementSibling;
-        if (priceVal && priceVal !== el) {
-          priceVal.textContent = formattedTotal;
-        }
-      }
+    if (el) {
+      el.textContent = formattedTotal;
     }
   });
 }
 
-// Pasang Observer otomatis untuk memantau perubahan keranjang
-const observerPOS = new MutationObserver(() => {
-  hitungTotalPOSApp();
-});
-
-if (document.body) {
-  observerPOS.observe(document.body, { childList: true, subtree: true, characterData: true });
-}
+// Dengar event interaksi klik dan input tanpa bentrok Observer
+document.addEventListener('click', () => setTimeout(hitungTotalPOSApp, 50));
+document.addEventListener('input', () => setTimeout(hitungTotalPOSApp, 50));
 
 window.hitungTotalPOSApp = hitungTotalPOSApp;
