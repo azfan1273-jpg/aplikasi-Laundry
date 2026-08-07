@@ -786,6 +786,129 @@ if (document.readyState === 'loading') {
   paksaHitungTotalPriceDOM();
 }
 
+// ==========================================
+// PENGELOLA AROMA PARFUM DINAMIS
+// ==========================================
+
+// Data Bawaan Default
+const DEFAULT_PARFUM = ["Standard / Original", "Lavender", "Sakura", "Lily", "Snappy"];
+
+// 1. Ambil Data Parfum dari Storage
+function getDaftarParfum() {
+  const saved = localStorage.getItem('lndr_daftar_parfum');
+  if (saved) {
+    try { return JSON.parse(saved); } catch (e) { }
+  }
+  return DEFAULT_PARFUM;
+}
+
+// 2. Simpan Data Parfum
+function saveDaftarParfum(list) {
+  localStorage.setItem('lndr_daftar_parfum', JSON.stringify(list));
+  renderParfumOptionsPOS();
+}
+
+// 3. Render Pilihan Parfum di Modal POS
+function renderParfumOptionsPOS() {
+  const selectPOS = document.getElementById('pos_parfum');
+  const selectEdit = document.getElementById('edit_parfum');
+  const list = getDaftarParfum();
+
+  let optionsHTML = '';
+  list.forEach(p => {
+    optionsHTML += `<option value="${p}">${p}</option>`;
+  });
+
+  if (selectPOS) selectPOS.innerHTML = optionsHTML;
+  if (selectEdit) selectEdit.innerHTML = optionsHTML;
+}
+
+// 4. Buka / Tutup Modal Kelola Parfum
+function openModalKelolaParfum() {
+  const modal = document.getElementById('modal-kelola-parfum');
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    renderKelolaParfumList();
+  }
+}
+
+function closeModalKelolaParfum() {
+  const modal = document.getElementById('modal-kelola-parfum');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+}
+
+// 5. Render Daftar Parfum di Modal Kelola
+function renderKelolaParfumList() {
+  const container = document.getElementById('list-kelola-parfum-container');
+  if (!container) return;
+
+  const list = getDaftarParfum();
+  if (list.length === 0) {
+    container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Belum ada aroma parfum.</p>';
+    return;
+  }
+
+  let html = '';
+  list.forEach((p, idx) => {
+    html += `
+      <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex justify-between items-center text-xs">
+        <span class="font-bold text-slate-700">🌸 ${p}</span>
+        <button onclick="hapusParfum(${idx})" class="text-rose-600 hover:text-rose-800 font-bold bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-100 text-[10px]">
+          Hapus
+        </button>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+// 6. Tambah Parfum Baru
+function tambahParfumBaru() {
+  const input = document.getElementById('new_nama_parfum');
+  const val = input ? input.value.trim() : '';
+
+  if (!val) {
+    if (typeof showToast === 'function') showToast('Masukkan nama aroma parfum!', 'error');
+    return;
+  }
+
+  const list = getDaftarParfum();
+  if (list.includes(val)) {
+    if (typeof showToast === 'function') showToast('Aroma parfum ini sudah ada!', 'error');
+    return;
+  }
+
+  list.push(val);
+  saveDaftarParfum(list);
+  if (input) input.value = '';
+  renderKelolaParfumList();
+  if (typeof showToast === 'function') showToast('Aroma parfum berhasil ditambahkan! 🎉', 'success');
+}
+
+// 7. Hapus Parfum
+function hapusParfum(index) {
+  const list = getDaftarParfum();
+  if (list.length <= 1) {
+    if (typeof showToast === 'function') showToast('Minimal harus ada 1 aroma parfum!', 'error');
+    return;
+  }
+
+  list.splice(index, 1);
+  saveDaftarParfum(list);
+  renderKelolaParfumList();
+  if (typeof showToast === 'function') showToast('Aroma parfum berhasil dihapus', 'success');
+}
+
+// Inisialisasi Otomatis saat Dom Siap
+document.addEventListener('DOMContentLoaded', () => {
+  renderParfumOptionsPOS();
+});
+
 // REGISTRASI GLOBAL SCOPE WINDOW
 window.toggleAccordion = toggleAccordion;
 window.toggleFormTambahKasir = toggleFormTambahKasir;
