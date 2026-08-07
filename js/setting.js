@@ -450,18 +450,21 @@ async function renderLayananPOS(keyword = '') {
 }
 
 // ==========================================
-// EVENT LISTENER SEARCH REALTIME INPUT
+// EVENT LISTENER PENCARIAN UNIVERSAL REALTIME
 // ==========================================
 document.addEventListener('input', function(e) {
   const target = e.target;
   if (!target) return;
 
-  // Tangkap input pencarian layanan di modal
-  const placeholderText = (target.placeholder || '').toLowerCase();
-  const inputId = (target.id || '').toLowerCase();
+  // Cek apakah inputan berada di dalam Modal Pilih Layanan
+  const modalLayanan = target.closest('#modal-layanan') 
+                    || target.closest('#modal-pilih-layanan')
+                    || document.getElementById('modal-layanan');
 
-  if (placeholderText.includes('cari') || placeholderText.includes('layanan') || inputId.includes('search') || inputId.includes('cari')) {
-    const keyword = target.value;
+  // Jika user mengetik di input box yang ada di modal layanan
+  if (modalLayanan && target.matches('input[type="text"], input:not([type])')) {
+    const keyword = target.value.trim();
+    console.log("-> Typing detected in Modal Layanan:", keyword);
     renderLayananPOS(keyword);
   }
 });
