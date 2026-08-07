@@ -146,9 +146,7 @@ function renderKelolaLayananList() {
   }
 }
 
-// ==========================================
 // 6. RENDER DAFTAR LAYANAN (KILOAN & SATUAN + EDIT ✏️)
-// ==========================================
 async function renderLayananPOS(keyword = '') {
   let container = document.getElementById('list-layanan-container')
                || document.querySelector('#modal-layanan .scroll-area')
@@ -180,7 +178,6 @@ async function renderLayananPOS(keyword = '') {
 
     let rawData = listLayanan || [];
 
-    // BACA URUTAN REORDER LOCALSTORAGE
     const savedOrderJson = localStorage.getItem('layanan_custom_order');
     if (savedOrderJson) {
       try {
@@ -199,7 +196,6 @@ async function renderLayananPOS(keyword = '') {
 
     window.allLayananCache = rawData;
 
-    // FILTER REALTIME SEARCH
     let filtered = window.allLayananCache;
     if (keyword && keyword.trim() !== '') {
       const cleanKey = keyword.trim().toLowerCase();
@@ -208,7 +204,6 @@ async function renderLayananPOS(keyword = '') {
       );
     }
 
-    // KILOAN VS SATUAN
     const listKiloan = filtered.filter(item => {
       const sat = (item.satuan || 'kg').toLowerCase().trim();
       return sat === 'kg' || sat === 'kilo' || sat === 'kiloan';
@@ -503,13 +498,8 @@ async function hapusLayananBaru(id) {
   }
 }
 
-// ==========================================
-// FIX HYBRID KERANJANG POS (SINKRON DENGAN APP.JS / ORDER.JS)
-// ==========================================
-
+// 11. BUKA MODAL LAYANAN POS
 function bukaModalPilihLayanan() {
-  console.log("-> Buka Modal Pilih Layanan...");
-
   let modal = document.getElementById('modal-layanan') 
            || document.getElementById('modal-pilih-layanan')
            || document.querySelector('.modal-layanan');
@@ -527,9 +517,8 @@ function bukaModalPilihLayanan() {
   }
 }
 
+// 12. SINKRONISASI PEMILIHAN ITEM KE KERANJANG
 function pilihLayananKeKeranjang(id, nama, harga, satuan) {
-  console.log("-> Menambahkan ke keranjang:", nama);
-
   const numHarga = typeof harga === 'number' ? harga : (parseFloat(String(harga).replace(/[^0-9.]/g, '')) || 0);
   const itemData = {
     id: id,
@@ -540,7 +529,6 @@ function pilihLayananKeKeranjang(id, nama, harga, satuan) {
     qty: 1
   };
 
-  // 1. SINKRONKAN KE SKRIP BAWAAN APLIKASI JIKA ADA
   if (typeof window.tambahKeKeranjang === 'function') {
     try { window.tambahKeKeranjang(itemData); } catch(e) {}
   }
@@ -553,7 +541,6 @@ function pilihLayananKeKeranjang(id, nama, harga, satuan) {
     else window.cartPOS.push(itemData);
   }
 
-  // 2. SIMPAN KE KERANJANG POS GLOBAL KITA
   if (!window.keranjangPOS) window.keranjangPOS = [];
   const existingIndex = window.keranjangPOS.findIndex(item => item.id === id || item.nama_layanan === nama);
 
@@ -567,7 +554,6 @@ function pilihLayananKeKeranjang(id, nama, harga, satuan) {
     showToast(`"${nama}" ditambahkan!`, 'success');
   }
 
-  // 3. SEMBUNYIKAN MODAL PILIHAN LAYANAN
   const modalLayanan = document.getElementById('modal-layanan') || document.getElementById('modal-pilih-layanan');
   if (modalLayanan) {
     modalLayanan.classList.add('hidden');
@@ -575,15 +561,15 @@ function pilihLayananKeKeranjang(id, nama, harga, satuan) {
     modalLayanan.style.display = 'none';
   }
 
-  // 4. RENDER ULANG TAMPILAN KERANJANG
   setTimeout(() => {
     if (typeof window.renderCart === 'function') try { window.renderCart(); } catch(e) {}
     if (typeof window.updateCartUI === 'function') try { window.updateCartUI(); } catch(e) {}
     renderKeranjangPOS();
+    paksaHitungTotalPriceDOM();
   }, 50);
 }
 
-// CARI CONTAINER KERANJANG LEBIH AGRESIF
+// 13. PENCARI CONTAINER KERANJANG
 function getCartContainer() {
   let container = document.getElementById('cart-items-container') 
                || document.querySelector('[data-cart-container="true"]');
@@ -604,216 +590,7 @@ function getCartContainer() {
   return null;
 }
 
-function renderKeranjangPOS() {
-  // Ambil data gabungan jika ada variabel keranjang bawaan lain
-  if (Array.isArray(window.cartPOS) && window.cartPOS.length > 0) {
-    window.keranjangPOS = window.cartPOS;
-  }
-
-  const container = getCartContainer();
-  const items = window.keranjangPOS || [];
-
-  if (container) {
-    if (items.length === 0) {
-      container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4 italic">Belum ada layanan yang ditambahkan.</p>';
-    } else {
-      container.innerHTML = items.map((item, index) => {
-        const sat = (item.satuan || 'Kg').toLowerCase().trim();
-        const isKiloan = sat === 'kg' || sat === 'kilo' || sat === 'kiloan';
-        const currentQty = parseFloat(item.qty) || 0;
-        const subtotal = (item.harga || 0) * currentQty;
-
-        return `
-          <div class="p-3 bg-white rounded-2xl border border-slate-200 flex items-center justify-between text-xs mb-2 shadow-sm">
-            <div class="truncate mr-2">
-              <p class="font-extrabold text-slate-800 text-xs truncate">${item.nama_layanan || item.nama}</p>
-              <p class="text-[10px] text-slate-400 mt-0.5">Rp ${(item.harga || 0).toLocaleString('id-ID')} / ${item.satuan}</p>
-            </div>
-
-            <div class="flex items-center gap-2.5 shrink-0">
-              <div class="flex items-center bg-slate-50 border border-slate-200 rounded-xl p-0.5">
-                <button type="button" onclick="ubahQtyKeranjang(${index}, -${isKiloan ? 0.5 : 1})" class="w-6 h-6 bg-white hover:bg-slate-200 rounded-lg text-slate-700 font-bold text-xs flex items-center justify-center active:scale-90 transition">-</button>
-                
-                <input 
-                  type="text" 
-                  inputmode="decimal"
-                  value="${currentQty}" 
-                  oninput="updateQtyManual(${index}, this.value)"
-                  class="w-14 text-center font-black text-xs text-slate-800 bg-transparent outline-none p-0 focus:text-blue-600"
-                />
-
-                <button type="button" onclick="ubahQtyKeranjang(${index}, ${isKiloan ? 0.5 : 1})" class="w-6 h-6 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg font-bold text-xs flex items-center justify-center active:scale-90 transition">+</button>
-              </div>
-
-              <p class="font-black text-slate-800 text-xs min-w-[75px] text-right">
-                Rp ${Math.round(subtotal).toLocaleString('id-ID')}
-              </p>
-
-              <button type="button" onclick="hapusItemKeranjang(${index})" class="text-rose-400 hover:text-rose-600 font-bold text-xs p-1">✕</button>
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-  }
-
-  hitungsDanUpdateTotalPrice();
-}
-
-// ==========================================
-// 18. EVENT LISTENERS AUTOMATIS
-// ==========================================
-document.addEventListener('click', function(e) {
-  const target = e.target.closest('button') || e.target;
-  if (!target) return;
-
-  const text = (target.textContent || '').trim().toLowerCase();
-
-  // Jika tombol + Tambah Layanan diklik
-  if (text.includes('tambah layanan') || text.includes('layanan baru') || text === '+') {
-    // Pastikan tidak mencegat tombol submit/input lain
-    if (target.type !== 'submit' && !target.closest('#modal-kelola-layanan')) {
-      e.preventDefault();
-      e.stopPropagation();
-
-      console.log("-> Intercepted: Tombol Tambah Layanan diklik!");
-
-      const modalLayanan = document.getElementById('modal-layanan') 
-                        || document.getElementById('modal-pilih-layanan')
-                        || document.querySelector('.modal-layanan');
-
-      if (modalLayanan) {
-        modalLayanan.style.zIndex = '999999';
-        modalLayanan.classList.remove('hidden');
-        modalLayanan.classList.add('flex');
-        modalLayanan.style.display = 'flex';
-        
-        if (typeof renderLayananPOS === 'function') {
-          renderLayananPOS();
-        }
-      }
-    }
-  }
-}, true); // Gunakan Capturing phase (true) agar mendahului listener lain
-
-// Pastikan fungsi dipanggil saat modal transaksi dipicu
-window.bukaModalPilihLayanan = function() {
-  const modalLayanan = document.getElementById('modal-layanan') 
-                    || document.getElementById('modal-pilih-layanan');
-  if (modalLayanan) {
-    modalLayanan.style.zIndex = '999999';
-    modalLayanan.classList.remove('hidden');
-    modalLayanan.classList.add('flex');
-    modalLayanan.style.display = 'flex';
-    if (typeof renderLayananPOS === 'function') renderLayananPOS();
-  }
-};
-
-document.addEventListener('click', function(e) {
-  const btn = e.target.closest('button') || e.target;
-  if (!btn) return;
-
-  const txt = (btn.textContent || '').trim().toLowerCase();
-
-  if (txt.includes('tambah layanan') || txt === '+ tambah layanan') {
-    e.preventDefault();
-    e.stopPropagation();
-    bukaModalPilihLayanan();
-  }
-
-  if (txt.includes('simpan layanan baru') || txt.includes('simpan layanan')) {
-    e.preventDefault();
-    prosesSimpanLayananBaru(e);
-  }
-});
-
-// ==========================================
-// 19. REGISTRASI GLOBAL WINDOW
-// ==========================================
-window.toggleAccordion = toggleAccordion;
-window.toggleFormTambahKasir = toggleFormTambahKasir;
-window.simpanKasirBaru = simpanKasirBaru;
-window.renderDaftarKasir = renderDaftarKasir;
-
-window.renderKelolaLayananList = renderKelolaLayananList;
-window.renderLayananPOS = renderLayananPOS;
-window.geserPosisiLayanan = geserPosisiLayanan;
-window.bukaModalEditLayanan = bukaModalEditLayanan;
-window.tutupModalEditLayanan = tutupModalEditLayanan;
-window.simpanPerubahanLayanan = simpanPerubahanLayanan;
-window.prosesSimpanLayananBaru = prosesSimpanLayananBaru;
-window.hapusLayananBaru = hapusLayananBaru;
-
-window.bukaModalPilihLayanan = bukaModalPilihLayanan;
-window.handleTambahLayanan = bukaModalPilihLayanan;
-window.pilihLayananKeKeranjang = pilihLayananKeKeranjang;
-window.renderKeranjangPOS = renderKeranjangPOS;
-window.updateQtyManual = updateQtyManual;
-window.ubahQtyKeranjang = ubahQtyKeranjang;
-window.hapusItemKeranjang = hapusItemKeranjang;
-window.hitungsDanUpdateTotalPrice = hitungsDanUpdateTotalPrice;
-
-// ==========================================
-// FIX MUTLAK: KALKULASI TOTAL PRICE POS
-// ==========================================
-
-function hitungsDanUpdateTotalPrice() {
-  const items = window.keranjangPOS || [];
-  let total = 0;
-
-  // 1. Hitung total secara murni dari Array keranjangPOS
-  items.forEach(item => {
-    let q = item.qty;
-    if (typeof q === 'string') {
-      q = parseFloat(q.replace(',', '.')) || 0;
-    } else {
-      q = parseFloat(q) || 0;
-    }
-
-    let h = item.harga;
-    if (typeof h === 'string') {
-      h = parseFloat(h.replace(/[^0-9.]/g, '')) || 0;
-    } else {
-      h = parseFloat(h) || 0;
-    }
-
-    total += (q * h);
-  });
-
-  window.totalHargaPOS = Math.round(total);
-  const formattedTotal = 'Rp ' + window.totalHargaPOS.toLocaleString('id-ID');
-
-  console.log("-> Total Price Calculated:", window.totalHargaPOS, "Items count:", items.length);
-
-  // 2. Update elemen ID khusus jika ada
-  ['total-price-pos', 'total_harga', 'totalPrice', 'grand-total', 'total-bayar'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = formattedTotal;
-  });
-
-  // 3. Cari teks "TOTAL PRICE" di dalam Modal Transaksi & Update angka di bawahnya
-  const modalOrder = document.getElementById('modal-order') 
-                  || document.getElementById('modal-transaksi') 
-                  || document.querySelector('.modal-order') 
-                  || document;
-
-  const allElements = modalOrder.querySelectorAll('*');
-  allElements.forEach(el => {
-    // Hanya cek elemen teks paling dalam (leaf node)
-    if (el.children.length === 0 && (el.textContent || '').trim().toUpperCase() === 'TOTAL PRICE') {
-      const parent = el.parentElement;
-      if (parent) {
-        // Cari elemen penampung nilai harga di dalam pembungkus yang sama
-        const priceVal = parent.querySelector('.text-lg, .font-black, .font-bold, .text-xl, h3, h4, p:not(:first-child)');
-        if (priceVal && priceVal !== el) {
-          priceVal.textContent = formattedTotal;
-        }
-      }
-    }
-  });
-}
-
-// FUNGSI UPDATE QTY MANUAL & HITUNG ULANG SUB-TOTAL
+// 14. UPDATE QTY KETIK MANUAL
 function updateQtyManual(index, val) {
   if (!window.keranjangPOS || !window.keranjangPOS[index]) return;
 
@@ -823,7 +600,6 @@ function updateQtyManual(index, val) {
 
   window.keranjangPOS[index].qty = numVal;
 
-  // Update tampilan subtotal item tersebut secara spesifik
   const itemEl = document.getElementById(`cart-item-${index}`);
   if (itemEl) {
     const subtotalEl = itemEl.querySelector('.subtotal-item-val');
@@ -833,12 +609,40 @@ function updateQtyManual(index, val) {
     }
   }
 
-  // Hitung ulang Total Price Utama
-  hitungsDanUpdateTotalPrice();
+  paksaHitungTotalPriceDOM();
 }
 
-// RENDER ULANG TAMPILAN KERANJANG & ATRIBUT ID SPESIFIK
+// 15. UBAH QTY TOMBOL + / -
+function ubahQtyKeranjang(index, delta) {
+  if (!window.keranjangPOS || !window.keranjangPOS[index]) return;
+
+  let currentQty = parseFloat(window.keranjangPOS[index].qty) || 0;
+  let newQty = currentQty + delta;
+
+  if (newQty <= 0) {
+    window.keranjangPOS.splice(index, 1);
+  } else {
+    window.keranjangPOS[index].qty = Math.round(newQty * 100) / 100;
+  }
+
+  renderKeranjangPOS();
+  paksaHitungTotalPriceDOM();
+}
+
+// 16. HAPUS ITEM DARI KERANJANG
+function hapusItemKeranjang(index) {
+  if (!window.keranjangPOS) return;
+  window.keranjangPOS.splice(index, 1);
+  renderKeranjangPOS();
+  paksaHitungTotalPriceDOM();
+}
+
+// 17. RENDER TAMPILAN KERANJANG TRANSAKSI
 function renderKeranjangPOS() {
+  if (Array.isArray(window.cartPOS) && window.cartPOS.length > 0) {
+    window.keranjangPOS = window.cartPOS;
+  }
+
   const container = getCartContainer();
   const items = window.keranjangPOS || [];
 
@@ -874,7 +678,6 @@ function renderKeranjangPOS() {
                 <button type="button" onclick="ubahQtyKeranjang(${index}, ${isKiloan ? 0.5 : 1})" class="w-6 h-6 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg font-bold text-xs flex items-center justify-center active:scale-90 transition">+</button>
               </div>
 
-              <!-- SUB TOTAL ITEM -->
               <p class="subtotal-item-val font-black text-slate-800 text-xs min-w-[75px] text-right">
                 Rp ${Math.round(subtotal).toLocaleString('id-ID')}
               </p>
@@ -887,10 +690,141 @@ function renderKeranjangPOS() {
     }
   }
 
-  hitungsDanUpdateTotalPrice();
+  paksaHitungTotalPriceDOM();
 }
 
-// Regsitrasi Window Scope
-window.hitungsDanUpdateTotalPrice = hitungsDanUpdateTotalPrice;
-window.updateQtyManual = updateQtyManual;
+// 18. EVENT LISTENER AUTOMATIS UNTUK TOMBOL
+document.addEventListener('click', function(e) {
+  const target = e.target.closest('button') || e.target;
+  if (!target) return;
+
+  const text = (target.textContent || '').trim().toLowerCase();
+
+  if (text.includes('tambah layanan') || text.includes('layanan baru') || text === '+') {
+    if (target.type !== 'submit' && !target.closest('#modal-kelola-layanan')) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const modalLayanan = document.getElementById('modal-layanan') 
+                        || document.getElementById('modal-pilih-layanan')
+                        || document.querySelector('.modal-layanan');
+
+      if (modalLayanan) {
+        modalLayanan.style.zIndex = '999999';
+        modalLayanan.classList.remove('hidden');
+        modalLayanan.classList.add('flex');
+        modalLayanan.style.display = 'flex';
+        
+        if (typeof renderLayananPOS === 'function') {
+          renderLayananPOS();
+        }
+      }
+    }
+  }
+
+  if (text.includes('simpan layanan baru') || text.includes('simpan layanan')) {
+    e.preventDefault();
+    prosesSimpanLayananBaru(e);
+  }
+}, true);
+
+// ==========================================
+// 19. AUTOMATIC REALTIME TOTAL PRICE OBSERVER
+// ==========================================
+
+function paksaHitungTotalPriceDOM() {
+  let total = 0;
+
+  const container = getCartContainer();
+  if (container) {
+    const allSubtotals = container.querySelectorAll('.subtotal-item-val, .font-black.text-slate-800');
+    allSubtotals.forEach(el => {
+      const txt = el.textContent || '';
+      if (txt.includes('Rp')) {
+        const num = parseFloat(txt.replace(/[^0-9]/g, '')) || 0;
+        if (num > 0) total += num;
+      }
+    });
+  }
+
+  if (total === 0 && window.keranjangPOS && window.keranjangPOS.length > 0) {
+    window.keranjangPOS.forEach(item => {
+      let q = parseFloat(String(item.qty).replace(',', '.')) || 0;
+      let h = parseFloat(String(item.harga).replace(/[^0-9.]/g, '')) || 0;
+      total += (q * h);
+    });
+  }
+
+  window.totalHargaPOS = Math.round(total);
+  const formattedTotal = 'Rp ' + window.totalHargaPOS.toLocaleString('id-ID');
+
+  ['total-price-pos', 'total_harga', 'totalPrice', 'grand-total', 'total-bayar'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = formattedTotal;
+  });
+
+  const allElements = document.querySelectorAll('p, div, span, h3, h4');
+  allElements.forEach(el => {
+    if (el.children.length === 0 && (el.textContent || '').trim().toUpperCase() === 'TOTAL PRICE') {
+      const parent = el.parentElement;
+      if (parent) {
+        const priceVal = parent.querySelector('p:not(:first-child), div:not(:first-child), span:not(:first-child), .text-lg, .font-black, .font-bold, h3, h4') 
+                      || el.nextElementSibling;
+        
+        if (priceVal && priceVal !== el) {
+          priceVal.textContent = formattedTotal;
+        }
+      }
+    }
+  });
+}
+
+let priceObserver = null;
+function startTotalPriceObserver() {
+  if (priceObserver) return;
+
+  priceObserver = new MutationObserver(() => {
+    paksaHitungTotalPriceDOM();
+  });
+
+  priceObserver.observe(document.body, {
+    childList: true,
+    subtree: true,
+    characterData: true
+  });
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    startTotalPriceObserver();
+    paksaHitungTotalPriceDOM();
+  });
+} else {
+  startTotalPriceObserver();
+  paksaHitungTotalPriceDOM();
+}
+
+// REGISTRASI GLOBAL SCOPE WINDOW
+window.toggleAccordion = toggleAccordion;
+window.toggleFormTambahKasir = toggleFormTambahKasir;
+window.simpanKasirBaru = simpanKasirBaru;
+window.renderDaftarKasir = renderDaftarKasir;
+
+window.renderKelolaLayananList = renderKelolaLayananList;
+window.renderLayananPOS = renderLayananPOS;
+window.geserPosisiLayanan = geserPosisiLayanan;
+window.bukaModalEditLayanan = bukaModalEditLayanan;
+window.tutupModalEditLayanan = tutupModalEditLayanan;
+window.simpanPerubahanLayanan = simpanPerubahanLayanan;
+window.prosesSimpanLayananBaru = prosesSimpanLayananBaru;
+window.hapusLayananBaru = hapusLayananBaru;
+
+window.bukaModalPilihLayanan = bukaModalPilihLayanan;
+window.handleTambahLayanan = bukaModalPilihLayanan;
+window.pilihLayananKeKeranjang = pilihLayananKeKeranjang;
 window.renderKeranjangPOS = renderKeranjangPOS;
+window.updateQtyManual = updateQtyManual;
+window.ubahQtyKeranjang = ubahQtyKeranjang;
+window.hapusItemKeranjang = hapusItemKeranjang;
+window.hitungsDanUpdateTotalPrice = paksaHitungTotalPriceDOM;
+window.paksaHitungTotalPriceDOM = paksaHitungTotalPriceDOM;
