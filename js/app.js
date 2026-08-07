@@ -331,46 +331,125 @@ function tambahLayananBaru(e) {
   }
 }
 
-// --- LOGIKA VALIDASI DAN PROSES PESAN ---
+// ==========================================
+// FIX PROSES SIMPAN TRANSAKSI POS KE SUPABASE
+// ==========================================
 
+async function simpanOrderPOS() {
+  const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
+  
+  if (!client) {
+    if (typeof showToast === 'function') showToast('Koneksi Supabase belum siap!', 'error');
+    else alert('Koneksi Supabase belum siap!');
+    return;
+  }
+
+  // 1. Ambil Data Pelanggan Terpilih
+  const pelangganObj = window.selectedPelanggan || null;
+  const pelangganId = pelangganObj ? pelangganObj.id : null;
+  const pelangganNama = pelangganObj ? pelangganObj.nama : 'Pelanggan Umum';
+
+  // 2. Ambil Data Keranjang POS
+  const keranjang = window.keranjangPOS || [];
+  if (keranjang.length === 0) {
+    if (typeof showToast === 'function') showToast('Keranjang layanan masih kosong!', 'error');
+    return;
+  }
+
+  // 3. Hitung Total Harga dan Kuantitas
+  let totalHarga = window.totalHargaPOS || 0;
+  if (totalHarga === 0) {
+    keranjang.forEach(item => {
+      let q = parseFloat(String(item.qty).replace(',', '.')) || 0;
+      let h = typeof item.harga === 'number' ? item.harga : (parseFloat(String(item.harga).replace(/[^0-9.]/g, '')) || 0);
+      totalHarga += (q * h);
+    });
+  }
+
+  const primaryItem = keranjang[0];
+  const totalQty = keranjang.reduce((sum, item) => sum + (parseFloat(item.qty) || 0), 0);
+
+  try {
+    const userRes = await client.auth.getUser();
+    const userId = userRes?.data?.user?.id || null;
+    let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) ? currentToko.id : localStorage.getItem('toko_id');
+
+    // Payload disesuaikan dengan struktur kolom tabel 'transaksi' kamu di Supabase
+    const payload = {
+      pelanggan_id: pelangganId,
+      layanan_id: primaryItem ? primaryItem.id : null,
+      berat_atau_jumlah: totalQty,
+      total_harga: Math.round(totalHarga),
+      status_pembayaran: 'Belum Lunas',
+      status_laundry: 'Diterima',
+      nama_pelanggan: pelangganNama
+    };
+
+    if (userId) payload.user_id = userId;
+    if (tokoId) payload.toko_id = tokoId;
+
+    console.log("Mengirim transaksi ke Supabase:", payload);
+
+    const { data, error } = await client
+      .from('transaksi')
+      .insert([payload])
+      .select();
+
+    if (error) {
+      console.error("Error Supabase insert transaksi:", error);
+      if (typeof showToast === 'function') showToast('Gagal menyimpan: ' + error.message, 'error');
+      else alert('Gagal menyimpan transaksi: ' + error.message);
+      return;
+    }
+
+    if (typeof showToast === 'function') showToast('Transaksi Berhasil Disimpan ke Database! 🎉', 'success');
+    else alert('Berhasil! Transaksi telah tersimpan.');
+
+    // Reset Form Modal POS
+    window.keranjangPOS = [];
+    window.selectedPelanggan = null;
+    
+    const customerLabel = document.getElementById('selectedCustomerName');
+    if (customerLabel) {
+      customerLabel.textContent = 'Silahkan Pilih Customer Terlebih Dahulu.';
+      customerLabel.className = 'text-sm font-semibold text-gray-400 italic';
+    }
+
+    if (typeof renderKeranjangPOS === 'function') renderKeranjangPOS();
+    tutupModalPOS();
+
+    // Reload daftar order di layar
+    if (typeof loadOrderDataList === 'function') loadOrderDataList();
+
+  } catch (err) {
+    console.error("Catch Error simpanOrderPOS:", err);
+    if (typeof showToast === 'function') showToast('Terjadi kesalahan sistem', 'error');
+  }
+}
+
+// 4. PEMBARUAN HANDLER TOMBOL PESAN
 function handleProsesPesan(e) {
   if (e) { e.preventDefault(); e.stopPropagation(); }
 
   const customerLabel = document.getElementById('selectedCustomerName')?.textContent?.trim() || '';
   
-  // 1. Cek Pelanggan
+  // Validasi Pelanggan
   if (!customerLabel || customerLabel.includes('Silahkan Pilih Customer Terlebih Dahulu.')) {
-    if (typeof showToast === 'function') {
-      showToast('Harap isi kolom Pelanggan Terlebih dahulu..!!', 'error');
-    } else {
-      alert('Harap isi kolom Pelanggan Terlebih dahulu..!!');
-    }
+    if (typeof showToast === 'function') showToast('Harap isi kolom Pelanggan Terlebih dahulu..!!', 'error');
+    else alert('Harap isi kolom Pelanggan Terlebih dahulu..!!');
     return;
   }
 
-  // 2. Cek Keranjang Layanan (Periksa Array Keranjang Global)
+  // Validasi Keranjang
   const hasCartItems = Array.isArray(window.keranjangPOS) && window.keranjangPOS.length > 0;
-  
   if (!hasCartItems) {
-    if (typeof showToast === 'function') {
-      showToast('Harap isi kolom Layanan Terlebih dahul..!!', 'error');
-    } else {
-      alert('Harap isi kolom Layanan Terlebih dahul..!!');
-    }
+    if (typeof showToast === 'function') showToast('Harap isi kolom Layanan Terlebih dahulu..!!', 'error');
+    else alert('Harap isi kolom Layanan Terlebih dahulu..!!');
     return;
   }
 
-  // 3. Simpan Order
-  if (typeof simpanOrderPOS === 'function') {
-    simpanOrderPOS();
-  } else {
-    if (typeof showToast === 'function') {
-      showToast('Transaksi Berhasil Diproses!', 'success');
-    } else {
-      alert('Transaksi Berhasil Diproses!');
-    }
-    tutupModalPOS();
-  }
+  // Panggil fungsi simpan asli ke Supabase
+  simpanOrderPOS();
 }
 
 // Inisialisasi Listener Tombol POS
