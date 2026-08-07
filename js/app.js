@@ -71,7 +71,7 @@ function closeModalKelolaLayanan() {
     modal.classList.remove('flex');
   }
 }
-// test saja
+
 // 3. FUNGSI MENUTUP MODAL (AMAN)
 function closeModalWithHistory(modalId) {
   const modal = document.getElementById(modalId);
@@ -297,7 +297,6 @@ function closeModalPilihPelanggan() {
   }
 }
 
-// FIX 1: FUNGSI MENUTUP MODAL PILIH LAYANAN
 function closeModalPilihLayanan() {
   const modal = document.getElementById('modal-layanan') 
              || document.getElementById('modal-pilih-layanan');
@@ -311,7 +310,6 @@ function closeModalPilihLayanan() {
 // --- WRAPPER SIMPAN PELANGGAN & LAYANAN BARU ---
 function simpanCustomerBaru(e) {
   if (e && e.preventDefault) e.preventDefault();
-  // Langsung panggil fungsi dari js/custumer.js
   if (typeof window.simpanCustomerBaruAsli === 'function') {
     window.simpanCustomerBaruAsli(e);
   } else if (typeof window.prosesSimpanCustomerBaru === 'function') {
@@ -321,7 +319,6 @@ function simpanCustomerBaru(e) {
   }
 }
 
-// --- WRAPPER SIMPAN LAYANAN BARU ---
 function tambahLayananBaru(e) {
   if (e && e.preventDefault) e.preventDefault();
   if (typeof window.prosesSimpanLayananBaru === 'function') {
@@ -373,13 +370,13 @@ async function simpanOrderPOS() {
     const userId = userRes?.data?.user?.id || null;
     let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) ? currentToko.id : localStorage.getItem('toko_id');
 
-    // Payload murni sesuai kolom tabel 'transaksi' di Supabase kamu
+    // Payload murni sesuai kolom tabel 'transaksi' di Supabase kamu (KOMA SUDAH DIPERBAIKI)
     const payload = {
       pelanggan_id: pelangganId,
       layanan_id: primaryItem ? primaryItem.id : null,
       berat_atau_jumlah: totalQty,
       total_harga: Math.round(totalHarga),
-      status_pembayaran: 'Belum Lunas'
+      status_pembayaran: 'Belum Lunas',
       parfum: document.getElementById('pos_parfum')?.value || 'Standard',
       catatan: document.getElementById('pos_catatan')?.value?.trim() || ''
     };
@@ -516,7 +513,6 @@ document.addEventListener('click', function(e) {
 function hitungTotalPOSApp() {
   let total = 0;
 
-  // Cari semua teks harga di dalam modal transaksi
   const modalOrder = document.getElementById('modal-order') 
                   || document.getElementById('modalPOS') 
                   || document.getElementById('modal-transaksi')
@@ -524,12 +520,10 @@ function hitungTotalPOSApp() {
 
   const priceElements = modalOrder.querySelectorAll('p, span, div');
   priceElements.forEach(el => {
-    // Ambil harga item yang ada di baris keranjang (sebelah tombol X)
     if (el.children.length === 0 && el.textContent.includes('Rp')) {
       const parent = el.parentElement;
       const textUpper = (parent?.textContent || '').toUpperCase();
       
-      // Pastikan bukan elemen TOTAL PRICE utama
       if (!textUpper.includes('TOTAL PRICE')) {
         const num = parseFloat(el.textContent.replace(/[^0-9]/g, '')) || 0;
         if (num > 0 && parent.querySelector('button, input')) {
@@ -539,7 +533,6 @@ function hitungTotalPOSApp() {
     }
   });
 
-  // Jika hitung dari DOM tidak ketemu, hitung dari Array global
   if (total === 0 && window.keranjangPOS && window.keranjangPOS.length > 0) {
     window.keranjangPOS.forEach(item => {
       let q = parseFloat(String(item.qty).replace(',', '.')) || 0;
@@ -550,7 +543,6 @@ function hitungTotalPOSApp() {
 
   const formattedTotal = 'Rp ' + Math.round(total).toLocaleString('id-ID');
 
-  // Update Teks Angka TOTAL PRICE
   priceElements.forEach(el => {
     if (el.children.length === 0 && el.textContent.trim().toUpperCase() === 'TOTAL PRICE') {
       const parent = el.parentElement;
@@ -564,7 +556,6 @@ function hitungTotalPOSApp() {
   });
 }
 
-// 3. Jalankan Pemantau Perubahan DOM Otomatis
 const posAppObserver = new MutationObserver(() => {
   hitungTotalPOSApp();
 });
@@ -608,7 +599,6 @@ async function loadDataHome() {
       const st = (item.status_laundry || item.status || 'Diterima').trim();
       const itemDateStr = item.created_at ? new Date(item.created_at).toDateString() : '';
 
-      // 1. Ringkasan Cucian (Aktif = Bukan Selesai & Bukan Batal)
       if (st !== 'Selesai' && st !== 'Batal') {
         countAktif++;
       }
@@ -616,7 +606,6 @@ async function loadDataHome() {
       if (st === 'Terlambat') countTerlambat++;
       if (st === 'Selesai') countSelesai++;
 
-      // 2. Keuangan & Masuk Hari Ini
       if (itemDateStr === todayStr) {
         if (st !== 'Batal') {
           omsetHariIni += (item.total_harga || 0);
@@ -639,7 +628,6 @@ async function loadDataHome() {
       }
     });
 
-    // Update Elemen UI Beranda
     const elAktif = document.getElementById('stat-aktif');
     const elHarus = document.getElementById('stat-harus-selesai');
     const elLate = document.getElementById('stat-terlambat');
@@ -663,7 +651,6 @@ async function loadDataHome() {
       }
     }
 
-    // Panggil ulang laporan agar statistik di tab Report ikut ter-update
     if (typeof loadReport === 'function') {
       loadReport();
     }
@@ -673,7 +660,6 @@ async function loadDataHome() {
   }
 }
 
-// Inisialisasi otomatis load data home saat aplikasi siap
 document.addEventListener('DOMContentLoaded', () => {
   setTimeout(loadDataHome, 300);
 });
