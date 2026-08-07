@@ -179,6 +179,9 @@ async function actionBatalkanOrder() {
 let activeOrderDetail = null;
 
 async function openModalDetailOrder(orderId) {
+  // Simpan ID Order ke variabel global
+  window.currentSelectedOrderId = orderId;
+  
   const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
   if (!client) return;
 
