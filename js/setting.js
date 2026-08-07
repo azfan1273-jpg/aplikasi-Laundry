@@ -655,31 +655,37 @@ function getCartContainer() {
 }
 
 // ==========================================
-// FIX TRANSAKSI POS: MULTI LAYANAN & TOTAL PRICE AUTOMATIS
+// FIX Z-INDEX: BUKA MODAL LAYANAN DI ATAS MODAL TRANSAKSI
 // ==========================================
 
-window.keranjangPOS = window.keranjangPOS || [];
-
-// 1. FUNGSI BUKA MODAL PILIH LAYANAN (Dapat diklik berkali-kali)
 function bukaModalPilihLayanan() {
-  console.log("-> Membuka Modal Pilih Layanan...");
-  const modal = document.getElementById('modal-layanan') 
-             || document.getElementById('modal-pilih-layanan')
-             || document.querySelector('.modal-layanan');
+  console.log("-> Membuka Modal Pilih Layanan ke Lapisan Terdepan (Z-Index High)...");
+
+  let modal = document.getElementById('modal-layanan') 
+           || document.getElementById('modal-pilih-layanan')
+           || document.querySelector('.modal-layanan');
 
   if (modal) {
+    // Paksa modal layanan tampil di tumpukan Z-INDEX Paling Atas (z-[9999])
+    modal.className = modal.className.replace(/z-\[\d+\]/g, ''); // bersihkan z-index lama
+    modal.classList.add('z-[9999]'); // pasang z-index tertinggi
+    modal.style.zIndex = '9999';
+
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     modal.style.display = 'flex';
   }
 
+  // Render ulang daftar layanan
   if (typeof renderLayananPOS === 'function') {
     renderLayananPOS();
   }
 }
 
-// 2. FUNGSI MEMILIH LAYANAN KE KERANJANG
+// MEMILIH LAYANAN KE KERANJANG (TETAP MENJAGA STATE MODAL ORDER)
 function pilihLayananKeKeranjang(id, nama, harga, satuan) {
+  console.log("-> Menambahkan item ke keranjang:", nama);
+
   if (!window.keranjangPOS) window.keranjangPOS = [];
 
   const numHarga = typeof harga === 'number' ? harga : (parseFloat(String(harga).replace(/[^0-9.]/g, '')) || 0);
@@ -700,10 +706,10 @@ function pilihLayananKeKeranjang(id, nama, harga, satuan) {
   }
 
   if (typeof showToast === 'function') {
-    showToast(`"${nama}" berhasil ditambahkan!`, 'success');
+    showToast(`"${nama}" ditambahkan!`, 'success');
   }
 
-  // Tutup Modal Pilih Layanan
+  // Sembunyikan HANYA modal pilihan layanan (bukan modal order transaksi)
   const modalLayanan = document.getElementById('modal-layanan') 
                     || document.getElementById('modal-pilih-layanan');
   if (modalLayanan) {
@@ -712,157 +718,11 @@ function pilihLayananKeKeranjang(id, nama, harga, satuan) {
     modalLayanan.style.display = 'none';
   }
 
-  // Render Ulang Keranjang
+  // Render Ulang Tampilan Keranjang
   renderKeranjangPOS();
 }
 
-// 3. CARI KONTRAINER KERANJANG DI MODAL ORDER
-function getCartContainer() {
-  let container = document.getElementById('cart-items-container') 
-               || document.querySelector('[data-cart-container="true"]');
-  if (container) return container;
-
-  const elements = Array.from(document.querySelectorAll('p, span, div'));
-  for (let el of elements) {
-    if (el.children.length === 0 && el.textContent.toLowerCase().includes('belum ada layanan')) {
-      container = el.parentElement;
-      if (container) {
-        container.setAttribute('data-cart-container', 'true');
-        container.id = 'cart-items-container';
-        return container;
-      }
-    }
-  }
-
-  return null;
-}
-
-// 4. RENDER TAMPILAN KERANJANG POS
-function renderKeranjangPOS() {
-  const container = getCartContainer();
-  const items = window.keranjangPOS || [];
-
-  if (container) {
-    if (items.length === 0) {
-      container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4 italic">Belum ada layanan yang ditambahkan.</p>';
-    } else {
-      container.innerHTML = items.map((item, index) => {
-        const sat = (item.satuan || 'Kg').toLowerCase().trim();
-        const isKiloan = sat === 'kg' || sat === 'kilo' || sat === 'kiloan';
-        const stepVal = isKiloan ? "0.01" : "1";
-        const currentQty = parseFloat(item.qty) || 0;
-        const subtotal = (item.harga || 0) * currentQty;
-
-        return `
-          <div class="p-3 bg-white rounded-2xl border border-slate-200 flex items-center justify-between text-xs mb-2 shadow-sm">
-            <div class="truncate mr-2">
-              <p class="font-extrabold text-slate-800 text-xs truncate">${item.nama_layanan}</p>
-              <p class="text-[10px] text-slate-400 mt-0.5">Rp ${(item.harga || 0).toLocaleString('id-ID')} / ${item.satuan}</p>
-            </div>
-
-            <div class="flex items-center gap-2.5 shrink-0">
-              <!-- INPUT QTY BISA DIKETIK DESIMAL (KOMA / TITIK) -->
-              <div class="flex items-center bg-slate-50 border border-slate-200 rounded-xl p-0.5">
-                <button type="button" onclick="ubahQtyKeranjang(${index}, -${isKiloan ? 0.5 : 1})" class="w-6 h-6 bg-white hover:bg-slate-200 rounded-lg text-slate-700 font-bold text-xs flex items-center justify-center active:scale-90 transition">-</button>
-                
-                <input 
-                  type="text" 
-                  inputmode="decimal"
-                  value="${currentQty}" 
-                  oninput="updateQtyManual(${index}, this.value)"
-                  class="w-14 text-center font-black text-xs text-slate-800 bg-transparent outline-none p-0 focus:text-blue-600"
-                />
-
-                <button type="button" onclick="ubahQtyKeranjang(${index}, ${isKiloan ? 0.5 : 1})" class="w-6 h-6 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg font-bold text-xs flex items-center justify-center active:scale-90 transition">+</button>
-              </div>
-
-              <!-- SUB TOTAL PER ITEM -->
-              <p class="font-black text-slate-800 text-xs min-w-[75px] text-right">
-                Rp ${Math.round(subtotal).toLocaleString('id-ID')}
-              </p>
-
-              <!-- HAPUS ITEM -->
-              <button type="button" onclick="hapusItemKeranjang(${index})" class="text-rose-400 hover:text-rose-600 font-bold text-xs p-1">✕</button>
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-  }
-
-  // HITUNG TOTAL PRICE UTAMA
-  hitungsDanUpdateTotalPrice();
-}
-
-// 5. UPDATE QTY DARI INPUT KETIK MANUAL
-function updateQtyManual(index, val) {
-  if (!window.keranjangPOS || !window.keranjangPOS[index]) return;
-
-  let cleanVal = String(val).replace(',', '.');
-  let numVal = parseFloat(cleanVal);
-  if (isNaN(numVal) || numVal < 0) numVal = 0;
-
-  window.keranjangPOS[index].qty = numVal;
-  hitungsDanUpdateTotalPrice();
-}
-
-// 6. UBAH QTY DENGAN TOMBOL + / -
-function ubahQtyKeranjang(index, delta) {
-  if (!window.keranjangPOS || !window.keranjangPOS[index]) return;
-
-  let currentQty = parseFloat(window.keranjangPOS[index].qty) || 0;
-  let newQty = currentQty + delta;
-
-  if (newQty <= 0) {
-    window.keranjangPOS.splice(index, 1);
-  } else {
-    window.keranjangPOS[index].qty = Math.round(newQty * 100) / 100;
-  }
-
-  renderKeranjangPOS();
-}
-
-// 7. HAPUS ITEM KERANJANG
-function hapusItemKeranjang(index) {
-  if (!window.keranjangPOS) return;
-  window.keranjangPOS.splice(index, 1);
-  renderKeranjangPOS();
-}
-
-// 8. HITUNG & UPDATE TOTAL PRICE KESELURUHAN
-function hitungsDanUpdateTotalPrice() {
-  const items = window.keranjangPOS || [];
-  let total = 0;
-
-  items.forEach(item => {
-    let q = item.qty;
-    if (typeof q === 'string') q = parseFloat(q.replace(',', '.')) || 0;
-    let h = parseFloat(item.harga) || 0;
-    total += (q * h);
-  });
-
-  window.totalHargaPOS = Math.round(total);
-  const formattedTotal = 'Rp ' + window.totalHargaPOS.toLocaleString('id-ID');
-
-  // Update elemen ID langsung jika tersedia
-  ['total-price-pos', 'total_harga', 'totalPrice', 'grand-total'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = formattedTotal;
-  });
-
-  // Target elemen teks "TOTAL PRICE" di modal
-  const allDivs = document.querySelectorAll('div, section, p, span');
-  allDivs.forEach(parent => {
-    if ((parent.textContent || '').toUpperCase().includes('TOTAL PRICE')) {
-      const priceVal = parent.querySelector('.text-lg, .font-black, .font-bold, .text-xl, h3, h4') || parent.nextElementSibling;
-      if (priceVal && !priceVal.textContent.toUpperCase().includes('TOTAL PRICE')) {
-        priceVal.textContent = formattedTotal;
-      }
-    }
-  });
-}
-
-// 9. EVENT LISTENER AUTOMATIS UNTUK TOMBOL "+ TAMBAH LAYANAN"
+// BINDING HANDLER TOMBOL "+ TAMBAH LAYANAN"
 document.addEventListener('click', function(e) {
   const btn = e.target.closest('button') || e.target;
   if (!btn) return;
@@ -870,19 +730,14 @@ document.addEventListener('click', function(e) {
   const txt = (btn.textContent || '').trim().toLowerCase();
   if (txt.includes('tambah layanan') || txt === '+ tambah layanan') {
     e.preventDefault();
+    e.stopPropagation();
     bukaModalPilihLayanan();
   }
 });
 
-// REGISTER GLOBAL SCOPE
+// Register Global Window
 window.bukaModalPilihLayanan = bukaModalPilihLayanan;
 window.handleTambahLayanan = bukaModalPilihLayanan;
-window.pilihLayananKeKeranjang = pilihLayananKeKeranjang;
-window.renderKeranjangPOS = renderKeranjangPOS;
-window.updateQtyManual = updateQtyManual;
-window.ubahQtyKeranjang = ubahQtyKeranjang;
-window.hapusItemKeranjang = hapusItemKeranjang;
-window.hitungsDanUpdateTotalPrice = hitungsDanUpdateTotalPrice;
 
 // FUNGSI UTAMA: SIMPAN LAYANAN BARU
 async function prosesSimpanLayananBaru(e) {
