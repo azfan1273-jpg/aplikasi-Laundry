@@ -663,18 +663,51 @@ function renderKeranjangPOS() {
 // ==========================================
 // 18. EVENT LISTENERS AUTOMATIS
 // ==========================================
-document.addEventListener('input', function(e) {
-  const target = e.target;
+document.addEventListener('click', function(e) {
+  const target = e.target.closest('button') || e.target;
   if (!target) return;
 
-  const modalLayanan = target.closest('#modal-layanan') 
-                    || target.closest('#modal-pilih-layanan')
-                    || document.getElementById('modal-layanan');
+  const text = (target.textContent || '').trim().toLowerCase();
 
-  if (modalLayanan && target.matches('input[type="text"], input:not([type])')) {
-    renderLayananPOS(target.value.trim());
+  // Jika tombol + Tambah Layanan diklik
+  if (text.includes('tambah layanan') || text.includes('layanan baru') || text === '+') {
+    // Pastikan tidak mencegat tombol submit/input lain
+    if (target.type !== 'submit' && !target.closest('#modal-kelola-layanan')) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      console.log("-> Intercepted: Tombol Tambah Layanan diklik!");
+
+      const modalLayanan = document.getElementById('modal-layanan') 
+                        || document.getElementById('modal-pilih-layanan')
+                        || document.querySelector('.modal-layanan');
+
+      if (modalLayanan) {
+        modalLayanan.style.zIndex = '999999';
+        modalLayanan.classList.remove('hidden');
+        modalLayanan.classList.add('flex');
+        modalLayanan.style.display = 'flex';
+        
+        if (typeof renderLayananPOS === 'function') {
+          renderLayananPOS();
+        }
+      }
+    }
   }
-});
+}, true); // Gunakan Capturing phase (true) agar mendahului listener lain
+
+// Pastikan fungsi dipanggil saat modal transaksi dipicu
+window.bukaModalPilihLayanan = function() {
+  const modalLayanan = document.getElementById('modal-layanan') 
+                    || document.getElementById('modal-pilih-layanan');
+  if (modalLayanan) {
+    modalLayanan.style.zIndex = '999999';
+    modalLayanan.classList.remove('hidden');
+    modalLayanan.classList.add('flex');
+    modalLayanan.style.display = 'flex';
+    if (typeof renderLayananPOS === 'function') renderLayananPOS();
+  }
+};
 
 document.addEventListener('click', function(e) {
   const btn = e.target.closest('button') || e.target;
