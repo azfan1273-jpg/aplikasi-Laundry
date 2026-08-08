@@ -560,11 +560,14 @@ function bukaModalPilihLayanan() {
              || document.getElementById('modal-pilih-layanan');
 
   if (modal) {
+    // Paksa tampilkan & tempatkan paling depan
     modal.classList.remove('hidden');
     modal.classList.add('flex');
-    modal.style.display = 'flex';
-    modal.style.zIndex = '99999';
+    modal.style.setProperty('display', 'flex', 'important');
+    modal.style.setProperty('z-index', '99999', 'important');
+    modal.style.setProperty('pointer-events', 'auto', 'important');
 
+    // Render ulang isi daftar layanan
     if (typeof renderLayananPOS === 'function') {
       renderLayananPOS();
     }
@@ -578,9 +581,15 @@ function closeModalPilihLayanan() {
   if (modal) {
     modal.classList.add('hidden');
     modal.classList.remove('flex');
-    modal.style.display = 'none';
+    modal.style.setProperty('display', 'none', 'important');
+    modal.style.setProperty('pointer-events', 'none', 'important');
   }
 }
+
+// Daftarkan ulang ke Window
+window.bukaModalPilihLayanan = bukaModalPilihLayanan;
+window.closeModalPilihLayanan = closeModalPilihLayanan;
+window.handleTambahLayanan = bukaModalPilihLayanan;
 
 // 13. SINKRONISASI PEMILIHAN ITEM KE KERANJANG
 function pilihLayananKeKeranjang(id, nama, harga, satuan) {
