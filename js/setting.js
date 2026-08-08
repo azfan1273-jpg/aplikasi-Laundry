@@ -555,6 +555,25 @@ async function hapusLayananBaru(id) {
 }
 
 // 12. BUKA MODAL LAYANAN POS (AMAN UNTUK PENGGUNAAN BERKALI-KALI)
+let isOpeningModalLayanan = false;
+
+function triggerPilihLayanan(e) {
+  if (e) {
+    if (typeof e.preventDefault === 'function') e.preventDefault();
+    if (typeof e.stopPropagation === 'function') e.stopPropagation();
+  }
+
+  // Mencegah eksekusi ganda dalam jeda 300ms
+  if (isOpeningModalLayanan) return;
+  isOpeningModalLayanan = true;
+
+  setTimeout(() => {
+    isOpeningModalLayanan = false;
+  }, 300);
+
+  bukaModalPilihLayanan();
+}
+
 function bukaModalPilihLayanan() {
   const modal = document.getElementById('modal-layanan') 
              || document.getElementById('modal-pilih-layanan');
