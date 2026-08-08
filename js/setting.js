@@ -1,5 +1,5 @@
 // ==========================================
-// FILE: js/setting.js (MODUL SETTING, LAYANAN, & POS TRANSAKSI FULL FIX)
+// FILE: js/setting.js (MODUL SETTING, LAYANAN, PERMISSIONS & POS TRANSAKSI)
 // ==========================================
 
 if (!window.keranjangPOS) window.keranjangPOS = [];
@@ -16,6 +16,9 @@ function toggleAccordion(accId) {
     if (arrow) arrow.style.transform = 'rotate(180deg)';
     if (accId === 'acc-kasir' && typeof renderDaftarKasir === 'function') {
       renderDaftarKasir();
+    }
+    if (accId === 'acc-akses' && typeof loadPermissionsToForm === 'function') {
+      loadPermissionsToForm();
     }
   } else {
     element.classList.add('hidden');
@@ -135,31 +138,79 @@ async function renderDaftarKasir() {
   }
 }
 
-// 5. HELPER CONTAINER KELOLA LAYANAN
-function renderKelolaLayananList() {
-  const container = document.getElementById('list-kelola-layanan-container');
-  if (container) {
-    container.innerHTML = '';
-    if (container.parentElement) {
-      container.parentElement.style.display = 'none';
-    }
+// 5. BUKA & TUTUP MODAL KELOLA LAYANAN (FULL FIX)
+function openModalKelolaLayanan() {
+  const modal = document.getElementById('modal-kelola-layanan');
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    modal.style.display = 'flex';
+    renderKelolaLayananList();
   }
 }
 
-// 6. RENDER DAFTAR LAYANAN (KILOAN & SATUAN + EDIT ✏️)
+function closeModalKelolaLayanan() {
+  const modal = document.getElementById('modal-kelola-layanan');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    modal.style.display = 'none';
+  }
+}
+
+// 6. RENDER LIST KELOLA LAYANAN DENGAN TOMBOL HAPUS
+async function renderKelolaLayananList() {
+  const container = document.getElementById('list-kelola-layanan-container');
+  if (!container) return;
+
+  if (container.parentElement) {
+    container.parentElement.style.display = 'flex';
+  }
+
+  container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Memuat data layanan...</p>';
+
+  const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
+  if (!client) return;
+
+  let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) ? currentToko.id : localStorage.getItem('toko_id');
+
+  try {
+    let query = client.from('layanan').select('*');
+    if (tokoId) query = query.eq('toko_id', tokoId);
+
+    const { data: listLayanan, error } = await query;
+    if (error) throw error;
+
+    if (!listLayanan || listLayanan.length === 0) {
+      container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Belum ada layanan terdaftar.</p>';
+      return;
+    }
+
+    container.innerHTML = '';
+    listLayanan.forEach(item => {
+      const el = document.createElement('div');
+      el.className = "flex justify-between items-center p-2.5 bg-white border border-slate-200 rounded-xl mb-1.5 shadow-sm";
+      el.innerHTML = `
+        <div>
+          <p class="font-extrabold text-slate-800 text-xs">${item.nama_layanan}</p>
+          <p class="text-[10px] text-slate-500 mt-0.5">Rp ${(item.harga || 0).toLocaleString('id-ID')} / ${item.satuan || 'Kg'} • Est: ${item.estimasi_hari || 1} Hari</p>
+        </div>
+        <button type="button" onclick="hapusLayananBaru(${item.id})" class="bg-rose-50 text-rose-600 hover:bg-rose-100 font-bold px-2.5 py-1 rounded-lg text-[10px] transition">Hapus</button>
+      `;
+      container.appendChild(el);
+    });
+
+  } catch (err) {
+    console.error("Error renderKelolaLayananList:", err);
+    container.innerHTML = '<p class="text-xs text-rose-500 text-center py-4">Gagal memuat daftar layanan.</p>';
+  }
+}
+
+// 7. RENDER DAFTAR LAYANAN POS (KILOAN & SATUAN + EDIT ✏️)
 async function renderLayananPOS(keyword = '') {
   let container = document.getElementById('list-layanan-container')
                || document.querySelector('#modal-layanan .scroll-area')
                || document.querySelector('#modal-layanan .space-y-2');
-
-  if (!container) {
-    const allP = document.querySelectorAll('#modal-layanan p, #modal-layanan div');
-    allP.forEach(el => {
-      if (el.textContent.includes('Memuat layanan')) {
-        container = el.parentElement;
-      }
-    });
-  }
 
   if (!container) return;
 
@@ -169,9 +220,7 @@ async function renderLayananPOS(keyword = '') {
   try {
     let query = client.from('layanan').select('*');
     let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) ? currentToko.id : localStorage.getItem('toko_id');
-    if (tokoId) {
-      query = query.eq('toko_id', tokoId);
-    }
+    if (tokoId) query = query.eq('toko_id', tokoId);
 
     const { data: listLayanan, error } = await query;
     if (error) throw error;
@@ -278,7 +327,7 @@ async function renderLayananPOS(keyword = '') {
   }
 }
 
-// 7. GESER POSISI LAYANAN
+// 8. GESER POSISI LAYANAN
 function geserPosisiLayanan(id, direction) {
   if (!window.allLayananCache || window.allLayananCache.length === 0) return;
 
@@ -299,7 +348,7 @@ function geserPosisiLayanan(id, direction) {
   renderLayananPOS();
 }
 
-// 8. MODAL EDIT LAYANAN
+// 9. MODAL EDIT LAYANAN
 function bukaModalEditLayanan(id) {
   const item = (window.allLayananCache || []).find(l => l.id === id);
   if (!item) return;
@@ -403,32 +452,24 @@ async function simpanPerubahanLayanan(e, id) {
 
     tutupModalEditLayanan();
     renderLayananPOS();
+    renderKelolaLayananList();
 
   } catch (err) {
     console.error('Error simpanPerubahanLayanan:', err);
   }
 }
 
-// 9. SIMPAN LAYANAN BARU
-async function prosesSimpanLayananBaru(e) {
+// 10. TAMBAH LAYANAN BARU KE SUPABASE
+async function tambahLayananBaru(e) {
   if (e && e.preventDefault) e.preventDefault();
 
-  const modal = document.getElementById('modal-kelola-layanan') || document;
-  const inputs = Array.from(modal.querySelectorAll('input'));
-  const selectEl = modal.querySelector('select');
-
-  let namaInput = document.getElementById('new_nama_layanan') || document.getElementById('nama_layanan');
-  let hargaInput = document.getElementById('new_harga_layanan') || document.getElementById('harga_layanan');
-  let satuanInput = document.getElementById('new_satuan_layanan') || document.getElementById('satuan_layanan') || selectEl;
-  let estimasiInput = document.getElementById('new_estimasi_hari') || document.getElementById('estimasi_hari');
-
-  if (!namaInput && inputs.length > 0) namaInput = inputs[0];
-  if (!hargaInput && inputs.length > 1) hargaInput = inputs[1];
-  if (!estimasiInput && inputs.length > 2) estimasiInput = inputs[2];
+  const namaInput = document.getElementById('new_nama_layanan');
+  const hargaInput = document.getElementById('new_harga_layanan');
+  const satuanInput = document.getElementById('new_satuan_layanan');
+  const estimasiInput = document.getElementById('new_estimasi_hari');
 
   const nama_layanan = namaInput?.value?.trim();
-  let rawHarga = hargaInput?.value?.toString().replace(/[^0-9]/g, '') || '0';
-  const harga = parseFloat(rawHarga) || 0;
+  const harga = parseFloat(hargaInput?.value) || 0;
   const satuan = satuanInput?.value || 'Kg';
   const estimasi_hari = parseFloat(estimasiInput?.value) || 1;
 
@@ -441,16 +482,13 @@ async function prosesSimpanLayananBaru(e) {
   if (!client) return;
 
   try {
-    const userRes = await client.auth.getUser();
-    const userId = userRes?.data?.user?.id || null;
     let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) ? currentToko.id : localStorage.getItem('toko_id');
 
     const payload = {
       nama_layanan: nama_layanan,
       harga: harga,
       satuan: satuan,
-      estimasi_hari: estimasi_hari,
-      user_id: userId
+      estimasi_hari: estimasi_hari
     };
 
     if (tokoId) payload.toko_id = tokoId;
@@ -469,7 +507,7 @@ async function prosesSimpanLayananBaru(e) {
     if (hargaInput) hargaInput.value = '';
     if (estimasiInput) estimasiInput.value = '';
 
-    if (typeof closeModalKelolaLayanan === 'function') closeModalKelolaLayanan();
+    renderKelolaLayananList();
     renderLayananPOS();
 
   } catch (err) {
@@ -477,7 +515,7 @@ async function prosesSimpanLayananBaru(e) {
   }
 }
 
-// 10. HAPUS LAYANAN
+// 11. HAPUS LAYANAN DARI SUPABASE
 async function hapusLayananBaru(id) {
   if (!confirm('Yakin ingin menghapus layanan ini secara permanen?')) return;
 
@@ -492,17 +530,17 @@ async function hapusLayananBaru(id) {
     }
 
     tutupModalEditLayanan();
+    renderKelolaLayananList();
     renderLayananPOS();
   } catch (err) {
     console.error('Catch hapus layanan:', err);
   }
 }
 
-// 11. BUKA MODAL LAYANAN POS
+// 12. BUKA MODAL LAYANAN POS
 function bukaModalPilihLayanan() {
   let modal = document.getElementById('modal-layanan') 
-           || document.getElementById('modal-pilih-layanan')
-           || document.querySelector('.modal-layanan');
+           || document.getElementById('modal-pilih-layanan');
 
   if (modal) {
     modal.style.zIndex = '999999';
@@ -517,7 +555,7 @@ function bukaModalPilihLayanan() {
   }
 }
 
-// 12. SINKRONISASI PEMILIHAN ITEM KE KERANJANG
+// 13. SINKRONISASI PEMILIHAN ITEM KE KERANJANG
 function pilihLayananKeKeranjang(id, nama, harga, satuan) {
   const numHarga = typeof harga === 'number' ? harga : (parseFloat(String(harga).replace(/[^0-9.]/g, '')) || 0);
   const itemData = {
@@ -528,18 +566,6 @@ function pilihLayananKeKeranjang(id, nama, harga, satuan) {
     satuan: satuan || 'Kg',
     qty: 1
   };
-
-  if (typeof window.tambahKeKeranjang === 'function') {
-    try { window.tambahKeKeranjang(itemData); } catch(e) {}
-  }
-  if (typeof window.tambahLayananKeKeranjang === 'function') {
-    try { window.tambahLayananKeKeranjang(itemData); } catch(e) {}
-  }
-  if (Array.isArray(window.cartPOS)) {
-    const exist = window.cartPOS.find(i => i.id === id);
-    if (exist) exist.qty = (parseFloat(exist.qty) || 1) + 1;
-    else window.cartPOS.push(itemData);
-  }
 
   if (!window.keranjangPOS) window.keranjangPOS = [];
   const existingIndex = window.keranjangPOS.findIndex(item => item.id === id || item.nama_layanan === nama);
@@ -562,14 +588,12 @@ function pilihLayananKeKeranjang(id, nama, harga, satuan) {
   }
 
   setTimeout(() => {
-    if (typeof window.renderCart === 'function') try { window.renderCart(); } catch(e) {}
-    if (typeof window.updateCartUI === 'function') try { window.updateCartUI(); } catch(e) {}
     renderKeranjangPOS();
     paksaHitungTotalPriceDOM();
   }, 50);
 }
 
-// 13. PENCARI CONTAINER KERANJANG
+// 14. PENCARI CONTAINER KERANJANG
 function getCartContainer() {
   let container = document.getElementById('cart-items-container') 
                || document.querySelector('[data-cart-container="true"]');
@@ -590,7 +614,7 @@ function getCartContainer() {
   return null;
 }
 
-// 14. UPDATE QTY KETIK MANUAL
+// 15. UPDATE QTY KETIK MANUAL
 function updateQtyManual(index, val) {
   if (!window.keranjangPOS || !window.keranjangPOS[index]) return;
 
@@ -612,7 +636,7 @@ function updateQtyManual(index, val) {
   paksaHitungTotalPriceDOM();
 }
 
-// 15. UBAH QTY TOMBOL + / -
+// 16. UBAH QTY TOMBOL + / -
 function ubahQtyKeranjang(index, delta) {
   if (!window.keranjangPOS || !window.keranjangPOS[index]) return;
 
@@ -629,7 +653,7 @@ function ubahQtyKeranjang(index, delta) {
   paksaHitungTotalPriceDOM();
 }
 
-// 16. HAPUS ITEM DARI KERANJANG
+// 17. HAPUS ITEM DARI KERANJANG
 function hapusItemKeranjang(index) {
   if (!window.keranjangPOS) return;
   window.keranjangPOS.splice(index, 1);
@@ -637,12 +661,8 @@ function hapusItemKeranjang(index) {
   paksaHitungTotalPriceDOM();
 }
 
-// 17. RENDER TAMPILAN KERANJANG TRANSAKSI
+// 18. RENDER TAMPILAN KERANJANG TRANSAKSI
 function renderKeranjangPOS() {
-  if (Array.isArray(window.cartPOS) && window.cartPOS.length > 0) {
-    window.keranjangPOS = window.cartPOS;
-  }
-
   const container = getCartContainer();
   const items = window.keranjangPOS || [];
 
@@ -693,107 +713,101 @@ function renderKeranjangPOS() {
   paksaHitungTotalPriceDOM();
 }
 
-// 18. EVENT LISTENER AUTOMATIS UNTUK TOMBOL
-document.addEventListener('click', function(e) {
-  const target = e.target.closest('button') || e.target;
-  if (!target) return;
-
-  const text = (target.textContent || '').trim().toLowerCase();
-
-  // Hanya picu pendaftaran modal jika tombol mengandung frasa "tambah layanan" secara spesifik
-  // dan BUKAN tombol "+" penambah qty di dalam keranjang
-  if (text.includes('tambah layanan') || text.includes('layanan baru')) {
-    if (target.type !== 'submit' && !target.closest('#modal-kelola-layanan')) {
-      e.preventDefault();
-      e.stopPropagation();
-
-      const modalLayanan = document.getElementById('modal-layanan') 
-                        || document.getElementById('modal-pilih-layanan')
-                        || document.querySelector('.modal-layanan');
-
-      if (modalLayanan) {
-        modalLayanan.style.zIndex = '999999';
-        modalLayanan.classList.remove('hidden');
-        modalLayanan.classList.add('flex');
-        modalLayanan.style.display = 'flex';
-        
-        if (typeof renderLayananPOS === 'function') {
-          renderLayananPOS();
-        }
-      }
-    }
-  }
-
-  if (text.includes('simpan layanan baru') || text.includes('simpan layanan')) {
-    e.preventDefault();
-    prosesSimpanLayananBaru(e);
-  }
-}, true);
-
-// ==========================================
-// FIX HITUNG AUTOMATIC TOTAL PRICE POS
-// ==========================================
+// 19. HITUNG AUTOMATIC TOTAL PRICE POS
 function paksaHitungTotalPriceDOM() {
   let total = 0;
 
-  // 1. Prioritas Utama: Hitung langsung dari Array Keranjang POS
   if (Array.isArray(window.keranjangPOS) && window.keranjangPOS.length > 0) {
     window.keranjangPOS.forEach(item => {
       let q = parseFloat(String(item.qty).replace(',', '.')) || 0;
       let h = typeof item.harga === 'number' ? item.harga : (parseFloat(String(item.harga).replace(/[^0-9.]/g, '')) || 0);
       total += (q * h);
     });
-  } 
-  // 2. Fallback: Jika array kosong, hitung dari teks elemen subtotal di layar
-  else {
-    const container = getCartContainer();
-    if (container) {
-      const allSubtotals = container.querySelectorAll('.subtotal-item-val, p, span');
-      allSubtotals.forEach(el => {
-        const txt = (el.textContent || '').trim();
-        // Cari elemen yang ada teks "Rp" dan bukan pembungkus besar
-        if (txt.startsWith('Rp ') && el.children.length === 0) {
-          const num = parseFloat(txt.replace(/[^0-9]/g, '')) || 0;
-          if (num > 0) total += num;
-        }
-      });
-    }
   }
 
   window.totalHargaPOS = Math.round(total);
   const formattedTotal = 'Rp ' + window.totalHargaPOS.toLocaleString('id-ID');
 
-  // Update elemen Total Price berdasarkan ID spesifik modal POS di index.html (#totalPricePOS)
   const mainPosTotalPrice = document.getElementById('totalPricePOS');
-  if (mainPosTotalPrice) {
-    mainPosTotalPrice.textContent = formattedTotal;
-  }
+  if (mainPosTotalPrice) mainPosTotalPrice.textContent = formattedTotal;
 
-  // Update elemen target ID cadangan lainnya
   ['total-price-pos', 'total_harga', 'totalPrice', 'grand-total', 'total-bayar'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.textContent = formattedTotal;
   });
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    startTotalPriceObserver();
-    paksaHitungTotalPriceDOM();
-  });
-} else {
-  startTotalPriceObserver();
-  paksaHitungTotalPriceDOM();
+// 20. UPDATE REALTIME PERMISSIONS TOKO KE SUPABASE
+async function updateTokoPermissions(keyPermission, isChecked) {
+  const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
+  if (!client) return;
+
+  let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) 
+               ? currentToko.id 
+               : (typeof currentUserProfile !== 'undefined' && currentUserProfile?.toko_id) 
+               ? currentUserProfile.toko_id 
+               : localStorage.getItem('toko_id');
+
+  if (!tokoId) return;
+
+  let currentPerms = (currentToko && currentToko.permissions) ? currentToko.permissions : {};
+  if (typeof currentPerms === 'string') {
+    try { currentPerms = JSON.parse(currentPerms); } catch (e) { currentPerms = {}; }
+  }
+
+  currentPerms[keyPermission] = isChecked;
+
+  try {
+    const { data, error } = await client
+      .from('toko')
+      .update({ permissions: currentPerms })
+      .eq('id', tokoId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    if (data) {
+      currentToko = data;
+      if (typeof showToast === 'function') {
+        showToast('Izin akses berhasil diperbarui! ⚡', 'success');
+      }
+    }
+  } catch (err) {
+    console.error('Error update permissions:', err);
+    if (typeof showToast === 'function') {
+      showToast('Gagal memperbarui izin ke database', 'error');
+    }
+  }
+}
+
+// 21. LOAD STATUS SAKELAR DARI DATABASE KE FORM
+function loadPermissionsToForm() {
+  if (typeof currentToko === 'undefined' || !currentToko) return;
+
+  let perms = currentToko.permissions || {};
+  if (typeof perms === 'string') {
+    try { perms = JSON.parse(perms); } catch (e) { perms = {}; }
+  }
+
+  const elManager = document.getElementById('perm_is_manager');
+  const elLaporan = document.getElementById('perm_akses_laporan');
+  const elLayanan = document.getElementById('perm_akses_layanan');
+  const elPengeluaran = document.getElementById('perm_akses_pengeluaran');
+  const elEditOrder = document.getElementById('perm_akses_edit_order');
+
+  if (elManager) elManager.checked = !!perms.is_manager;
+  if (elLaporan) elLaporan.checked = !!perms.akses_laporan;
+  if (elLayanan) elLayanan.checked = !!perms.akses_layanan;
+  if (elPengeluaran) elPengeluaran.checked = !!perms.akses_pengeluaran;
+  if (elEditOrder) elEditOrder.checked = !!perms.akses_edit_order;
 }
 
 // ==========================================
 // PENGELOLA AROMA PARFUM DINAMIS
 // ==========================================
-
-// Data Bawaan Default
 const DEFAULT_PARFUM = ["Standard / Original", "Lavender", "Sakura", "Lily", "Snappy"];
 
-// 1. Ambil Data Parfum dari Storage
 function getDaftarParfum() {
   const saved = localStorage.getItem('lndr_daftar_parfum');
   if (saved) {
@@ -802,13 +816,11 @@ function getDaftarParfum() {
   return DEFAULT_PARFUM;
 }
 
-// 2. Simpan Data Parfum
 function saveDaftarParfum(list) {
   localStorage.setItem('lndr_daftar_parfum', JSON.stringify(list));
   renderParfumOptionsPOS();
 }
 
-// 3. Render Pilihan Parfum di Modal POS
 function renderParfumOptionsPOS() {
   const selectPOS = document.getElementById('pos_parfum');
   const selectEdit = document.getElementById('edit_parfum');
@@ -823,7 +835,6 @@ function renderParfumOptionsPOS() {
   if (selectEdit) selectEdit.innerHTML = optionsHTML;
 }
 
-// 4. Buka / Tutup Modal Kelola Parfum
 function openModalKelolaParfum() {
   const modal = document.getElementById('modal-kelola-parfum');
   if (modal) {
@@ -841,7 +852,6 @@ function closeModalKelolaParfum() {
   }
 }
 
-// 5. Render Daftar Parfum di Modal Kelola
 function renderKelolaParfumList() {
   const container = document.getElementById('list-kelola-parfum-container');
   if (!container) return;
@@ -867,7 +877,6 @@ function renderKelolaParfumList() {
   container.innerHTML = html;
 }
 
-// 6. Tambah Parfum Baru
 function tambahParfumBaru() {
   const input = document.getElementById('new_nama_parfum');
   const val = input ? input.value.trim() : '';
@@ -890,7 +899,6 @@ function tambahParfumBaru() {
   if (typeof showToast === 'function') showToast('Aroma parfum berhasil ditambahkan! 🎉', 'success');
 }
 
-// 7. Hapus Parfum
 function hapusParfum(index) {
   const list = getDaftarParfum();
   if (list.length <= 1) {
@@ -904,151 +912,11 @@ function hapusParfum(index) {
   if (typeof showToast === 'function') showToast('Aroma parfum berhasil dihapus', 'success');
 }
 
-// Inisialisasi Otomatis saat Dom Siap
+// Inisialisasi Otomatis
 document.addEventListener('DOMContentLoaded', () => {
   renderParfumOptionsPOS();
+  paksaHitungTotalPriceDOM();
 });
-
-// ==========================================
-// UPDATE REALTIME PERMISSIONS TOKO KE SUPABASE
-// ==========================================
-async function updateTokoPermissions(keyPermission, isChecked) {
-  const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
-  if (!client) return;
-
-  let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) ? currentToko.id : localStorage.getItem('toko_id');
-  if (!tokoId) return;
-
-  // 1. Ambil permissions lama
-  let currentPerms = (currentToko && currentToko.permissions) ? currentToko.permissions : {};
-  if (typeof currentPerms === 'string') {
-    try { currentPerms = JSON.parse(currentPerms); } catch (e) { currentPerms = {}; }
-  }
-
-  // 2. Perbarui nilai kunci yang diubah Owner
-  currentPerms[keyPermission] = isChecked;
-
-  try {
-    // 3. Simpan perubahan ke tabel 'toko'
-    const { data, error } = await client
-      .from('toko')
-      .update({ permissions: currentPerms })
-      .eq('id', tokoId)
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    if (data) {
-      currentToko = data; // Perbarui state toko global
-      if (typeof showToast === 'function') {
-        showToast('Izin akses berhasil diperbarui! ⚡', 'success');
-      }
-    }
-  } catch (err) {
-    console.error('Error update permissions:', err);
-    if (typeof showToast === 'function') {
-      showToast('Gagal memperbarui izin ke database', 'error');
-    }
-  }
-}
-
-window.updateTokoPermissions = updateTokoPermissions;
-
-// ==========================================
-// LOAD STATUS SAKELAR IZIN KASIR DARI DATABASE
-// ==========================================
-function loadPermissionsToForm() {
-  if (typeof currentToko === 'undefined' || !currentToko) return;
-
-  let perms = currentToko.permissions || {};
-  if (typeof perms === 'string') {
-    try { perms = JSON.parse(perms); } catch (e) { perms = {}; }
-  }
-
-  // Pasang status checked pada sakelar di HTML sesuai data Supabase
-  const elManager = document.getElementById('perm_is_manager');
-  const elLaporan = document.getElementById('perm_akses_laporan');
-  const elLayanan = document.getElementById('perm_akses_layanan');
-  const elPengeluaran = document.getElementById('perm_akses_pengeluaran');
-  const elEditOrder = document.getElementById('perm_akses_edit_order');
-
-  if (elManager) elManager.checked = !!perms.is_manager;
-  if (elLaporan) elLaporan.checked = !!perms.akses_laporan;
-  if (elLayanan) elLayanan.checked = !!perms.akses_layanan;
-  if (elPengeluaran) elPengeluaran.checked = !!perms.akses_pengeluaran;
-  if (elEditOrder) elEditOrder.checked = !!perms.akses_edit_order;
-}
-
-// Perbarui juga fungsi updateTokoPermissions agar instan
-async function updateTokoPermissions(keyPermission, isChecked) {
-  const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
-  if (!client) return;
-
-  let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) ? currentToko.id : localStorage.getItem('toko_id');
-  if (!tokoId) return;
-
-  let currentPerms = (currentToko && currentToko.permissions) ? currentToko.permissions : {};
-  if (typeof currentPerms === 'string') {
-    try { currentPerms = JSON.parse(currentPerms); } catch (e) { currentPerms = {}; }
-  }
-
-  currentPerms[keyPermission] = isChecked;
-
-  try {
-    const { data, error } = await client
-      .from('toko')
-      .update({ permissions: currentPerms })
-      .eq('id', tokoId)
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    if (data) {
-      currentToko = data;
-      if (typeof showToast === 'function') {
-        showToast('Izin akses diperbarui! ⚡', 'success');
-      }
-    }
-  } catch (err) {
-    console.error('Error update permissions:', err);
-    if (typeof showToast === 'function') {
-      showToast('Gagal memperbarui izin', 'error');
-    }
-  }
-}
-
-// ==========================================
-// BUKA & TUTUP MODAL KELOLA LAYANAN
-// ==========================================
-function openModalKelolaLayanan() {
-  const modal = document.getElementById('modal-kelola-layanan');
-  if (modal) {
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-    
-    // Refresh daftar layanan saat modal dibuka
-    if (typeof renderKelolaLayananList === 'function') {
-      renderKelolaLayananList();
-    }
-  }
-}
-
-function closeModalKelolaLayanan() {
-  const modal = document.getElementById('modal-kelola-layanan');
-  if (modal) {
-    modal.classList.add('hidden');
-    modal.classList.remove('flex');
-  }
-}
-
-// WAJIB: Daftarkan ke window scope
-window.openModalKelolaLayanan = openModalKelolaLayanan;
-window.closeModalKelolaLayanan = closeModalKelolaLayanan;
-
-window.loadPermissionsToForm = loadPermissionsToForm;
-window.updateTokoPermissions = updateTokoPermissions;
 
 // REGISTRASI GLOBAL SCOPE WINDOW
 window.toggleAccordion = toggleAccordion;
@@ -1056,13 +924,15 @@ window.toggleFormTambahKasir = toggleFormTambahKasir;
 window.simpanKasirBaru = simpanKasirBaru;
 window.renderDaftarKasir = renderDaftarKasir;
 
+window.openModalKelolaLayanan = openModalKelolaLayanan;
+window.closeModalKelolaLayanan = closeModalKelolaLayanan;
 window.renderKelolaLayananList = renderKelolaLayananList;
 window.renderLayananPOS = renderLayananPOS;
 window.geserPosisiLayanan = geserPosisiLayanan;
 window.bukaModalEditLayanan = bukaModalEditLayanan;
 window.tutupModalEditLayanan = tutupModalEditLayanan;
 window.simpanPerubahanLayanan = simpanPerubahanLayanan;
-window.prosesSimpanLayananBaru = prosesSimpanLayananBaru;
+window.tambahLayananBaru = tambahLayananBaru;
 window.hapusLayananBaru = hapusLayananBaru;
 
 window.bukaModalPilihLayanan = bukaModalPilihLayanan;
@@ -1074,3 +944,10 @@ window.ubahQtyKeranjang = ubahQtyKeranjang;
 window.hapusItemKeranjang = hapusItemKeranjang;
 window.hitungsDanUpdateTotalPrice = paksaHitungTotalPriceDOM;
 window.paksaHitungTotalPriceDOM = paksaHitungTotalPriceDOM;
+
+window.updateTokoPermissions = updateTokoPermissions;
+window.loadPermissionsToForm = loadPermissionsToForm;
+window.openModalKelolaParfum = openModalKelolaParfum;
+window.closeModalKelolaParfum = closeModalKelolaParfum;
+window.tambahParfumBaru = tambahParfumBaru;
+window.hapusParfum = hapusParfum;
