@@ -139,13 +139,35 @@ async function renderDaftarKasir() {
 }
 
 // 5. BUKA & TUTUP MODAL KELOLA LAYANAN (FULL FIX)
+// ==========================================
+// BUKA MODAL KELOLA / TAMBAH LAYANAN BARU
+// ==========================================
 function openModalKelolaLayanan() {
+  // Cek izin jika yang klik adalah Kasir
+  if (currentUserProfile && currentUserProfile.role === 'kasir') {
+    const perms = typeof getTokoPermissions === 'function' ? getTokoPermissions() : {};
+    const canLayanan = perms.is_manager || perms.akses_layanan;
+    
+    if (!canLayanan) {
+      if (typeof showToast === 'function') {
+        showToast('Izin membuat/mengedit layanan dibatasi oleh Owner! 🔒', 'error');
+      } else {
+        alert('Izin membuat/mengedit layanan dibatasi oleh Owner! 🔒');
+      }
+      return; // Hentikan, jangan buka modal
+    }
+  }
+
+  // Buka Modal Kelola Layanan
   const modal = document.getElementById('modal-kelola-layanan');
   if (modal) {
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     modal.style.display = 'flex';
-    renderKelolaLayananList();
+    
+    if (typeof renderKelolaLayananList === 'function') {
+      renderKelolaLayananList();
+    }
   }
 }
 
