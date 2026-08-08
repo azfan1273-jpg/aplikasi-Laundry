@@ -74,111 +74,25 @@ async function loadUserProfile(authUser) {
 
     showAuthScreen(false);
     
-    // ==========================================
-// TERAPKAN IZIN AKSES UI (LENGKAP & PRESISI)
-// ==========================================
-function applyUserPermissionsUI() {
-  if (!currentUserProfile) return;
+    // Terapkan izin UI seketika
+    applyUserPermissionsUI();
 
-  const isOwner = currentUserProfile.role === 'owner';
-
-  // Badge Role
-  const roleBadge = document.getElementById('topbar-role-badge');
-  const settingRoleBadge = document.getElementById('setting-role-badge');
-  if (roleBadge) roleBadge.innerText = isOwner ? 'Owner' : 'Kasir';
-  if (settingRoleBadge) settingRoleBadge.innerText = isOwner ? 'Owner' : 'Kasir';
-
-  const perms = typeof getTokoPermissions === 'function' ? getTokoPermissions() : {};
-
-  // Elemen UI
-  const ownerSectionLayanan = document.getElementById('setting-owner-layanan');
-  const ownerSectionKasir = document.getElementById('setting-owner-kasir');
-  const fabPengeluaran = document.getElementById('fab-btn-pengeluaran');
-  const navReport = document.getElementById('nav-report');
-  const btnModalTambahLayanan = document.getElementById('btn-modal-tambah-layanan');
-
-  if (!isOwner) {
-    // MODE KASIR
-    if (ownerSectionKasir) ownerSectionKasir.style.display = 'none';
-
-    // Cek masing-masing izin dari Supabase
-    const canLaporan = !!(perms.is_manager || perms.akses_laporan);
-    const canLayanan = !!(perms.is_manager || perms.akses_layanan);
-    const canPengeluaran = !!(perms.is_manager || perms.akses_pengeluaran);
-
-    // Buka/Tutup Menu Laporan di Bottom Nav
-    if (navReport) {
-      if (canLaporan) {
-        navReport.classList.remove('hidden');
-        navReport.style.display = 'flex';
-      } else {
-        navReport.classList.add('hidden');
-        navReport.style.display = 'none';
-      }
+    // Load status sakelar izin kasir jika berada di mode Owner
+    if (typeof loadPermissionsToForm === 'function') {
+      loadPermissionsToForm();
     }
 
-    if (ownerSectionLayanan) ownerSectionLayanan.style.display = canLayanan ? 'flex' : 'none';
-    if (btnModalTambahLayanan) btnModalTambahLayanan.style.display = canLayanan ? 'inline-block' : 'none';
-    if (fabPengeluaran) fabPengeluaran.style.display = canPengeluaran ? 'flex' : 'none';
+    // Pasang listener realtime izin akses toko
+    initRealtimeTokoPermissions();
 
-  } else {
-    // MODE OWNER (TAMPILKAN SEMUA)
-    if (navReport) {
-      navReport.classList.remove('hidden');
-      navReport.style.display = 'flex';
-    }
-    if (ownerSectionLayanan) ownerSectionLayanan.style.display = 'flex';
-    if (btnModalTambahLayanan) btnModalTambahLayanan.style.display = 'inline-block';
-    if (ownerSectionKasir) ownerSectionKasir.style.display = 'flex';
-    if (fabPengeluaran) fabPengeluaran.style.display = 'flex';
+    // Load data dashboard
+    if (typeof loadDataHome === 'function') loadDataHome();
+    if (typeof loadSettingsToForm === 'function') loadSettingsToForm();
+
+  } catch (err) {
+    console.error("Error loadUserProfile:", err);
+    showAuthScreen(true);
   }
-}
-
-// ==========================================
-// REALTIME LISTENER IZIN AKSES TOKO
-// ==========================================
-function initRealtimeTokoPermissions() {
-  if (typeof supabaseClient === 'undefined' || !supabaseClient) return;
-
-  let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) 
-               ? currentToko.id 
-               : (typeof currentUserProfile !== 'undefined' && currentUserProfile?.toko_id)
-               ? currentUserProfile.toko_id
-               : localStorage.getItem('toko_id');
-
-  if (!tokoId) return;
-
-  // Unsubscribe channel lama jika ada
-  supabaseClient.removeAllChannels();
-
-  supabaseClient
-    .channel('realtime_toko_permissions_' + tokoId)
-    .on(
-      'postgres_changes',
-      {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'toko',
-        filter: `id=eq.${tokoId}`
-      },
-      (payload) => {
-        if (payload.new) {
-          // Update memori lokal toko secara otomatis tanpa perlu relogin
-          currentToko = payload.new;
-
-          // Update UI seketika
-          applyUserPermissionsUI();
-
-          // Jika yang membuka layar adalah Kasir, berikan notifikasi
-          if (currentUserProfile && currentUserProfile.role === 'kasir') {
-            if (typeof showToast === 'function') {
-              showToast('⚡ Izin akses menu diperbarui oleh Owner!', 'info');
-            }
-          }
-        }
-      }
-    )
-    .subscribe();
 }
 
 // ==========================================
