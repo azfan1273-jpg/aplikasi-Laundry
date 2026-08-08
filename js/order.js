@@ -351,6 +351,40 @@ async function prosesBayarFinal(metode) {
   }
 }
 
+// FUNGSI UPDATE BADGE TOTAL PELANGGAN
+async function updateBadgeTotalPelanggan() {
+  const badgeEl = document.getElementById('badge-total-pelanggan');
+  if (!badgeEl) return;
+
+  const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
+  if (!client) return;
+
+  try {
+    let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) ? currentToko.id : localStorage.getItem('toko_id');
+    
+    let query = client.from('pelanggan').select('id', { count: 'exact', head: true });
+    if (tokoId) query = query.eq('toko_id', tokoId);
+
+    const { count, error } = await query;
+    if (error) throw error;
+
+    badgeEl.textContent = (count || 0) + ' Orang';
+  } catch (err) {
+    console.error("Error updateBadgeTotalPelanggan:", err);
+  }
+}
+
+// Otomatis jalankan saat load data order
+const originalLoadOrderDataList = window.loadOrderDataList;
+window.loadOrderDataList = async function() {
+  if (typeof originalLoadOrderDataList === 'function') {
+    await originalLoadOrderDataList();
+  }
+  updateBadgeTotalPelanggan();
+};
+
+window.updateBadgeTotalPelanggan = updateBadgeTotalPelanggan;
+
 // Expose fungsi ke scope global
 window.actionBayarOrder = actionBayarOrder;
 window.closeModalPembayaran = closeModalPembayaran;

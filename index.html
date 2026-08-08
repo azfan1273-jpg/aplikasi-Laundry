@@ -200,12 +200,20 @@
     <section id="panel-order" class="page-section space-y-3 overflow-hidden">
       <div class="bg-white p-3.5 rounded-3xl border border-slate-200/80 shadow-sm space-y-3 flex flex-col h-full overflow-hidden">
         <div class="flex justify-between items-center border-b pb-2 border-slate-100 shrink-0">
-          <div>
-            <h2 class="font-extrabold text-slate-900 text-sm">Daftar Order Pelanggan</h2>
-            <p class="text-[10px] text-slate-400">Klik item untuk melihat detail & memproses</p>
-          </div>
-          <button onclick="openModalPOS()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-md transition">+ Baru</button>
-        </div>
+  <div>
+    <h2 class="font-extrabold text-slate-900 text-sm">Daftar Order Pelanggan</h2>
+    <p class="text-[10px] text-slate-400">Klik item untuk melihat detail & memproses</p>
+  </div>
+  
+  <!-- BADGE ELEGANT TOTAL PELANGGAN -->
+  <div class="flex items-center gap-1.5 bg-blue-50 border border-blue-200/80 px-2.5 py-1 rounded-xl shadow-sm">
+    <span class="text-xs">👥</span>
+    <div class="text-right">
+      <p class="text-[8px] font-extrabold text-blue-500 uppercase tracking-wider leading-none">Total Pelanggan</p>
+      <p id="badge-total-pelanggan" class="text-xs font-black text-blue-700 leading-tight mt-0.5">0 Orang</p>
+    </div>
+  </div>
+</div>
 
         <div class="grid grid-cols-4 gap-1 bg-slate-100 p-1 rounded-2xl text-[11px] shrink-0">
           <button onclick="filterOrderTab('Antrian')" id="tab-Antrian" class="tab-order-btn py-1.5 text-center rounded-xl text-slate-600 font-medium transition">Antrian</button>
