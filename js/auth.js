@@ -35,6 +35,7 @@ async function checkUserSession() {
 // ==========================================
 async function loadUserProfile(authUser) {
   try {
+    // 1. Tarik data Profile
     const { data: profile, error: profErr } = await supabaseClient
       .from('profiles')
       .select('*')
@@ -60,17 +61,6 @@ async function loadUserProfile(authUser) {
         currentToko = toko;
       }
     }
-
-    showAuthScreen(false);
-    
-    // Terapkan izin UI seketika
-    applyUserPermissionsUI();
-
-  } catch (err) {
-    console.error("Error loadUserProfile:", err);
-    showAuthScreen(true);
-  }
-}
 
     // 3. Update Tampilan Topbar & Modal Header Email
     const emailVal = authUser.email || profile.email || 'Akun Kasir';
