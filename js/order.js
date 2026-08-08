@@ -175,20 +175,53 @@ async function openModalDetailOrder(orderId) {
     if (totalPriceEl) totalPriceEl.textContent = totalHargaFormatted;
 
     if (layananListContainer) {
-      const namaLayanan = order.layanan ? order.layanan.nama_layanan : 'Layanan Laundry';
-      const qty = parseFloat(order.berat_atau_jumlah) || 1;
-      const satuan = order.layanan ? (order.layanan.satuan || 'Kg') : 'Kg';
-      const hargaSatuan = order.layanan ? (order.layanan.harga || 0) : (totalHargaVal / qty);
+      // Cek apakah ada rincian item dalam bentuk array / JSON di transaksi
+      let itemsList = [];
 
-      layananListContainer.innerHTML = `
-        <div class="flex justify-between items-center p-2.5 bg-white rounded-xl border border-slate-200 text-xs shadow-sm">
-          <div>
-            <p class="font-extrabold text-slate-800">${namaLayanan}</p>
-            <p class="text-[10px] text-slate-400 mt-0.5">${qty} ${satuan} × Rp ${Math.round(hargaSatuan).toLocaleString('id-ID')}</p>
+      if (order.items) {
+        try {
+          itemsList = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+        } catch (e) {
+          itemsList = [];
+        }
+      }
+
+      // Jika ada banyak item dari keranjang
+      if (Array.isArray(itemsList) && itemsList.length > 0) {
+        layananListContainer.innerHTML = itemsList.map(item => {
+          const namaLayanan = item.nama_layanan || item.nama || 'Layanan Laundry';
+          const qty = parseFloat(item.qty) || 1;
+          const satuan = item.satuan || 'Kg';
+          const hargaSatuan = item.harga || 0;
+          const subtotal = qty * hargaSatuan;
+
+          return `
+            <div class="flex justify-between items-center p-2.5 bg-white rounded-xl border border-slate-200 text-xs shadow-sm mb-1.5">
+              <div>
+                <p class="font-extrabold text-slate-800">${namaLayanan}</p>
+                <p class="text-[10px] text-slate-400 mt-0.5">${qty} ${satuan} × Rp ${Math.round(hargaSatuan).toLocaleString('id-ID')}</p>
+              </div>
+              <p class="font-black text-blue-600 text-xs">Rp ${Math.round(subtotal).toLocaleString('id-ID')}</p>
+            </div>
+          `;
+        }).join('');
+      } else {
+        // Fallback jika orderan lama yang cuma punya 1 layanan
+        const namaLayanan = order.layanan ? order.layanan.nama_layanan : 'Layanan Laundry';
+        const qty = parseFloat(order.berat_atau_jumlah) || 1;
+        const satuan = order.layanan ? (order.layanan.satuan || 'Kg') : 'Kg';
+        const hargaSatuan = order.layanan ? (order.layanan.harga || 0) : (totalHargaVal / qty);
+
+        layananListContainer.innerHTML = `
+          <div class="flex justify-between items-center p-2.5 bg-white rounded-xl border border-slate-200 text-xs shadow-sm">
+            <div>
+              <p class="font-extrabold text-slate-800">${namaLayanan}</p>
+              <p class="text-[10px] text-slate-400 mt-0.5">${qty} ${satuan} × Rp ${Math.round(hargaSatuan).toLocaleString('id-ID')}</p>
+            </div>
+            <p class="font-black text-blue-600 text-xs">${totalHargaFormatted}</p>
           </div>
-          <p class="font-black text-blue-600 text-xs">${totalHargaFormatted}</p>
-        </div>
-      `;
+        `;
+      }
     }
 
     if (parfumEl) parfumEl.textContent = order.parfum || 'Standard / Original';
