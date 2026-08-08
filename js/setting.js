@@ -924,6 +924,58 @@ document.addEventListener('DOMContentLoaded', () => {
   renderParfumOptionsPOS();
 });
 
+// ==========================================
+// UPDATE PERMISSIONS KASIR KE PROFILES
+// ==========================================
+async function updateKasirPermissions(targetKasirId, permKey, isChecked) {
+  const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
+  if (!client || !targetKasirId) return;
+
+  try {
+    // 1. Ambil data permissions kasir saat ini
+    const { data: profile, error: fetchErr } = await client
+      .from('profiles')
+      .select('permissions')
+      .eq('id', targetKasirId)
+      .single();
+
+    if (fetchErr) throw fetchErr;
+
+    let currentPerms = profile?.permissions || {
+      akses_laporan: false,
+      akses_layanan: false,
+      akses_pengeluaran: false,
+      akses_edit_order: false
+    };
+
+    if (typeof currentPerms === 'string') {
+      try { currentPerms = JSON.parse(currentPerms); } catch(e) { currentPerms = {}; }
+    }
+
+    // 2. Update status izin spesifik
+    currentPerms[permKey] = isChecked;
+
+    // 3. Simpan kembali ke tabel profiles
+    const { error: updateErr } = await client
+      .from('profiles')
+      .update({ permissions: currentPerms })
+      .eq('id', targetKasirId);
+
+    if (updateErr) throw updateErr;
+
+    if (typeof showToast === 'function') {
+      showToast('Izin akses kasir berhasil diperbarui! ⚡', 'success');
+    }
+  } catch (err) {
+    console.error('Error updateKasirPermissions:', err);
+    if (typeof showToast === 'function') {
+      showToast('Gagal memperbarui izin akses: ' + err.message, 'error');
+    }
+  }
+}
+
+window.updateKasirPermissions = updateKasirPermissions;
+
 // REGISTRASI GLOBAL SCOPE WINDOW
 window.toggleAccordion = toggleAccordion;
 window.toggleFormTambahKasir = toggleFormTambahKasir;

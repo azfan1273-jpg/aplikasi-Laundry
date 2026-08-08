@@ -333,7 +333,11 @@ function applyUserPermissionsUI() {
   if (roleBadge) roleBadge.innerText = isOwner ? 'Owner' : 'Kasir';
   if (settingRoleBadge) settingRoleBadge.innerText = isOwner ? 'Owner' : 'Kasir';
 
-  const perms = getTokoPermissions();
+  // Ambil permission langsung dari profile kasir
+  let perms = currentUserProfile.permissions || {};
+  if (typeof perms === 'string') {
+    try { perms = JSON.parse(perms); } catch (e) { perms = {}; }
+  }
 
   const ownerSectionLayanan = document.getElementById('setting-owner-layanan');
   const ownerSectionKasir = document.getElementById('setting-owner-kasir');
@@ -345,20 +349,14 @@ function applyUserPermissionsUI() {
     // --- MODE KASIR ---
     if (ownerSectionKasir) ownerSectionKasir.style.display = 'none';
 
-    // Pengecekan Izin Akses Spesifik
-    const canLaporan = perms.is_manager || perms.akses_laporan;
-    const canLayanan = perms.is_manager || perms.akses_layanan;
-    const canPengeluaran = perms.is_manager || perms.akses_pengeluaran;
+    const canLaporan = !!perms.akses_laporan;
+    const canLayanan = !!perms.akses_layanan;
+    const canPengeluaran = !!perms.akses_pengeluaran;
 
-    // Tampilkan / Sembunyikan Tombol Navigasi Report
     if (navReport) {
-      if (canLaporan) {
-        navReport.classList.remove('hidden');
-        navReport.style.display = 'flex';
-      } else {
-        navReport.classList.add('hidden');
-        navReport.style.display = 'none';
-      }
+      navReport.style.display = canLaporan ? 'flex' : 'none';
+      if (!canLaporan) navReport.classList.add('hidden');
+      else navReport.classList.remove('hidden');
     }
 
     if (ownerSectionLayanan) ownerSectionLayanan.style.display = canLayanan ? 'flex' : 'none';
@@ -466,39 +464,34 @@ function toggleShowPassword() {
 }
 
 // ==========================================
-// REALTIME LISTENER IZIN AKSES TOKO (AKURAT & INSTAN)
+// REALTIME LISTENER IZIN AKSES PER-USER (PROFILES)
 // ==========================================
-function initRealtimeTokoPermissions() {
-  if (typeof supabaseClient === 'undefined' || !supabaseClient) return;
+function initRealtimeUserPermissions() {
+  if (typeof supabaseClient === 'undefined' || !supabaseClient || !currentUserProfile) return;
 
-  let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) 
-               ? currentToko.id 
-               : (typeof currentUserProfile !== 'undefined' && currentUserProfile?.toko_id)
-               ? currentUserProfile.toko_id
-               : localStorage.getItem('toko_id');
-
-  if (!tokoId) return;
+  const userId = currentUserProfile.id;
+  if (!userId) return;
 
   supabaseClient.removeAllChannels();
 
   supabaseClient
-    .channel('realtime_toko_permissions_' + tokoId)
+    .channel('realtime_user_permissions_' + userId)
     .on(
       'postgres_changes',
       {
         event: 'UPDATE',
         schema: 'public',
-        table: 'toko',
-        filter: `id=eq.${tokoId}`
+        table: 'profiles',
+        filter: `id=eq.${userId}`
       },
       (payload) => {
         if (payload.new) {
-          currentToko = payload.new;
+          currentUserProfile = payload.new;
 
-          // Terapkan perubahan UI ke layar Kasir seketika
+          // Terapkan perubahan UI seketika tanpa bentrok
           applyUserPermissionsUI();
 
-          if (currentUserProfile && currentUserProfile.role === 'kasir') {
+          if (currentUserProfile.role === 'kasir') {
             if (typeof showToast === 'function') {
               showToast('Izin akses menu telah diperbarui oleh Owner! ⚡', 'info');
             }
@@ -508,6 +501,8 @@ function initRealtimeTokoPermissions() {
     )
     .subscribe();
 }
+
+window.initRealtimeUserPermissions = initRealtimeUserPermissions;
 
 // Registrasi fungsi ke scope global
 window.toggleShowPassword = toggleShowPassword;
