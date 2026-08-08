@@ -1,5 +1,5 @@
 // ==========================================
-// FILE: js/auth.js (STATE AKUN & PROFILE GLOBAL)
+// FILE: js/auth.js (STATE AKUN & PROFILE GLOBAL FULL FIX)
 // ==========================================
 
 let currentUserProfile = null;
@@ -72,6 +72,7 @@ async function loadUserProfile(authUser) {
     if (settingEmail) settingEmail.innerText = emailVal;
     if (topbarToko && currentToko) topbarToko.innerText = currentToko.nama_toko || 'LNDR';
 
+    // Sembunyikan Layar Auth & Masuk ke Aplikasi
     showAuthScreen(false);
     
     // Terapkan izin UI seketika
@@ -79,15 +80,22 @@ async function loadUserProfile(authUser) {
 
     // Load status sakelar izin kasir jika berada di mode Owner
     if (typeof loadPermissionsToForm === 'function') {
-      loadPermissionsToForm();
+      try { loadPermissionsToForm(); } catch (e) { console.warn(e); }
     }
 
-    // Pasang listener realtime izin akses toko
-    initRealtimeTokoPermissions();
-
     // Load data dashboard
-    if (typeof loadDataHome === 'function') loadDataHome();
-    if (typeof loadSettingsToForm === 'function') loadSettingsToForm();
+    if (typeof loadDataHome === 'function') {
+      try { loadDataHome(); } catch (e) { console.warn(e); }
+    }
+    
+    if (typeof loadSettingsToForm === 'function') {
+      try { loadSettingsToForm(); } catch (e) { console.warn(e); }
+    }
+
+    // Pasang listener realtime izin akses toko (Aman tanpa mengganggu proses login)
+    setTimeout(() => {
+      initRealtimeTokoPermissions();
+    }, 500);
 
   } catch (err) {
     console.error("Error loadUserProfile:", err);
@@ -313,7 +321,7 @@ function getTokoPermissions() {
 }
 
 // ==========================================
-// TERAPKAN IZIN AKSES UI (VERSI LENGKAP & AMAN)
+// TERAPKAN IZIN AKSES UI (SUPPORT REALTIME & NAV REPORT)
 // ==========================================
 function applyUserPermissionsUI() {
   if (!currentUserProfile) return;
@@ -331,24 +339,42 @@ function applyUserPermissionsUI() {
   const ownerSectionKasir = document.getElementById('setting-owner-kasir');
   const fabPengeluaran = document.getElementById('fab-btn-pengeluaran');
   const navReport = document.getElementById('nav-report');
+  const btnModalTambahLayanan = document.getElementById('btn-modal-tambah-layanan');
 
   if (!isOwner) {
+    // --- MODE KASIR ---
     if (ownerSectionKasir) ownerSectionKasir.style.display = 'none';
 
-    // Gunakan nilai asli dari masing-masing sakelar secara murni
-    const canLaporan = !!perms.akses_laporan;
-    const canLayanan = !!perms.akses_layanan;
-    const canPengeluaran = !!perms.akses_pengeluaran;
+    // Pengecekan Izin Akses Spesifik
+    const canLaporan = perms.is_manager || perms.akses_laporan;
+    const canLayanan = perms.is_manager || perms.akses_layanan;
+    const canPengeluaran = perms.is_manager || perms.akses_pengeluaran;
+
+    // Tampilkan / Sembunyikan Tombol Navigasi Report
+    if (navReport) {
+      if (canLaporan) {
+        navReport.classList.remove('hidden');
+        navReport.style.display = 'flex';
+      } else {
+        navReport.classList.add('hidden');
+        navReport.style.display = 'none';
+      }
+    }
 
     if (ownerSectionLayanan) ownerSectionLayanan.style.display = canLayanan ? 'flex' : 'none';
+    if (btnModalTambahLayanan) btnModalTambahLayanan.style.display = canLayanan ? 'inline-block' : 'none';
     if (fabPengeluaran) fabPengeluaran.style.display = canPengeluaran ? 'flex' : 'none';
-    if (navReport) navReport.style.display = canLaporan ? 'flex' : 'none';
 
   } else {
+    // --- MODE OWNER ---
+    if (navReport) {
+      navReport.classList.remove('hidden');
+      navReport.style.display = 'flex';
+    }
     if (ownerSectionLayanan) ownerSectionLayanan.style.display = 'flex';
+    if (btnModalTambahLayanan) btnModalTambahLayanan.style.display = 'inline-block';
     if (ownerSectionKasir) ownerSectionKasir.style.display = 'flex';
     if (fabPengeluaran) fabPengeluaran.style.display = 'flex';
-    if (navReport) navReport.style.display = 'flex';
   }
 }
 
@@ -440,7 +466,7 @@ function toggleShowPassword() {
 }
 
 // ==========================================
-// REALTIME LISTENER IZIN AKSES TOKO (KHUSUS KASIR)
+// REALTIME LISTENER IZIN AKSES TOKO (AKURAT & INSTAN)
 // ==========================================
 function initRealtimeTokoPermissions() {
   if (typeof supabaseClient === 'undefined' || !supabaseClient) return;
@@ -453,8 +479,10 @@ function initRealtimeTokoPermissions() {
 
   if (!tokoId) return;
 
+  supabaseClient.removeAllChannels();
+
   supabaseClient
-    .channel('realtime_toko_permissions')
+    .channel('realtime_toko_permissions_' + tokoId)
     .on(
       'postgres_changes',
       {
@@ -467,13 +495,12 @@ function initRealtimeTokoPermissions() {
         if (payload.new) {
           currentToko = payload.new;
 
-          // HANYA UPDATE UI DAN TAMPILKAN TOAST JIKA PENGGUNA ADALAH KASIR
+          // Terapkan perubahan UI ke layar Kasir seketika
+          applyUserPermissionsUI();
+
           if (currentUserProfile && currentUserProfile.role === 'kasir') {
-            if (typeof applyUserPermissionsUI === 'function') {
-              applyUserPermissionsUI();
-            }
             if (typeof showToast === 'function') {
-              showToast('Izin akses toko telah diperbarui oleh Owner! ⚡', 'info');
+              showToast('Izin akses menu telah diperbarui oleh Owner! ⚡', 'info');
             }
           }
         }
@@ -482,7 +509,7 @@ function initRealtimeTokoPermissions() {
     .subscribe();
 }
 
-// Registrasi fungsi ke window scope
+// Registrasi fungsi ke scope global
 window.toggleShowPassword = toggleShowPassword;
 window.initRealtimeTokoPermissions = initRealtimeTokoPermissions;
 window.getTokoPermissions = getTokoPermissions;
