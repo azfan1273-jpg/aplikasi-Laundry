@@ -831,8 +831,9 @@
           <button 
             type="button" 
             id="btnAddService" 
+            ontouchstart="event.stopPropagation(); bukaModalPilihLayanan();"
             onclick="event.stopPropagation(); bukaModalPilihLayanan();" 
-            class="relative z-[9999] cursor-pointer bg-cyan-100 hover:bg-cyan-200 active:bg-cyan-300 text-cyan-800 text-xs font-semibold px-3 py-1.5 rounded-lg transition"
+            class="relative z-[99999] cursor-pointer bg-cyan-100 hover:bg-cyan-200 active:bg-cyan-300 text-cyan-800 text-xs font-semibold px-3 py-1.5 rounded-lg transition select-none touch-manipulation"
           >
             + Tambah Layanan
           </button>
