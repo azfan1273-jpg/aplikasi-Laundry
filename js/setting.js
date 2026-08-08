@@ -1,5 +1,5 @@
 // ==========================================
-// FILE: js/setting.js (MODUL SETTING, LAYANAN, PERMISSIONS & POS TRANSAKSI)
+// FILE: js/setting.js (MODUL SETTING, LAYANAN, PERMISSIONS & POS TRANSAKSI FULL FIX)
 // ==========================================
 
 if (!window.keranjangPOS) window.keranjangPOS = [];
@@ -138,10 +138,8 @@ async function renderDaftarKasir() {
   }
 }
 
-// 5. BUKA & TUTUP MODAL KELOLA LAYANAN (FULL FIX)
-// ==========================================
+// 5. BUKA & TUTUP MODAL KELOLA MASTER LAYANAN
 function openModalKelolaLayanan() {
-  // Cek izin jika Kasir yang klik
   if (currentUserProfile && currentUserProfile.role === 'kasir') {
     const perms = typeof getTokoPermissions === 'function' ? getTokoPermissions() : {};
     const canLayanan = perms.is_manager || perms.akses_layanan;
@@ -156,12 +154,12 @@ function openModalKelolaLayanan() {
     }
   }
 
-  // Buka Modal Kelola Master Layanan
   const modal = document.getElementById('modal-kelola-layanan');
   if (modal) {
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     modal.style.display = 'flex';
+    modal.style.zIndex = '999999';
     if (typeof renderKelolaLayananList === 'function') {
       renderKelolaLayananList();
     }
@@ -176,10 +174,6 @@ function closeModalKelolaLayanan() {
     modal.style.display = 'none';
   }
 }
-
-// WAJIB: Daftarkan ke scope Window
-window.openModalKelolaLayanan = openModalKelolaLayanan;
-window.closeModalKelolaLayanan = closeModalKelolaLayanan;
 
 // 6. RENDER LIST KELOLA LAYANAN DENGAN TOMBOL HAPUS
 async function renderKelolaLayananList() {
@@ -560,19 +554,17 @@ async function hapusLayananBaru(id) {
   }
 }
 
-// 12. BUKA MODAL LAYANAN POS
+// 12. BUKA MODAL LAYANAN POS (AMAN UNTUK PENGGUNAAN BERKALI-KALI)
 function bukaModalPilihLayanan() {
   const modal = document.getElementById('modal-layanan') 
              || document.getElementById('modal-pilih-layanan');
 
   if (modal) {
-    // Reset tampilan agar bisa dibuka berulang kali tanpa macet
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     modal.style.display = 'flex';
     modal.style.zIndex = '99999';
 
-    // Render ulang daftar layanan
     if (typeof renderLayananPOS === 'function') {
       renderLayananPOS();
     }
@@ -615,12 +607,7 @@ function pilihLayananKeKeranjang(id, nama, harga, satuan) {
     showToast(`"${nama}" ditambahkan!`, 'success');
   }
 
-  const modalLayanan = document.getElementById('modal-layanan') || document.getElementById('modal-pilih-layanan');
-  if (modalLayanan) {
-    modalLayanan.classList.add('hidden');
-    modalLayanan.classList.remove('flex');
-    modalLayanan.style.display = 'none';
-  }
+  closeModalPilihLayanan();
 
   setTimeout(() => {
     renderKeranjangPOS();
@@ -971,6 +958,7 @@ window.tambahLayananBaru = tambahLayananBaru;
 window.hapusLayananBaru = hapusLayananBaru;
 
 window.bukaModalPilihLayanan = bukaModalPilihLayanan;
+window.closeModalPilihLayanan = closeModalPilihLayanan;
 window.handleTambahLayanan = bukaModalPilihLayanan;
 window.pilihLayananKeKeranjang = pilihLayananKeKeranjang;
 window.renderKeranjangPOS = renderKeranjangPOS;

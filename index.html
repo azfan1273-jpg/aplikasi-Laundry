@@ -184,7 +184,6 @@
         </div>
       </div>
 
-      <!-- KODE BARU (TERKUNCI DI ATAS TOMBOL MENU TRANSAKSI) -->
     <div class="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-sm space-y-2 flex-1 flex flex-col min-h-0 overflow-hidden max-h-[220px]">
       <div class="flex justify-between items-center border-b pb-1.5 border-slate-100 shrink-0">
         <h3 class="font-extrabold text-slate-900 text-xs">📌 Masuk Hari Ini</h3>
@@ -439,7 +438,7 @@
                   <p class="text-[9px] text-slate-400">Kasir dapat melihat rekap omset & keuangan</p>
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" id="perm_akses_laporan" onchange="updateTokoPermissions('is_manager', this.checked)" class="sr-only peer">
+                  <input type="checkbox" id="perm_akses_laporan" onchange="updateTokoPermissions('akses_laporan', this.checked)" class="sr-only peer">
                   <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
                 </label>
               </div>
@@ -450,7 +449,7 @@
                   <p class="text-[9px] text-slate-400">Kasir dapat menambah/menghapus paket</p>
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" id="perm_akses_layanan" onchange="updateTokoPermissions('is_manager', this.checked)" class="sr-only peer">
+                  <input type="checkbox" id="perm_akses_layanan" onchange="updateTokoPermissions('akses_layanan', this.checked)" class="sr-only peer">
                   <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
                 </label>
               </div>
@@ -461,7 +460,7 @@
                   <p class="text-[9px] text-slate-400">Kasir dapat mencatat biaya operasional</p>
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" id="perm_akses_pengeluaran" onchange="updateTokoPermissions('is_manager', this.checked)" class="sr-only peer">
+                  <input type="checkbox" id="perm_akses_pengeluaran" onchange="updateTokoPermissions('akses_pengeluaran', this.checked)" class="sr-only peer">
                   <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
                 </label>
               </div>
@@ -472,7 +471,7 @@
                   <p class="text-[9px] text-slate-400">Kasir dapat membatalkan atau mengedit order</p>
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" id="perm_akses_edit_order" onchange="updateTokoPermissions('is_manager', this.checked)" class="sr-only peer">
+                  <input type="checkbox" id="perm_akses_edit_order" onchange="updateTokoPermissions('akses_edit_order', this.checked)" class="sr-only peer">
                   <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
                 </label>
               </div>
@@ -900,7 +899,7 @@
         <h4 class="font-extrabold text-slate-800 text-sm">Pilih Layanan</h4>
   
         <div class="flex items-center gap-2">
-          <!-- Ganti simbol & label tombol agar tidak membingungkan -->
+          <!-- Tombol Kelola Paket Layanan -->
           <button type="button" id="btn-modal-tambah-layanan" onclick="openModalKelolaLayanan()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] px-2.5 py-1 rounded-lg transition shadow-sm flex items-center gap-1">
             <span>⚙️</span> <span>Kelola Paket</span>
           </button>
