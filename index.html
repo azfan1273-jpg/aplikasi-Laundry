@@ -898,12 +898,13 @@
     <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 max-h-[85vh] flex flex-col" onclick="event.stopPropagation()">
       <div class="flex justify-between items-center border-b pb-2 shrink-0">
         <h4 class="font-extrabold text-slate-800 text-sm">Pilih Layanan</h4>
-        
+  
         <div class="flex items-center gap-2">
-          <button type="button" id="btn-modal-tambah-layanan" onclick="openModalKelolaLayanan()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] px-2.5 py-1 rounded-lg transition shadow-sm">
-            <span>⚙️</span> <span>Kelola Paket</span> 
+          <!-- Ganti simbol & label tombol agar tidak membingungkan -->
+          <button type="button" id="btn-modal-tambah-layanan" onclick="openModalKelolaLayanan()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] px-2.5 py-1 rounded-lg transition shadow-sm flex items-center gap-1">
+            <span>⚙️</span> <span>Kelola Paket</span>
           </button>
-          
+
           <button type="button" onclick="closeModalPilihLayanan()" class="text-slate-400 hover:text-slate-600 font-bold w-7 h-7 rounded-full flex items-center justify-center hover:bg-slate-100">✕</button>
         </div>
       </div>
