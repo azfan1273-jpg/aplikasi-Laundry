@@ -562,19 +562,31 @@ async function hapusLayananBaru(id) {
 
 // 12. BUKA MODAL LAYANAN POS
 function bukaModalPilihLayanan() {
-  let modal = document.getElementById('modal-layanan') 
-           || document.getElementById('modal-pilih-layanan');
+  const modal = document.getElementById('modal-layanan') 
+             || document.getElementById('modal-pilih-layanan');
 
   if (modal) {
-    modal.style.zIndex = '999999';
-    modal.classList.add('z-[999999]');
+    // Reset tampilan agar bisa dibuka berulang kali tanpa macet
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     modal.style.display = 'flex';
-  }
+    modal.style.zIndex = '99999';
 
-  if (typeof renderLayananPOS === 'function') {
-    renderLayananPOS();
+    // Render ulang daftar layanan
+    if (typeof renderLayananPOS === 'function') {
+      renderLayananPOS();
+    }
+  }
+}
+
+function closeModalPilihLayanan() {
+  const modal = document.getElementById('modal-layanan') 
+             || document.getElementById('modal-pilih-layanan');
+
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    modal.style.display = 'none';
   }
 }
 
