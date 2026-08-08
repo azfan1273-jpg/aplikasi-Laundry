@@ -204,6 +204,11 @@ async function openModalDetailOrder(orderId) {
     const tglMasukEl = document.getElementById('detail-tgl-masuk');
     const totalPriceEl = document.getElementById('detail-total-price');
 
+    // Elemen Parfum, Estimasi Selesai, dan Catatan
+    const parfumEl = document.getElementById('detail-parfum');
+    const tglSelesaiEl = document.getElementById('detail-tgl-selesai');
+    const catatanEl = document.getElementById('detail-catatan');
+
     const notaNum = String(order.id).padStart(6, '0');
     const namaPel = (order.pelanggan && order.pelanggan.nama) ? order.pelanggan.nama : (order.nama_pelanggan || 'Pelanggan Umum');
     const hpPel = (order.pelanggan && order.pelanggan.no_hp) ? order.pelanggan.no_hp : '08-';
@@ -213,8 +218,33 @@ async function openModalDetailOrder(orderId) {
     if (namaPelEl) namaPelEl.textContent = namaPel;
     if (hpPelEl) hpPelEl.textContent = hpPel;
     if (statusBayarEl) statusBayarEl.textContent = order.status_pembayaran || 'Belum Lunas';
-    if (tglMasukEl) tglMasukEl.textContent = order.created_at ? new Date(order.created_at).toLocaleDateString('id-ID') : '-';
-    if (totalPriceEl) totalPriceEl.textContent = totalHargaFormatted;
+    
+    // Format Tanggal Masuk
+    if (tglMasukEl) {
+      tglMasukEl.textContent = order.created_at ? new Date(order.created_at).toLocaleDateString('id-ID') : '-';
+    }
+
+    // 1. TAMPILKAN PARFUM
+    if (parfumEl) {
+      parfumEl.textContent = order.parfum || 'Standard';
+    }
+
+    // 2. TAMPILKAN CATATAN ORDER
+    if (catatanEl) {
+      catatanEl.textContent = (order.catatan && order.catatan.trim() !== '') ? order.catatan : 'Tidak ada catatan';
+    }
+
+    // 3. HITUNG DAN TAMPILKAN ESTIMASI SELESAI (Default 1 Hari jika tidak diset)
+    if (tglSelesaiEl) {
+      if (order.created_at) {
+        const tglMasuk = new Date(order.created_at);
+        const estimasiHari = parseFloat(order.estimasi_hari) || 1;
+        tglMasuk.setDate(tglMasuk.getDate() + estimasiHari);
+        tglSelesaiEl.textContent = tglMasuk.toLocaleDateString('id-ID');
+      } else {
+        tglSelesaiEl.textContent = '-';
+      }
+    }
 
     // Update teks tombol proses sesuai status saat ini
     const btnProses = document.getElementById('btn-lanjut-proses');
