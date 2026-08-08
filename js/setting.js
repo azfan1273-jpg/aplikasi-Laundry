@@ -1,1004 +1,1033 @@
-// ==========================================
-// FILE: js/setting.js (MODUL SETTING, LAYANAN, PERMISSIONS & POS TRANSAKSI FULL FIX)
-// ==========================================
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
 
-if (!window.keranjangPOS) window.keranjangPOS = [];
-if (!window.allLayananCache) window.allLayananCache = [];
-
-// 1. TOGGLE ACCORDION JENDELA AKUN
-function toggleAccordion(accId) {
-  const element = document.getElementById(accId);
-  const arrow = document.getElementById(`arrow-${accId}`);
-  if (!element) return;
-
-  if (element.classList.contains('hidden')) {
-    element.classList.remove('hidden');
-    if (arrow) arrow.style.transform = 'rotate(180deg)';
-    if (accId === 'acc-kasir' && typeof renderDaftarKasir === 'function') {
-      renderDaftarKasir();
-    }
-    if (accId === 'acc-akses' && typeof loadPermissionsToForm === 'function') {
-      loadPermissionsToForm();
-    }
-  } else {
-    element.classList.add('hidden');
-    if (arrow) arrow.style.transform = 'rotate(0deg)';
-  }
-}
-
-// 2. TOGGLE FORM INPUT KASIR BARU
-function toggleFormTambahKasir() {
-  const formContainer = document.getElementById('form-tambah-kasir');
-  if (!formContainer) return;
-  formContainer.classList.toggle('hidden');
-}
-
-// 3. SIMPAN KASIR BARU KE SUPABASE
-async function simpanKasirBaru() {
-  try {
-    const inputNama = document.getElementById('new_kasir_nama');
-    const inputEmail = document.getElementById('new_kasir_email');
-    const inputPassword = document.getElementById('new_kasir_password');
-
-    const nama = inputNama ? inputNama.value.trim() : '';
-    const email = inputEmail ? inputEmail.value.trim() : '';
-    const password = inputPassword ? inputPassword.value.trim() : '';
-
-    if (!email || !password) {
-      alert('Email dan Password kasir wajib diisi!');
-      return;
-    }
-
-    const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
-
-    if (!client) {
-      alert('Koneksi database Supabase belum siap.');
-      return;
-    }
-
-    const { data: authData, error: authErr } = await client.auth.signUp({
-      email: email,
-      password: password,
-      options: {
-        data: {
-          nama_user: nama || email.split('@')[0],
-          role: 'kasir'
-        }
-      }
-    });
-
-    if (authErr) {
-      alert('Gagal membuat kasir: ' + authErr.message);
-      return;
-    }
-
-    if (authData && authData.user) {
-      await client.from('profiles').insert([{
-        id: authData.user.id,
-        toko_id: localStorage.getItem('toko_id') || null,
-        role: 'kasir',
-        nama_user: nama || email.split('@')[0],
-        email: email
-      }]);
-    }
-
-    alert('Akun kasir berhasil dibuat!');
-
-    if (inputNama) inputNama.value = '';
-    if (inputEmail) inputEmail.value = '';
-    if (inputPassword) inputPassword.value = '';
-
-    toggleFormTambahKasir();
-    renderDaftarKasir();
-
-  } catch (err) {
-    console.error('Error simpanKasirBaru:', err);
-    alert('Terjadi kesalahan saat menyimpan kasir.');
-  }
-}
-
-// 4. RENDER DAFTAR KASIR
-async function renderDaftarKasir() {
-  const container = document.getElementById('list-kasir-container');
-  const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>LNDR</title>
   
-  if (!container || !client) return;
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#2563eb">
+  
+  <link rel="manifest" href='data:application/manifest+json,{"name":"LNDR","short_name":"LNDR","start_url":".","display":"standalone","background_color":"#2563eb","theme_color":"#2563eb","orientation":"portrait"}'>
 
-  try {
-    container.innerHTML = '<p class="text-xs text-slate-400 italic">Memuat kasir...</p>';
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- CSS External -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-slate-50 font-sans text-slate-800 select-none flex flex-col h-screen">
 
-    const { data: listKasir, error } = await client
-      .from('profiles')
-      .select('*')
-      .eq('role', 'kasir');
+  <!-- SCREEN LOGIN / REGISTER -->
+  <div id="auth-screen" class="fixed inset-0 bg-blue-600 z-[100] flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl space-y-4">
+      <div class="text-center space-y-1">
+        <img src="logo.png" alt="LNDR Logo" class="w-16 h-16 object-contain mx-auto drop-shadow-md">
+        <h2 class="text-lg font-extrabold text-slate-900 tracking-wide uppercase">LNDR</h2>
+        <p class="text-xs text-slate-400" id="auth-subtitle">Masuk ke akun LNDR Anda</p>
+      </div>
 
-    if (error) throw error;
-
-    if (!listKasir || listKasir.length === 0) {
-      container.innerHTML = '<p class="text-xs text-slate-400 italic">Belum ada kasir.</p>';
-      return;
-    }
-
-    container.innerHTML = '';
-    listKasir.forEach((kasir) => {
-      const item = document.createElement('div');
-      item.className = 'flex justify-between items-center p-2 bg-white rounded-xl border border-indigo-100 text-xs mb-1';
-      item.innerHTML = `
-        <div>
-          <p class="font-bold text-slate-800">${kasir.nama_user || 'Kasir'}</p>
-          <p class="text-[10px] text-slate-400">${kasir.email}</p>
+      <div class="space-y-3 text-xs pt-2">
+        <div id="container_nama_toko" class="hidden">
+          <label class="font-bold text-slate-700">Nama Toko Laundry</label>
+          <input id="auth_nama_toko" type="text" placeholder="contoh: LNDR Cabang Utama" class="w-full p-3 border border-slate-200 rounded-xl mt-1 outline-none font-semibold focus:border-blue-500">
         </div>
-        <span class="text-[9px] bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 rounded-md">Kasir</span>
-      `;
-      container.appendChild(item);
-    });
-  } catch (err) {
-    console.error(err);
-    container.innerHTML = '<p class="text-xs text-rose-500">Gagal memuat kasir.</p>';
-  }
-}
-
-// 5. BUKA & TUTUP MODAL KELOLA MASTER LAYANAN
-function openModalKelolaLayanan() {
-  if (currentUserProfile && currentUserProfile.role === 'kasir') {
-    const perms = typeof getTokoPermissions === 'function' ? getTokoPermissions() : {};
-    const canLayanan = perms.is_manager || perms.akses_layanan;
-    
-    if (!canLayanan) {
-      if (typeof showToast === 'function') {
-        showToast('Izin kelola master paket dibatasi oleh Owner! 🔒', 'error');
-      } else {
-        alert('Izin kelola master paket dibatasi oleh Owner! 🔒');
-      }
-      return;
-    }
-  }
-
-  const modal = document.getElementById('modal-kelola-layanan');
-  if (modal) {
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-    modal.style.display = 'flex';
-    modal.style.zIndex = '999999';
-    if (typeof renderKelolaLayananList === 'function') {
-      renderKelolaLayananList();
-    }
-  }
-}
-
-function closeModalKelolaLayanan() {
-  const modal = document.getElementById('modal-kelola-layanan');
-  if (modal) {
-    modal.classList.add('hidden');
-    modal.classList.remove('flex');
-    modal.style.display = 'none';
-  }
-}
-
-// 6. RENDER LIST KELOLA LAYANAN DENGAN TOMBOL HAPUS
-async function renderKelolaLayananList() {
-  const container = document.getElementById('list-kelola-layanan-container');
-  if (!container) return;
-
-  if (container.parentElement) {
-    container.parentElement.style.display = 'flex';
-  }
-
-  container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Memuat data layanan...</p>';
-
-  const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
-  if (!client) return;
-
-  let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) ? currentToko.id : localStorage.getItem('toko_id');
-
-  try {
-    let query = client.from('layanan').select('*');
-    if (tokoId) query = query.eq('toko_id', tokoId);
-
-    const { data: listLayanan, error } = await query;
-    if (error) throw error;
-
-    if (!listLayanan || listLayanan.length === 0) {
-      container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Belum ada layanan terdaftar.</p>';
-      return;
-    }
-
-    container.innerHTML = '';
-    listLayanan.forEach(item => {
-      const el = document.createElement('div');
-      el.className = "flex justify-between items-center p-2.5 bg-white border border-slate-200 rounded-xl mb-1.5 shadow-sm";
-      el.innerHTML = `
         <div>
-          <p class="font-extrabold text-slate-800 text-xs">${item.nama_layanan}</p>
-          <p class="text-[10px] text-slate-500 mt-0.5">Rp ${(item.harga || 0).toLocaleString('id-ID')} / ${item.satuan || 'Kg'} • Est: ${item.estimasi_hari || 1} Hari</p>
+          <label class="font-bold text-slate-700">Email Akun</label>
+          <input id="auth_email" type="email" placeholder="contoh: owner@lndr.com" class="w-full p-3 border border-slate-200 rounded-xl mt-1 outline-none font-semibold focus:border-blue-500">
         </div>
-        <button type="button" onclick="hapusLayananBaru(${item.id})" class="bg-rose-50 text-rose-600 hover:bg-rose-100 font-bold px-2.5 py-1 rounded-lg text-[10px] transition">Hapus</button>
-      `;
-      container.appendChild(el);
-    });
-
-  } catch (err) {
-    console.error("Error renderKelolaLayananList:", err);
-    container.innerHTML = '<p class="text-xs text-rose-500 text-center py-4">Gagal memuat daftar layanan.</p>';
-  }
-}
-
-// 7. RENDER DAFTAR LAYANAN POS (KILOAN & SATUAN + EDIT ✏️)
-async function renderLayananPOS(keyword = '') {
-  let container = document.getElementById('list-layanan-container')
-               || document.querySelector('#modal-layanan .scroll-area')
-               || document.querySelector('#modal-layanan .space-y-2');
-
-  if (!container) return;
-
-  const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
-  if (!client) return;
-
-  try {
-    let query = client.from('layanan').select('*');
-    let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) ? currentToko.id : localStorage.getItem('toko_id');
-    if (tokoId) query = query.eq('toko_id', tokoId);
-
-    const { data: listLayanan, error } = await query;
-    if (error) throw error;
-
-    let rawData = listLayanan || [];
-
-    const savedOrderJson = localStorage.getItem('layanan_custom_order');
-    if (savedOrderJson) {
-      try {
-        const savedOrderIds = JSON.parse(savedOrderJson);
-        rawData.sort((a, b) => {
-          let indexA = savedOrderIds.indexOf(a.id);
-          let indexB = savedOrderIds.indexOf(b.id);
-          if (indexA === -1) indexA = 999;
-          if (indexB === -1) indexB = 999;
-          return indexA - indexB;
-        });
-      } catch (e) {}
-    } else {
-      rawData.sort((a, b) => b.id - a.id);
-    }
-
-    window.allLayananCache = rawData;
-
-    let filtered = window.allLayananCache;
-    if (keyword && keyword.trim() !== '') {
-      const cleanKey = keyword.trim().toLowerCase();
-      filtered = filtered.filter(item => 
-        (item.nama_layanan || '').toLowerCase().includes(cleanKey)
-      );
-    }
-
-    const listKiloan = filtered.filter(item => {
-      const sat = (item.satuan || 'kg').toLowerCase().trim();
-      return sat === 'kg' || sat === 'kilo' || sat === 'kiloan';
-    });
-
-    const listSatuan = filtered.filter(item => {
-      const sat = (item.satuan || 'kg').toLowerCase().trim();
-      return sat !== 'kg' && sat !== 'kilo' && sat !== 'kiloan';
-    });
-
-    const renderSingleItem = (item) => `
-      <div data-id="${item.id}" class="layanan-item p-2.5 bg-white rounded-xl border border-slate-100 text-xs flex justify-between items-center hover:border-blue-300 transition-all">
-        <div class="flex items-center gap-2">
-          <div class="flex flex-col gap-0.5">
-            <button type="button" onclick="geserPosisiLayanan(${item.id}, 'up')" class="w-5 h-4 bg-slate-100 hover:bg-blue-100 text-slate-600 hover:text-blue-600 rounded flex items-center justify-center font-bold text-[9px] active:scale-90 transition">▲</button>
-            <button type="button" onclick="geserPosisiLayanan(${item.id}, 'down')" class="w-5 h-4 bg-slate-100 hover:bg-blue-100 text-slate-600 hover:text-blue-600 rounded flex items-center justify-center font-bold text-[9px] active:scale-90 transition">▼</button>
+        <div>
+          <div class="flex justify-between items-center">
+            <label class="font-bold text-slate-700">Password</label>
+            <button type="button" onclick="openModalLupaPassword()" id="btn-forgot-pass" class="text-[10px] font-extrabold text-blue-600 hover:underline">Lupa Password?</button>
           </div>
-          <div>
-            <p class="font-extrabold text-slate-800 text-xs">${item.nama_layanan}</p>
-            <p class="text-[10px] text-slate-400 mt-0.5">
-              Rp ${(item.harga || 0).toLocaleString('id-ID')} / ${item.satuan || 'Kg'} • Est: ${item.estimasi_hari || 1} Hari
-            </p>
+          <div class="relative w-full">
+            <input id="auth_password" type="password" placeholder="••••••••" class="w-full p-3 pr-10 border border-slate-200 rounded-xl font-bold outline-none focus:border-blue-500 text-xs">
+            <button type="button" onclick="toggleShowPassword()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none text-sm cursor-pointer" title="Tampilkan / Sembunyikan Password">
+              <span id="eye-icon-pass">👁️</span>
+            </button>
           </div>
         </div>
 
-        <div class="flex items-center gap-1.5">
-          <button type="button" onclick="pilihLayananKeKeranjang(${item.id}, '${item.nama_layanan.replace(/'/g, "\\'")}', ${item.harga}, '${item.satuan}')" class="bg-blue-600 text-white font-bold text-[11px] px-3 py-1.5 rounded-xl shadow-sm hover:bg-blue-700 active:scale-95 transition">
-            + Pilih
-          </button>
-          <button type="button" onclick="bukaModalEditLayanan(${item.id})" class="text-slate-600 hover:text-blue-600 font-bold text-[11px] bg-slate-100 hover:bg-blue-50 px-2 py-1.5 rounded-xl transition" title="Edit Layanan">
-            ✏️
+        <button id="btn-auth-submit" onclick="handleAuthSubmit()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-3.5 rounded-2xl shadow-lg active:scale-[0.98] transition mt-2">
+          LOG IN
+        </button>
+
+        <div class="text-center pt-2">
+          <button onclick="toggleAuthMode()" id="btn-toggle-auth" class="text-xs font-extrabold text-blue-600">
+            Belum punya akun? Daftar Toko Baru (Owner)
           </button>
         </div>
       </div>
-    `;
-
-    let htmlOutput = '';
-
-    if (listKiloan.length > 0) {
-      htmlOutput += `
-        <div class="p-3 bg-slate-50/80 rounded-2xl border-2 border-slate-200/80 mb-4 space-y-2">
-          <div class="flex items-center gap-1.5 pb-1 border-b border-slate-200">
-            <span class="text-sm">🧺</span>
-            <h4 class="font-black text-xs text-slate-700 tracking-wide uppercase">Layanan Kiloan (${listKiloan.length})</h4>
-          </div>
-          <div class="space-y-2">${listKiloan.map(renderSingleItem).join('')}</div>
-        </div>
-      `;
-    }
-
-    if (listSatuan.length > 0) {
-      htmlOutput += `
-        <div class="p-3 bg-slate-50/80 rounded-2xl border-2 border-slate-200/80 mb-2 space-y-2">
-          <div class="flex items-center gap-1.5 pb-1 border-b border-slate-200">
-            <span class="text-sm">👔</span>
-            <h4 class="font-black text-xs text-slate-700 tracking-wide uppercase">Layanan Satuan (${listSatuan.length})</h4>
-          </div>
-          <div class="space-y-2">${listSatuan.map(renderSingleItem).join('')}</div>
-        </div>
-      `;
-    }
-
-    if (!htmlOutput) {
-      htmlOutput = `<div class="text-center py-8 bg-slate-50 rounded-2xl border border-dashed border-slate-200"><p class="text-xs text-slate-400 font-bold">Layanan "${keyword}" tidak ditemukan.</p></div>`;
-    }
-
-    container.innerHTML = htmlOutput;
-
-  } catch (err) {
-    console.error('Error renderLayananPOS:', err);
-    if (container) container.innerHTML = '<p class="text-xs text-rose-500 text-center py-4">Gagal memuat daftar layanan.</p>';
-  }
-}
-
-// 8. GESER POSISI LAYANAN
-function geserPosisiLayanan(id, direction) {
-  if (!window.allLayananCache || window.allLayananCache.length === 0) return;
-
-  let list = window.allLayananCache;
-  let index = list.findIndex(item => item.id === id);
-  if (index === -1) return;
-
-  let targetIndex = direction === 'up' ? index - 1 : index + 1;
-  if (targetIndex < 0 || targetIndex >= list.length) return;
-
-  let temp = list[index];
-  list[index] = list[targetIndex];
-  list[targetIndex] = temp;
-
-  const newOrderIds = list.map(item => item.id);
-  localStorage.setItem('layanan_custom_order', JSON.stringify(newOrderIds));
-
-  renderLayananPOS();
-}
-
-// 9. MODAL EDIT LAYANAN
-function bukaModalEditLayanan(id) {
-  const item = (window.allLayananCache || []).find(l => l.id === id);
-  if (!item) return;
-
-  let modalEdit = document.getElementById('modal-edit-layanan');
-  if (!modalEdit) {
-    modalEdit = document.createElement('div');
-    modalEdit.id = 'modal-edit-layanan';
-    modalEdit.className = 'fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100000] flex items-center justify-center p-4 hidden';
-    document.body.appendChild(modalEdit);
-  }
-
-  modalEdit.innerHTML = `
-    <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl space-y-4 border border-slate-100">
-      <div class="flex justify-between items-center border-b pb-3 border-slate-100">
-        <h3 class="font-extrabold text-slate-800 text-sm">Edit Layanan</h3>
-        <button type="button" onclick="tutupModalEditLayanan()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-bold hover:bg-slate-200 transition">✕</button>
-      </div>
-
-      <form onsubmit="simpanPerubahanLayanan(event, ${item.id})" class="space-y-3 text-xs">
-        <div>
-          <label class="font-bold text-slate-600 mb-1 block">Nama Layanan</label>
-          <input type="text" id="edit_nama_layanan" value="${item.nama_layanan || ''}" class="w-full p-3 border border-slate-200 rounded-xl font-bold outline-none focus:border-blue-500" required />
-        </div>
-
-        <div class="grid grid-cols-2 gap-2">
-          <div>
-            <label class="font-bold text-slate-600 mb-1 block">Harga (Rp)</label>
-            <input type="number" id="edit_harga_layanan" value="${item.harga || 0}" class="w-full p-3 border border-slate-200 rounded-xl font-bold outline-none focus:border-blue-500" required />
-          </div>
-          <div>
-            <label class="font-bold text-slate-600 mb-1 block">Satuan</label>
-            <select id="edit_satuan_layanan" class="w-full p-3 border border-slate-200 rounded-xl font-bold outline-none focus:border-blue-500 bg-white">
-              <option value="Kg" ${item.satuan === 'Kg' ? 'selected' : ''}>Kg</option>
-              <option value="Pcs" ${item.satuan === 'Pcs' ? 'selected' : ''}>Pcs</option>
-              <option value="Meter" ${item.satuan === 'Meter' ? 'selected' : ''}>Meter</option>
-              <option value="Pasang" ${item.satuan === 'Pasang' ? 'selected' : ''}>Pasang</option>
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label class="font-bold text-slate-600 mb-1 block">Estimasi Selesai (Hari)</label>
-          <input type="number" step="0.1" id="edit_estimasi_hari" value="${item.estimasi_hari || 1}" class="w-full p-3 border border-slate-200 rounded-xl font-bold outline-none focus:border-blue-500" required />
-        </div>
-
-        <div class="pt-2 flex gap-2">
-          <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-3 rounded-xl shadow-md active:scale-95 transition">
-            Simpan Perubahan
-          </button>
-          <button type="button" onclick="hapusLayananBaru(${item.id})" class="bg-rose-50 hover:bg-rose-100 text-rose-600 font-extrabold px-3 py-3 rounded-xl transition" title="Hapus Permanen">
-            🗑️ Hapus
-          </button>
-        </div>
-      </form>
     </div>
-  `;
-
-  modalEdit.classList.remove('hidden');
-}
-
-function tutupModalEditLayanan() {
-  const modalEdit = document.getElementById('modal-edit-layanan');
-  if (modalEdit) modalEdit.classList.add('hidden');
-}
-
-async function simpanPerubahanLayanan(e, id) {
-  if (e && e.preventDefault) e.preventDefault();
-
-  const nama = document.getElementById('edit_nama_layanan')?.value?.trim();
-  const harga = parseFloat(document.getElementById('edit_harga_layanan')?.value) || 0;
-  const satuan = document.getElementById('edit_satuan_layanan')?.value || 'Kg';
-  const estimasi = parseFloat(document.getElementById('edit_estimasi_hari')?.value) || 1;
-
-  if (!nama || harga <= 0) {
-    alert('Harap isi Nama dan Harga Layanan yang valid!');
-    return;
-  }
-
-  const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
-  if (!client) return;
-
-  try {
-    const { error } = await client
-      .from('layanan')
-      .update({
-        nama_layanan: nama,
-        harga: harga,
-        satuan: satuan,
-        estimasi_hari: estimasi
-      })
-      .eq('id', id);
-
-    if (error) {
-      alert('Gagal memperbarui layanan: ' + error.message);
-      return;
-    }
-
-    if (typeof showToast === 'function') showToast('Layanan berhasil diperbarui!', 'success');
-    else alert('Layanan berhasil diperbarui!');
-
-    tutupModalEditLayanan();
-    renderLayananPOS();
-    renderKelolaLayananList();
-
-  } catch (err) {
-    console.error('Error simpanPerubahanLayanan:', err);
-  }
-}
-
-// 10. TAMBAH LAYANAN BARU KE SUPABASE
-async function tambahLayananBaru(e) {
-  if (e && e.preventDefault) e.preventDefault();
-
-  const namaInput = document.getElementById('new_nama_layanan');
-  const hargaInput = document.getElementById('new_harga_layanan');
-  const satuanInput = document.getElementById('new_satuan_layanan');
-  const estimasiInput = document.getElementById('new_estimasi_hari');
-
-  const nama_layanan = namaInput?.value?.trim();
-  const harga = parseFloat(hargaInput?.value) || 0;
-  const satuan = satuanInput?.value || 'Kg';
-  const estimasi_hari = parseFloat(estimasiInput?.value) || 1;
-
-  if (!nama_layanan || harga <= 0) {
-    alert('Harap isi Nama dan Harga Layanan dengan benar!');
-    return;
-  }
-
-  const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
-  if (!client) return;
-
-  try {
-    let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) ? currentToko.id : localStorage.getItem('toko_id');
-
-    const payload = {
-      nama_layanan: nama_layanan,
-      harga: harga,
-      satuan: satuan,
-      estimasi_hari: estimasi_hari
-    };
-
-    if (tokoId) payload.toko_id = tokoId;
-
-    const { error } = await client.from('layanan').insert([payload]);
-
-    if (error) {
-      alert('Gagal menyimpan layanan: ' + error.message);
-      return;
-    }
-
-    if (typeof showToast === 'function') showToast('Layanan tersimpan!', 'success');
-    else alert('Layanan berhasil ditambahkan!');
-
-    if (namaInput) namaInput.value = '';
-    if (hargaInput) hargaInput.value = '';
-    if (estimasiInput) estimasiInput.value = '';
-
-    renderKelolaLayananList();
-    renderLayananPOS();
-
-  } catch (err) {
-    console.error('Catch simpan layanan:', err);
-  }
-}
-
-// 11. HAPUS LAYANAN DARI SUPABASE
-async function hapusLayananBaru(id) {
-  if (!confirm('Yakin ingin menghapus layanan ini secara permanen?')) return;
-
-  const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
-  if (!client) return;
-
-  try {
-    const { error } = await client.from('layanan').delete().eq('id', id);
-    if (error) {
-      alert('Gagal menghapus layanan: ' + error.message);
-      return;
-    }
-
-    tutupModalEditLayanan();
-    renderKelolaLayananList();
-    renderLayananPOS();
-  } catch (err) {
-    console.error('Catch hapus layanan:', err);
-  }
-}
-
-// 12. BUKA MODAL LAYANAN POS (AMAN UNTUK PENGGUNAAN BERKALI-KALI)
-let isOpeningModalLayanan = false;
-
-function triggerPilihLayanan(e) {
-  if (e) {
-    if (typeof e.preventDefault === 'function') e.preventDefault();
-    if (typeof e.stopPropagation === 'function') e.stopPropagation();
-  }
-
-  // Mencegah eksekusi ganda dalam jeda 300ms
-  if (isOpeningModalLayanan) return;
-  isOpeningModalLayanan = true;
-
-  setTimeout(() => {
-    isOpeningModalLayanan = false;
-  }, 300);
-
-  bukaModalPilihLayanan();
-}
-
-function bukaModalPilihLayanan() {
-  const modal = document.getElementById('modal-layanan') 
-             || document.getElementById('modal-pilih-layanan');
-
-  if (modal) {
-    // Paksa tampilkan & tempatkan paling depan
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-    modal.style.setProperty('display', 'flex', 'important');
-    modal.style.setProperty('z-index', '99999', 'important');
-    modal.style.setProperty('pointer-events', 'auto', 'important');
-
-    // Render ulang isi daftar layanan
-    if (typeof renderLayananPOS === 'function') {
-      renderLayananPOS();
-    }
-  }
-}
-
-function closeModalPilihLayanan() {
-  const modal = document.getElementById('modal-layanan') 
-             || document.getElementById('modal-pilih-layanan');
-
-  if (modal) {
-    modal.classList.add('hidden');
-    modal.classList.remove('flex');
-    modal.style.setProperty('display', 'none', 'important');
-    modal.style.setProperty('pointer-events', 'none', 'important');
-  }
-}
-
-// Daftarkan ulang ke Window
-window.bukaModalPilihLayanan = bukaModalPilihLayanan;
-window.closeModalPilihLayanan = closeModalPilihLayanan;
-window.handleTambahLayanan = bukaModalPilihLayanan;
-
-// 13. SINKRONISASI PEMILIHAN ITEM KE KERANJANG
-function pilihLayananKeKeranjang(id, nama, harga, satuan) {
-  const numHarga = typeof harga === 'number' ? harga : (parseFloat(String(harga).replace(/[^0-9.]/g, '')) || 0);
-  const itemData = {
-    id: id,
-    nama_layanan: nama,
-    nama: nama,
-    harga: numHarga,
-    satuan: satuan || 'Kg',
-    qty: 1
-  };
-
-  if (!window.keranjangPOS) window.keranjangPOS = [];
-  const existingIndex = window.keranjangPOS.findIndex(item => item.id === id || item.nama_layanan === nama);
-
-  if (existingIndex !== -1) {
-    window.keranjangPOS[existingIndex].qty = (parseFloat(window.keranjangPOS[existingIndex].qty) || 1) + 1;
-  } else {
-    window.keranjangPOS.push(itemData);
-  }
-
-  if (typeof showToast === 'function') {
-    showToast(`"${nama}" ditambahkan!`, 'success');
-  }
-
-  closeModalPilihLayanan();
-
-  setTimeout(() => {
-    renderKeranjangPOS();
-    paksaHitungTotalPriceDOM();
-  }, 50);
-}
-
-// 14. PENCARI CONTAINER KERANJANG
-function getCartContainer() {
-  let container = document.getElementById('cart-items-container') 
-               || document.querySelector('[data-cart-container="true"]');
-  if (container) return container;
-
-  const elements = Array.from(document.querySelectorAll('p, span, div, section'));
-  for (let el of elements) {
-    if (el.children.length === 0 && el.textContent.toLowerCase().includes('belum ada layanan')) {
-      container = el.parentElement;
-      if (container) {
-        container.setAttribute('data-cart-container', 'true');
-        container.id = 'cart-items-container';
-        return container;
-      }
-    }
-  }
-
-  return null;
-}
-
-// 15. UPDATE QTY KETIK MANUAL
-function updateQtyManual(index, val) {
-  if (!window.keranjangPOS || !window.keranjangPOS[index]) return;
-
-  let cleanVal = String(val).replace(',', '.');
-  let numVal = parseFloat(cleanVal);
-  if (isNaN(numVal) || numVal < 0) numVal = 0;
-
-  window.keranjangPOS[index].qty = numVal;
-
-  const itemEl = document.getElementById(`cart-item-${index}`);
-  if (itemEl) {
-    const subtotalEl = itemEl.querySelector('.subtotal-item-val');
-    const h = parseFloat(window.keranjangPOS[index].harga) || 0;
-    if (subtotalEl) {
-      subtotalEl.textContent = 'Rp ' + Math.round(h * numVal).toLocaleString('id-ID');
-    }
-  }
-
-  paksaHitungTotalPriceDOM();
-}
-
-// 16. UBAH QTY TOMBOL + / -
-function ubahQtyKeranjang(index, delta) {
-  if (!window.keranjangPOS || !window.keranjangPOS[index]) return;
-
-  let currentQty = parseFloat(window.keranjangPOS[index].qty) || 0;
-  let newQty = currentQty + delta;
-
-  if (newQty <= 0) {
-    window.keranjangPOS.splice(index, 1);
-  } else {
-    window.keranjangPOS[index].qty = Math.round(newQty * 100) / 100;
-  }
-
-  renderKeranjangPOS();
-  paksaHitungTotalPriceDOM();
-}
-
-// 17. HAPUS ITEM DARI KERANJANG
-function hapusItemKeranjang(index) {
-  if (!window.keranjangPOS) return;
-  window.keranjangPOS.splice(index, 1);
-  renderKeranjangPOS();
-  paksaHitungTotalPriceDOM();
-}
-
-// 18. RENDER TAMPILAN KERANJANG TRANSAKSI
-function renderKeranjangPOS() {
-  const container = getCartContainer();
-  const items = window.keranjangPOS || [];
-
-  if (container) {
-    if (items.length === 0) {
-      container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4 italic">Belum ada layanan yang ditambahkan.</p>';
-    } else {
-      container.innerHTML = items.map((item, index) => {
-        const sat = (item.satuan || 'Kg').toLowerCase().trim();
-        const isKiloan = sat === 'kg' || sat === 'kilo' || sat === 'kiloan';
-        const currentQty = parseFloat(item.qty) || 0;
-        const subtotal = (item.harga || 0) * currentQty;
-
-        return `
-          <div id="cart-item-${index}" class="p-3 bg-white rounded-2xl border border-slate-200 flex items-center justify-between text-xs mb-2 shadow-sm">
-            <div class="truncate mr-2">
-              <p class="font-extrabold text-slate-800 text-xs truncate">${item.nama_layanan || item.nama}</p>
-              <p class="text-[10px] text-slate-400 mt-0.5">Rp ${(item.harga || 0).toLocaleString('id-ID')} / ${item.satuan}</p>
-            </div>
-
-            <div class="flex items-center gap-2.5 shrink-0">
-              <div class="flex items-center bg-slate-50 border border-slate-200 rounded-xl p-0.5">
-                <button type="button" onclick="ubahQtyKeranjang(${index}, -${isKiloan ? 0.5 : 1})" class="w-6 h-6 bg-white hover:bg-slate-200 rounded-lg text-slate-700 font-bold text-xs flex items-center justify-center active:scale-90 transition">-</button>
-                
-                <input 
-                  type="text" 
-                  inputmode="decimal"
-                  value="${currentQty}" 
-                  oninput="updateQtyManual(${index}, this.value)"
-                  class="w-14 text-center font-black text-xs text-slate-800 bg-transparent outline-none p-0 focus:text-blue-600"
-                />
-
-                <button type="button" onclick="ubahQtyKeranjang(${index}, ${isKiloan ? 0.5 : 1})" class="w-6 h-6 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg font-bold text-xs flex items-center justify-center active:scale-90 transition">+</button>
-              </div>
-
-              <p class="subtotal-item-val font-black text-slate-800 text-xs min-w-[75px] text-right">
-                Rp ${Math.round(subtotal).toLocaleString('id-ID')}
-              </p>
-
-              <button type="button" onclick="hapusItemKeranjang(${index})" class="text-rose-400 hover:text-rose-600 font-bold text-xs p-1">✕</button>
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-  }
-
-  paksaHitungTotalPriceDOM();
-}
-
-// 19. HITUNG AUTOMATIC TOTAL PRICE POS
-function paksaHitungTotalPriceDOM() {
-  let total = 0;
-
-  if (Array.isArray(window.keranjangPOS) && window.keranjangPOS.length > 0) {
-    window.keranjangPOS.forEach(item => {
-      let q = parseFloat(String(item.qty).replace(',', '.')) || 0;
-      let h = typeof item.harga === 'number' ? item.harga : (parseFloat(String(item.harga).replace(/[^0-9.]/g, '')) || 0);
-      total += (q * h);
-    });
-  }
-
-  window.totalHargaPOS = Math.round(total);
-  const formattedTotal = 'Rp ' + window.totalHargaPOS.toLocaleString('id-ID');
-
-  const mainPosTotalPrice = document.getElementById('totalPricePOS');
-  if (mainPosTotalPrice) mainPosTotalPrice.textContent = formattedTotal;
-
-  ['total-price-pos', 'total_harga', 'totalPrice', 'grand-total', 'total-bayar'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = formattedTotal;
-  });
-}
-
-// 20. UPDATE REALTIME PERMISSIONS TOKO KE SUPABASE
-async function updateTokoPermissions(keyPermission, isChecked) {
-  const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
-  if (!client) return;
-
-  let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) 
-               ? currentToko.id 
-               : (typeof currentUserProfile !== 'undefined' && currentUserProfile?.toko_id) 
-               ? currentUserProfile.toko_id 
-               : localStorage.getItem('toko_id');
-
-  if (!tokoId) return;
-
-  let currentPerms = (currentToko && currentToko.permissions) ? currentToko.permissions : {};
-  if (typeof currentPerms === 'string') {
-    try { currentPerms = JSON.parse(currentPerms); } catch (e) { currentPerms = {}; }
-  }
-
-  currentPerms[keyPermission] = isChecked;
-
-  try {
-    const { data, error } = await client
-      .from('toko')
-      .update({ permissions: currentPerms })
-      .eq('id', tokoId)
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    if (data) {
-      currentToko = data;
-      if (typeof showToast === 'function') {
-        showToast('Izin akses berhasil diperbarui! ⚡', 'success');
-      }
-    }
-  } catch (err) {
-    console.error('Error update permissions:', err);
-    if (typeof showToast === 'function') {
-      showToast('Gagal memperbarui izin ke database', 'error');
-    }
-  }
-}
-
-// 21. LOAD STATUS SAKELAR DARI DATABASE KE FORM
-function loadPermissionsToForm() {
-  if (typeof currentToko === 'undefined' || !currentToko) return;
-
-  let perms = currentToko.permissions || {};
-  if (typeof perms === 'string') {
-    try { perms = JSON.parse(perms); } catch (e) { perms = {}; }
-  }
-
-  const elManager = document.getElementById('perm_is_manager');
-  const elLaporan = document.getElementById('perm_akses_laporan');
-  const elLayanan = document.getElementById('perm_akses_layanan');
-  const elPengeluaran = document.getElementById('perm_akses_pengeluaran');
-  const elEditOrder = document.getElementById('perm_akses_edit_order');
-
-  if (elManager) elManager.checked = !!perms.is_manager;
-  if (elLaporan) elLaporan.checked = !!perms.akses_laporan;
-  if (elLayanan) elLayanan.checked = !!perms.akses_layanan;
-  if (elPengeluaran) elPengeluaran.checked = !!perms.akses_pengeluaran;
-  if (elEditOrder) elEditOrder.checked = !!perms.akses_edit_order;
-}
-
-// ==========================================
-// PENGELOLA AROMA PARFUM DINAMIS
-// ==========================================
-const DEFAULT_PARFUM = ["Standard / Original", "Lavender", "Sakura", "Lily", "Snappy"];
-
-function getDaftarParfum() {
-  const saved = localStorage.getItem('lndr_daftar_parfum');
-  if (saved) {
-    try { return JSON.parse(saved); } catch (e) { }
-  }
-  return DEFAULT_PARFUM;
-}
-
-function saveDaftarParfum(list) {
-  localStorage.setItem('lndr_daftar_parfum', JSON.stringify(list));
-  renderParfumOptionsPOS();
-}
-
-function renderParfumOptionsPOS() {
-  const selectPOS = document.getElementById('pos_parfum');
-  const selectEdit = document.getElementById('edit_parfum');
-  const list = getDaftarParfum();
-
-  let optionsHTML = '';
-  list.forEach(p => {
-    optionsHTML += `<option value="${p}">${p}</option>`;
-  });
-
-  if (selectPOS) selectPOS.innerHTML = optionsHTML;
-  if (selectEdit) selectEdit.innerHTML = optionsHTML;
-}
-
-function openModalKelolaParfum() {
-  const modal = document.getElementById('modal-kelola-parfum');
-  if (modal) {
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-    renderKelolaParfumList();
-  }
-}
-
-function closeModalKelolaParfum() {
-  const modal = document.getElementById('modal-kelola-parfum');
-  if (modal) {
-    modal.classList.add('hidden');
-    modal.classList.remove('flex');
-  }
-}
-
-function renderKelolaParfumList() {
-  const container = document.getElementById('list-kelola-parfum-container');
-  if (!container) return;
-
-  const list = getDaftarParfum();
-  if (list.length === 0) {
-    container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Belum ada aroma parfum.</p>';
-    return;
-  }
-
-  let html = '';
-  list.forEach((p, idx) => {
-    html += `
-      <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex justify-between items-center text-xs">
-        <span class="font-bold text-slate-700">🌸 ${p}</span>
-        <button onclick="hapusParfum(${idx})" class="text-rose-600 hover:text-rose-800 font-bold bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-100 text-[10px]">
-          Hapus
+  </div>
+
+  <!-- MODAL LUPA PASSWORD -->
+  <div id="modal-lupa-password" onclick="closeOnBackdrop(event, 'modal-lupa-password')" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4 hidden">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl" onclick="event.stopPropagation()">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-extrabold text-slate-900 text-sm">Reset Password</h3>
+        <button onclick="closeModalWithHistory('modal-lupa-password')" class="text-slate-400 font-bold">✕</button>
+      </div>
+      <p class="text-xs text-slate-500">Masukkan email akun Anda. Kami akan mengirimkan link untuk mengatur ulang password Anda.</p>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="font-bold text-slate-700">Email Akun</label>
+          <input id="forgot_email_input" type="email" placeholder="contoh: user@lndr.com" class="w-full p-3 border border-slate-200 rounded-xl mt-1 outline-none font-semibold focus:border-blue-500">
+        </div>
+        <button onclick="handleKirimResetPassword()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-2xl shadow-md text-xs active:scale-[0.98] transition">
+          📩 KIRIM LINK RESET
         </button>
       </div>
-    `;
-  });
+    </div>
+  </div>
 
-  container.innerHTML = html;
-}
+  <!-- MODAL BUAT PASSWORD BARU -->
+  <div id="modal-update-password" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[120] flex items-center justify-center p-4 hidden">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl" onclick="event.stopPropagation()">
+      <div class="text-center space-y-1">
+        <h3 class="font-extrabold text-slate-900 text-base">Buat Password Baru</h3>
+        <p class="text-xs text-slate-400">Silahkan masukkan password baru untuk akun Anda</p>
+      </div>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="font-bold text-slate-700">Password Baru</label>
+          <input id="new_reset_password" type="password" placeholder="••••••••" class="w-full p-3 border border-slate-200 rounded-xl mt-1 outline-none font-semibold focus:border-blue-500">
+        </div>
+        <button onclick="handleSaveNewPassword()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 rounded-2xl shadow-md text-xs active:scale-[0.98] transition">
+          💾 SIMPAN PASSWORD BARU
+        </button>
+      </div>
+    </div>
+  </div>
 
-function tambahParfumBaru() {
-  const input = document.getElementById('new_nama_parfum');
-  const val = input ? input.value.trim() : '';
+  <!-- TOP BAR -->
+  <header class="bg-blue-600 text-white p-3.5 sticky top-0 z-40 shadow-sm shrink-0 pt-safe">
+    <div class="max-w-md mx-auto flex justify-between items-center">
+      <div onclick="openModalJendelaAkunWithChart()" class="cursor-pointer flex items-center gap-2">
+        <img src="logo.png" alt="LNDR Logo" class="w-9 h-9 object-contain drop-shadow">
+        <div>
+          <div class="flex items-center gap-1.5">
+            <h1 id="topbar-nama-toko" class="text-sm font-extrabold tracking-wide uppercase leading-none">LNDR</h1>
+            <span id="topbar-role-badge" class="text-[8px] bg-amber-400 text-amber-950 font-black px-1.5 py-0.5 rounded-md uppercase">Owner</span>
+          </div>
+          <p id="topbar-user-email" class="text-[10px] text-blue-200 mt-0.5 truncate max-w-[150px]">Memuat akun...</p>
+        </div>
+      </div>
+      <button onclick="triggerManualRefresh()" class="bg-blue-700/60 hover:bg-blue-700 active:scale-95 text-xs px-2.5 py-1 rounded-xl border border-blue-400/30 font-semibold transition flex items-center gap-1">
+        <span id="refresh-icon">🔄</span> <span>Refresh</span>
+      </button>
+    </div>
+  </header>
 
-  if (!val) {
-    if (typeof showToast === 'function') showToast('Masukkan nama aroma parfum!', 'error');
-    return;
-  }
+  <!-- KONTEN UTAMA -->
+  <main class="max-w-md mx-auto p-3 space-y-2.5 flex-1 overflow-hidden w-full flex flex-col pb-16">
 
-  const list = getDaftarParfum();
-  if (list.includes(val)) {
-    if (typeof showToast === 'function') showToast('Aroma parfum ini sudah ada!', 'error');
-    return;
-  }
+    <!-- PANEL HOME -->
+    <section id="panel-home" class="page-section active space-y-2.5 flex flex-col h-full overflow-hidden">
+      <div class="bg-amber-500/10 border border-amber-500/30 px-3 py-2 rounded-xl flex items-center gap-2 text-xs text-amber-900 overflow-hidden shrink-0">
+        <span class="text-sm shrink-0">📢</span>
+        <marquee scrollamount="4" class="font-extrabold text-xs tracking-wide">
+          ✨ Promo Cuci Komplit Diskon 10% s/d Akhir Bulan! • Harap cek kembali barang bawaan pelanggan sebelum dicuci. • Terima kasih telah mempercayakan cucian Anda di LNDR! 🧺
+        </marquee>
+        <span class="text-[9px] bg-amber-500 text-white font-bold px-1.5 py-0.5 rounded shrink-0">NEW</span>
+      </div>
 
-  list.push(val);
-  saveDaftarParfum(list);
-  if (input) input.value = '';
-  renderKelolaParfumList();
-  if (typeof showToast === 'function') showToast('Aroma parfum berhasil ditambahkan! 🎉', 'success');
-}
+      <div class="bg-white p-2.5 rounded-2xl border border-slate-200/80 shadow-sm space-y-2 shrink-0">
+        <div class="flex justify-between items-center border-b pb-1.5 border-slate-100">
+          <p class="text-[11px] font-black text-slate-700 tracking-wide uppercase flex items-center gap-1">
+            <span>📊</span> Ringkasan Cucian
+          </p>
+          <span class="text-[9px] bg-slate-100 text-slate-500 font-bold px-2 py-0.5 rounded-lg">Realtime</span>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-2">
+          <div onclick="openModalStatistik('Aktif')" class="bg-slate-50 p-2 rounded-xl border border-slate-100 flex items-center justify-between cursor-pointer active:scale-95 transition hover:border-blue-300">
+            <div><p class="text-[9px] font-bold text-slate-400 uppercase">Cucian Aktif</p><h3 id="stat-aktif" class="text-sm font-black text-slate-800 mt-0.5">0</h3></div>
+            <span class="text-sm bg-blue-100 p-1 rounded-xl">🧺</span>
+          </div>
+          <div onclick="openModalStatistik('HarusSelesai')" class="bg-slate-50 p-2 rounded-xl border border-slate-100 flex items-center justify-between cursor-pointer active:scale-95 transition hover:border-amber-300">
+            <div><p class="text-[9px] font-bold text-slate-400 uppercase">Harus Selesai</p><h3 id="stat-harus-selesai" class="text-sm font-black text-amber-600 mt-0.5">0</h3></div>
+            <span class="text-sm bg-amber-100 p-1 rounded-xl">⏰</span>
+          </div>
+          <div onclick="openModalStatistik('Terlambat')" class="bg-slate-50 p-2 rounded-xl border border-slate-100 flex items-center justify-between cursor-pointer active:scale-95 transition hover:border-rose-300">
+            <div><p class="text-[9px] font-bold text-slate-400 uppercase">Terlambat</p><h3 id="stat-terlambat" class="text-sm font-black text-rose-600 mt-0.5">0</h3></div>
+            <span class="text-sm bg-rose-100 p-1 rounded-xl">⚠️</span>
+          </div>
+          <div onclick="openModalStatistik('Selesai')" class="bg-slate-50 p-2 rounded-xl border border-slate-100 flex items-center justify-between cursor-pointer active:scale-95 transition hover:border-emerald-300">
+            <div><p class="text-[9px] font-bold text-slate-400 uppercase">Selesai</p><h3 id="stat-selesai" class="text-sm font-black text-emerald-600 mt-0.5">0</h3></div>
+            <span class="text-sm bg-emerald-100 p-1 rounded-xl">✅</span>
+          </div>
+        </div>
+      </div>
 
-function hapusParfum(index) {
-  const list = getDaftarParfum();
-  if (list.length <= 1) {
-    if (typeof showToast === 'function') showToast('Minimal harus ada 1 aroma parfum!', 'error');
-    return;
-  }
+      <div class="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-sm space-y-2 shrink-0">
+        <div class="flex justify-between items-center border-b pb-1.5 border-slate-100">
+          <p class="text-[11px] font-black text-slate-700 tracking-wide uppercase flex items-center gap-1">
+            <span>💵</span> Keuangan Hari Ini
+          </p>
+          <span class="text-[9px] bg-blue-50 text-blue-600 font-bold px-2 py-0.5 rounded-lg">Hari Ini</span>
+        </div>
+        
+        <div class="space-y-1.5 text-xs">
+          <div class="flex justify-between items-center p-2 bg-slate-50 rounded-xl border border-slate-100">
+            <span class="font-bold text-slate-600">Omset Hari Ini</span>
+            <span id="stat-omset" class="font-black text-blue-600 text-xs">Rp 0</span>
+          </div>
+          <div class="flex justify-between items-center p-2 bg-slate-50 rounded-xl border border-slate-100">
+            <span class="font-bold text-slate-600">Pengeluaran Hari Ini</span>
+            <span id="home-footer-pengeluaran" class="font-black text-rose-600 text-xs">Rp 0</span>
+          </div>
+        </div>
+      </div>
 
-  list.splice(index, 1);
-  saveDaftarParfum(list);
-  renderKelolaParfumList();
-  if (typeof showToast === 'function') showToast('Aroma parfum berhasil dihapus', 'success');
-}
+    <div class="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-sm space-y-2 flex-1 flex flex-col min-h-0 overflow-hidden max-h-[220px]">
+      <div class="flex justify-between items-center border-b pb-1.5 border-slate-100 shrink-0">
+        <h3 class="font-extrabold text-slate-900 text-xs">📌 Masuk Hari Ini</h3>
+        <span id="count-masuk" class="text-[10px] bg-blue-50 text-blue-600 font-bold px-2 py-0.5 rounded-lg">0 Order</span>
+      </div>
 
-// Inisialisasi Otomatis saat DOM Siap
-document.addEventListener('DOMContentLoaded', () => {
-  if (typeof renderParfumOptionsPOS === 'function') renderParfumOptionsPOS();
-  if (typeof paksaHitungTotalPriceDOM === 'function') paksaHitungTotalPriceDOM();
-});
+        <div id="list-home" class="scroll-area space-y-2 pr-1 flex-1 overflow-y-auto max-h-[170px]">
+          <p class="text-xs text-slate-400 text-center py-6">Memuat orderan hari ini...</p>
+        </div>
+      </div>
+    </section>
 
-// REGISTRASI GLOBAL SCOPE WINDOW
-window.toggleAccordion = toggleAccordion;
-window.toggleFormTambahKasir = toggleFormTambahKasir;
-window.simpanKasirBaru = simpanKasirBaru;
-window.renderDaftarKasir = renderDaftarKasir;
+    <!-- PANEL ORDER -->
+    <section id="panel-order" class="page-section space-y-3 overflow-hidden">
+      <div class="bg-white p-3.5 rounded-3xl border border-slate-200/80 shadow-sm space-y-3 flex flex-col h-full overflow-hidden">
+        <div class="flex justify-between items-center border-b pb-2 border-slate-100 shrink-0">
+          <div>
+            <h2 class="font-extrabold text-slate-900 text-sm">Daftar Order Pelanggan</h2>
+            <p class="text-[10px] text-slate-400">Klik item untuk melihat detail & memproses</p>
+          </div>
+          <button onclick="openModalPOS()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-md transition">+ Baru</button>
+        </div>
 
-window.openModalKelolaLayanan = openModalKelolaLayanan;
-window.closeModalKelolaLayanan = closeModalKelolaLayanan;
-window.renderKelolaLayananList = renderKelolaLayananList;
-window.renderLayananPOS = renderLayananPOS;
-window.geserPosisiLayanan = geserPosisiLayanan;
-window.bukaModalEditLayanan = bukaModalEditLayanan;
-window.tutupModalEditLayanan = tutupModalEditLayanan;
-window.simpanPerubahanLayanan = simpanPerubahanLayanan;
-window.tambahLayananBaru = tambahLayananBaru;
-window.hapusLayananBaru = hapusLayananBaru;
+        <div class="grid grid-cols-4 gap-1 bg-slate-100 p-1 rounded-2xl text-[11px] shrink-0">
+          <button onclick="filterOrderTab('Antrian')" id="tab-Antrian" class="tab-order-btn py-1.5 text-center rounded-xl text-slate-600 font-medium transition">Antrian</button>
+          <button onclick="filterOrderTab('Proses')" id="tab-Proses" class="tab-order-btn py-1.5 text-center rounded-xl text-slate-600 font-medium transition">Proses</button>
+          <button onclick="filterOrderTab('Selesai')" id="tab-Selesai" class="tab-order-btn py-1.5 text-center rounded-xl text-slate-600 font-medium transition">Selesai</button>
+          <button onclick="filterOrderTab('Batal')" id="tab-Batal" class="tab-order-btn py-1.5 text-center rounded-xl text-slate-600 font-medium transition">Batal</button>
+        </div>
 
-window.bukaModalPilihLayanan = bukaModalPilihLayanan;
-window.closeModalPilihLayanan = closeModalPilihLayanan;
-window.handleTambahLayanan = bukaModalPilihLayanan;
-window.pilihLayananKeKeranjang = pilihLayananKeKeranjang;
-window.renderKeranjangPOS = renderKeranjangPOS;
-window.updateQtyManual = updateQtyManual;
-window.ubahQtyKeranjang = ubahQtyKeranjang;
-window.hapusItemKeranjang = hapusItemKeranjang;
-window.hitungsDanUpdateTotalPrice = paksaHitungTotalPriceDOM;
-window.paksaHitungTotalPriceDOM = paksaHitungTotalPriceDOM;
+        <div id="list-order-status" class="scroll-area space-y-2 pr-1 flex-1">
+          <p class="text-xs text-slate-400 text-center py-10">Memuat data order...</p>
+        </div>
+      </div>
+    </section>
 
-window.updateTokoPermissions = updateTokoPermissions;
-window.loadPermissionsToForm = loadPermissionsToForm;
-window.openModalKelolaParfum = openModalKelolaParfum;
-window.closeModalKelolaParfum = closeModalKelolaParfum;
-window.tambahParfumBaru = tambahParfumBaru;
-window.hapusParfum = hapusParfum;
+    <!-- PANEL REPORT -->
+    <section id="panel-report" class="page-section space-y-3 overflow-hidden">
+      <div class="bg-white p-3.5 rounded-3xl border border-slate-200/80 shadow-sm space-y-3 flex flex-col h-full overflow-hidden">
+        <div class="flex justify-between items-center shrink-0">
+          <h2 class="font-black text-slate-900 text-xs tracking-wider uppercase flex items-center gap-1.5">
+            <span>📅</span> LAPORAN HARI INI
+          </h2>
+          <span id="report-date-badge" class="text-[9px] bg-blue-50 text-blue-600 font-bold px-2 py-0.5 rounded-lg">Today</span>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2 shrink-0">
+          <div class="bg-blue-50 border border-blue-100 p-2 rounded-2xl text-center">
+            <p class="text-[16px]">💰</p>
+            <p class="text-[9px] font-bold text-slate-400 uppercase mt-0.5">Omset</p>
+            <p id="rpt-stat-omset" class="text-[11px] font-black text-blue-600 mt-0.5">Rp 0</p>
+          </div>
+          <div class="bg-emerald-50 border border-emerald-100 p-2 rounded-2xl text-center">
+            <p class="text-[16px]">📈</p>
+            <p class="text-[9px] font-bold text-slate-400 uppercase mt-0.5">Pendapatan</p>
+            <p id="rpt-stat-pendapatan" class="text-[11px] font-black text-emerald-600 mt-0.5">Rp 0</p>
+          </div>
+          <div class="bg-rose-50 border border-rose-100 p-2 rounded-2xl text-center">
+            <p class="text-[16px]">💸</p>
+            <p class="text-[9px] font-bold text-slate-400 uppercase mt-0.5">Pengeluaran</p>
+            <p id="rpt-stat-pengeluaran" class="text-[11px] font-black text-rose-600 mt-0.5">Rp 0</p>
+          </div>
+          <div class="bg-indigo-50 border border-indigo-100 p-2 rounded-2xl text-center">
+            <p class="text-[16px]">📦</p>
+            <p class="text-[9px] font-bold text-slate-400 uppercase mt-0.5">Order Hari Ini</p>
+            <p id="rpt-stat-order" class="text-[11px] font-black text-indigo-600 mt-0.5">0</p>
+          </div>
+          <div class="bg-teal-50 border border-teal-100 p-2 rounded-2xl text-center">
+            <p class="text-[16px]">✅</p>
+            <p class="text-[9px] font-bold text-slate-400 uppercase mt-0.5">Selesai Hari Ini</p>
+            <p id="rpt-stat-selesai" class="text-[11px] font-black text-teal-600 mt-0.5">0</p>
+          </div>
+          <div class="bg-slate-100 border border-slate-200 p-2 rounded-2xl text-center">
+            <p class="text-[16px]">❌</p>
+            <p class="text-[9px] font-bold text-slate-400 uppercase mt-0.5">Batal Hari Ini</p>
+            <p id="rpt-stat-batal" class="text-[11px] font-black text-slate-600 mt-0.5">0</p>
+          </div>
+        </div>
+
+        <div class="space-y-2 shrink-0 pt-2.5 border-t-4 border-slate-200/80">
+          <h2 class="font-black text-slate-900 text-sm tracking-wide">Laporan Keuangan</h2>
+          
+          <div class="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-2xl text-[10px]">
+            <button onclick="switchReportSubTab('transaksi')" id="subtab-transaksi" class="tab-report-btn py-1.5 text-center rounded-xl text-slate-600 font-medium transition active">Transaksi</button>
+            <button onclick="switchReportSubTab('keuangan')" id="subtab-keuangan" class="tab-report-btn py-1.5 text-center rounded-xl text-slate-600 font-medium transition">Laporan Keuangan</button>
+            <button onclick="switchReportSubTab('pelanggan')" id="subtab-pelanggan" class="tab-report-btn py-1.5 text-center rounded-xl text-slate-600 font-medium transition">Pelanggan</button>
+          </div>
+        </div>
+
+        <div id="list-report" class="scroll-area space-y-2 flex-1 pr-1">
+          <p class="text-xs text-slate-400 text-center py-6">Memuat laporan...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- PANEL SETTING -->
+    <section id="panel-setting" class="page-section space-y-3 scroll-area">
+      <div class="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-sm space-y-3">
+        <h2 class="font-extrabold text-slate-900 text-sm border-b pb-2 border-slate-100">Pengaturan Toko & Kasir</h2>
+        <div class="space-y-2.5 text-xs">
+          <div class="p-2.5 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-center">
+            <div>
+              <p class="text-slate-400 font-medium text-[10px]">Akun Aktif (Email)</p>
+              <p id="setting-user-email" class="font-extrabold text-slate-800 text-xs mt-0.5">Memuat...</p>
+            </div>
+            <span id="setting-role-badge" class="text-[9px] bg-amber-400 text-amber-950 font-black px-2 py-1 rounded-lg uppercase">Owner</span>
+          </div>
+          
+          <div id="setting-owner-layanan" class="p-3 bg-blue-50 rounded-2xl border border-blue-100 flex items-center justify-between">
+            <div>
+              <p class="font-extrabold text-blue-900 text-xs">Kelola Daftar Layanan</p>
+              <p class="text-[10px] text-blue-600 mt-0.5">Tambah atau hapus layanan & harga laundry</p>
+            </div>
+            <button onclick="openModalKelolaLayanan()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs shadow-sm">Buka</button>
+          </div>
+
+          <div id="setting-owner-parfum" class="p-3 bg-emerald-50 rounded-2xl border border-emerald-100 flex items-center justify-between">
+            <div>
+              <p class="font-extrabold text-emerald-900 text-xs">🌸 Kelola Aroma Parfum</p>
+              <p class="text-[10px] text-emerald-600 mt-0.5">Tambah atau hapus varian aroma parfum toko</p>
+            </div>
+            <button onclick="openModalKelolaParfum()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs shadow-sm">Buka</button>
+          </div>
+          
+          <div id="setting-owner-kasir" class="p-3 bg-indigo-50 rounded-2xl border border-indigo-100 flex items-center justify-between">
+            <div>
+              <p class="font-extrabold text-indigo-900 text-xs">👥 Kelola Akun</p>
+              <p class="text-[10px] text-indigo-600 mt-0.5">Buka analitik traffic & manajemen toko</p>
+            </div>
+            <button onclick="openModalJendelaAkunWithChart()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs shadow-sm">Buka</button>
+          </div>
+
+          <div class="p-2.5 bg-slate-50 rounded-2xl border border-slate-100">
+            <p class="text-slate-400 font-medium text-[10px]">Database Server</p>
+            <p class="font-bold text-blue-600 text-xs mt-0.5">Supabase Cloud Multi-Tenant Active</p>
+          </div>
+
+          <button onclick="handleLogout()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-extrabold py-3 rounded-2xl text-xs transition active:scale-[0.98]">
+            🚪 LOG OUT DARI AKUN
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <div id="toast-container"></div>
+
+  <!-- JENDELA AKUN (FULL SCREEN) -->
+  <div id="modal-jendela-akun" onclick="closeOnBackdrop(event, 'modal-jendela-akun')" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-0 hidden">
+    <div class="bg-white w-full h-full flex flex-col shadow-2xl" onclick="event.stopPropagation()">
+      <div class="bg-blue-600 text-white p-4 flex justify-between items-center shrink-0 pt-safe shadow-sm">
+        <div class="flex items-center gap-3">
+          <button onclick="closeModalWithHistory('modal-jendela-akun')" class="text-white font-bold text-xl hover:opacity-80 active:scale-95 transition">←</button>
+          <div>
+            <h3 class="font-black text-base tracking-wide">Kelola Akun & Analitik</h3>
+            <p id="account-modal-email" class="text-[10px] text-blue-200 truncate max-w-[200px]">Memuat email...</p>
+          </div>
+        </div>
+        <button onclick="closeModalWithHistory('modal-jendela-akun')" class="w-8 h-8 bg-blue-700/60 rounded-full font-bold text-white text-xs flex items-center justify-center">✕</button>
+      </div>
+
+      <div class="scroll-area p-4 space-y-4 flex-1 pr-1" style="min-height: 0;">
+        <div class="p-4 bg-slate-50 border border-slate-200/80 rounded-3xl space-y-3 shadow-sm">
+          <div class="flex justify-between items-center border-b pb-2 border-slate-200/60">
+            <div>
+              <h4 class="font-black text-slate-800 text-xs uppercase tracking-wider">📊 Traffic Keuangan 24 Jam</h4>
+              <p class="text-[10px] text-slate-400 mt-0.5">Pendapatan, Pengeluaran & Sisa Modal per Jam</p>
+            </div>
+            <span class="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-lg">Realtime</span>
+          </div>
+
+          <div class="pt-2 overflow-x-auto scroll-area">
+            <canvas id="trafficPendapatanChart" width="750" height="150" class="block mx-auto"></canvas>
+          </div>
+          <p class="text-[9px] text-slate-400 text-center italic">Geser ke kanan/kiri untuk melihat 24 jam lengkap 👉</p>
+        </div>
+
+        <div class="p-4 bg-emerald-50/80 border border-emerald-200/80 rounded-3xl space-y-2.5 shadow-sm">
+          <div class="flex justify-between items-center">
+            <div>
+              <p class="font-black text-emerald-950 text-xs uppercase tracking-wider">🎯 Target Omset Bulanan</p>
+              <p class="text-[10px] text-emerald-700 mt-0.5">Pantau progres pencapaian target toko bulan ini</p>
+            </div>
+            <span id="target-percentage-badge" class="text-[10px] bg-emerald-600 text-white font-black px-2 py-0.5 rounded-lg">0%</span>
+          </div>
+          <div class="w-full bg-emerald-200/70 rounded-full h-3 overflow-hidden">
+            <div id="target-progress-bar" class="bg-emerald-600 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+          <div class="flex justify-between items-center text-[11px] font-bold text-emerald-900 pt-1">
+            <span>Tercapai: <b id="display-omset-bulan-ini" class="text-emerald-700">Rp 0</b></span>
+            <span>Target: <b id="display-target-omset" class="text-emerald-900">Rp 15.000.000</b></span>
+          </div>
+          <div class="flex gap-2 pt-1">
+            <input id="input_target_omset" type="number" placeholder="Set Target (Rp)" class="w-full p-2 bg-white border border-emerald-300 rounded-xl text-xs font-bold outline-none">
+            <button onclick="simpanTargetOmset()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-sm shrink-0 active:scale-95 transition">Simpan</button>
+          </div>
+        </div>
+
+        <div class="space-y-3 pt-1">
+          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">Pengaturan Management Toko</p>
+
+          <div class="border border-slate-200 rounded-2xl bg-white overflow-hidden shadow-sm">
+            <button onclick="toggleAccordion('acc-kasir')" class="w-full p-3.5 bg-indigo-50/80 hover:bg-indigo-100/50 flex justify-between items-center transition text-left">
+              <div>
+                <p class="font-extrabold text-indigo-950 text-xs">👥 Kelola Sub-Akun Kasir</p>
+                <p class="text-[10px] text-indigo-600 mt-0.5">Daftar & buat sub-akun login khusus pegawai</p>
+              </div>
+              <span id="arrow-acc-kasir" class="text-indigo-600 text-xs transition-transform duration-200">▼</span>
+            </button>
+            <div id="acc-kasir" class="hidden p-3.5 border-t border-indigo-100 space-y-3 bg-indigo-50/20">
+              <div class="flex justify-between items-center">
+                <span class="text-xs font-extrabold text-indigo-900">Daftar Kasir Aktif</span>
+                <button onclick="toggleFormTambahKasir()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1 rounded-xl text-[11px] shadow-sm">+ Buat Kasir</button>
+              </div>
+
+              <div id="form-tambah-kasir" class="space-y-2 pt-2 border-t border-indigo-200/60 hidden">
+                <p class="font-bold text-indigo-950 text-[11px]">Daftarkan Kasir Baru:</p>
+                <input id="new_kasir_nama" type="text" placeholder="Nama Kasir / Pegawai" class="w-full p-2.5 bg-white border rounded-xl text-xs outline-none font-semibold">
+                <input id="new_kasir_email" type="email" placeholder="Email Kasir (misal: kasir1@lndr.com)" class="w-full p-2.5 bg-white border rounded-xl text-xs outline-none font-semibold">
+                <input id="new_kasir_password" type="password" placeholder="Password Kasir" class="w-full p-2.5 bg-white border rounded-xl text-xs outline-none font-semibold">
+                <button onclick="simpanKasirBaru()" class="w-full bg-indigo-600 text-white font-bold text-xs py-2 rounded-xl shadow-sm">Simpan Akun Kasir</button>
+              </div>
+
+              <div id="list-kasir-container" class="space-y-1.5 pt-1"></div>
+            </div>
+          </div>
+
+          <div class="border border-slate-200 rounded-2xl bg-white overflow-hidden shadow-sm">
+            <button onclick="toggleAccordion('acc-akses')" class="w-full p-3.5 bg-slate-50 hover:bg-slate-100/70 flex justify-between items-center transition text-left">
+              <div>
+                <p class="font-extrabold text-slate-800 text-xs">⚙️ Pengaturan Akses & Hak Kasir</p>
+                <p class="text-[10px] text-slate-400 mt-0.5">Atur izin fitur kasir secara realtime</p>
+              </div>
+              <span id="arrow-acc-akses" class="text-slate-500 text-xs transition-transform duration-200">▼</span>
+            </button>
+            <div id="acc-akses" class="hidden p-3.5 border-t border-slate-200/60 space-y-2.5 bg-white">
+              <div class="flex items-center justify-between p-2 bg-amber-50/80 rounded-xl border border-amber-200/60">
+                <div>
+                  <p class="font-black text-amber-950 text-xs">👑 Jadikan Kasir sebagai Manager</p>
+                  <p class="text-[9px] text-amber-700">Akses penuh ke seluruh fitur aplikasi</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="perm_is_manager" onchange="updateTokoPermissions('is_manager', this.checked)" class="sr-only peer">
+                  <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                </label>
+              </div>
+
+              <div class="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200">
+                <div>
+                  <p class="font-extrabold text-slate-800 text-xs">📊 Akses Menu Laporan & Report</p>
+                  <p class="text-[9px] text-slate-400">Kasir dapat melihat rekap omset & keuangan</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="perm_akses_laporan" onchange="updateTokoPermissions('akses_laporan', this.checked)" class="sr-only peer">
+                  <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+
+              <div class="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200">
+                <div>
+                  <p class="font-extrabold text-slate-800 text-xs">🧺 Akses Kelola Layanan & Harga</p>
+                  <p class="text-[9px] text-slate-400">Kasir dapat menambah/menghapus paket</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="perm_akses_layanan" onchange="updateTokoPermissions('akses_layanan', this.checked)" class="sr-only peer">
+                  <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+
+              <div class="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200">
+                <div>
+                  <p class="font-extrabold text-slate-800 text-xs">💸 Akses Catat Pengeluaran Toko</p>
+                  <p class="text-[9px] text-slate-400">Kasir dapat mencatat biaya operasional</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="perm_akses_pengeluaran" onchange="updateTokoPermissions('akses_pengeluaran', this.checked)" class="sr-only peer">
+                  <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+
+              <div class="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200">
+                <div>
+                  <p class="font-extrabold text-slate-800 text-xs">❌ Akses Edit / Batalkan Order</p>
+                  <p class="text-[9px] text-slate-400">Kasir dapat membatalkan atau mengedit order</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="perm_akses_edit_order" onchange="updateTokoPermissions('akses_edit_order', this.checked)" class="sr-only peer">
+                  <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+
+            </div>
+          </div>
+
+          <div class="border border-slate-200 rounded-2xl bg-white overflow-hidden shadow-sm">
+            <button onclick="toggleAccordion('acc-struk')" class="w-full p-3.5 bg-slate-50 hover:bg-slate-100/70 flex justify-between items-center transition text-left">
+              <div>
+                <p class="font-extrabold text-slate-800 text-xs">🖨️ Pengaturan Struk & Printer Thermal</p>
+                <p class="text-[10px] text-slate-400 mt-0.5">Ukuran kertas & catatan footer nota</p>
+              </div>
+              <span id="arrow-acc-struk" class="text-slate-500 text-xs transition-transform duration-200">▼</span>
+            </button>
+            <div id="acc-struk" class="hidden p-3.5 border-t border-slate-200/60 space-y-2 bg-white">
+              <div>
+                <label class="font-bold text-slate-600 text-[10px]">Ukuran Kertas Thermal</label>
+                <select id="setting_paper_size" class="w-full p-2 border border-slate-200 rounded-xl bg-slate-50 mt-0.5 font-bold text-xs">
+                  <option value="58mm">58 mm (Printer Kasir Mini)</option>
+                  <option value="80mm">80 mm (Printer Desktop)</option>
+                </select>
+              </div>
+              <div>
+                <label class="font-bold text-slate-600 text-[10px]">Catatan Footer Struk / Nota</label>
+                <textarea id="setting_struk_footer" rows="2" placeholder="Contoh: Barang tidak diambil > 30 hari di luar tanggung jawab toko." class="w-full p-2 border border-slate-200 rounded-xl bg-slate-50 mt-0.5 font-semibold text-xs outline-none"></textarea>
+              </div>
+              <button onclick="simpanPengaturanStruk()" class="w-full bg-blue-600 text-white font-bold py-2 rounded-xl shadow-sm text-xs mt-1">Simpan Pengaturan Struk</button>
+            </div>
+          </div>
+
+          <div class="border border-slate-200 rounded-2xl bg-white overflow-hidden shadow-sm">
+            <button onclick="toggleAccordion('acc-wa')" class="w-full p-3.5 bg-slate-50 hover:bg-slate-100/70 flex justify-between items-center transition text-left">
+              <div>
+                <p class="font-extrabold text-slate-800 text-xs">📲 Template Pesan WhatsApp Notifikasi</p>
+                <p class="text-[10px] text-slate-400 mt-0.5">Atur format pesan saat kirim notifikasi selesai</p>
+              </div>
+              <span id="arrow-acc-wa" class="text-slate-500 text-xs transition-transform duration-200">▼</span>
+            </button>
+            <div id="acc-wa" class="hidden p-3.5 border-t border-slate-200/60 space-y-2 bg-white">
+              <p class="text-[9px] text-slate-400">Variabel: <b>{nama_pelanggan}</b>, <b>{id_nota}</b>, <b>{total_harga}</b></p>
+              <textarea id="setting_wa_template" rows="3" placeholder="Halo Kak {nama_pelanggan}, orderan Nota #{id_nota} sudah selesai! Total: Rp {total_harga}." class="w-full p-2 border border-slate-200 rounded-xl bg-slate-50 font-semibold text-xs outline-none"></textarea>
+              <button onclick="simpanTemplateWA()" class="w-full bg-emerald-600 text-white font-bold py-2 rounded-xl shadow-sm text-xs">Simpan Template WA</button>
+            </div>
+          </div>
+
+          <div class="border border-slate-200 rounded-2xl bg-white overflow-hidden shadow-sm">
+            <button onclick="toggleAccordion('acc-profil')" class="w-full p-3.5 bg-slate-50 hover:bg-slate-100/70 flex justify-between items-center transition text-left">
+              <div>
+                <p class="font-extrabold text-slate-800 text-xs">🔑 Ubah Profil Toko & Password Owner</p>
+                <p class="text-[10px] text-slate-400 mt-0.5">Ubah nama laundry & kata sandi akun</p>
+              </div>
+              <span id="arrow-acc-profil" class="text-slate-500 text-xs transition-transform duration-200">▼</span>
+            </button>
+            <div id="acc-profil" class="hidden p-3.5 border-t border-slate-200/60 space-y-2 bg-white">
+              <input id="edit_nama_toko" type="text" placeholder="Nama Toko Laundry" class="w-full p-2 border border-slate-200 rounded-xl bg-slate-50 font-semibold outline-none text-xs">
+              <input id="edit_owner_pass" type="password" placeholder="Password Baru (Kosongkan jika tidak diubah)" class="w-full p-2 border border-slate-200 rounded-xl bg-slate-50 font-semibold outline-none text-xs">
+              <button onclick="simpanProfilDanPassOwner()" class="w-full bg-indigo-600 text-white font-bold py-2 rounded-xl shadow-sm text-xs">Simpan Perubahan</button>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- LAUNCHER TRANSAKSI ANIMASI (GRID 2x2) -->
+  <div id="transaksi-animator-container" class="fixed inset-0 z-50 pointer-events-none">
+    
+    <!-- Backdrop Gelap -->
+    <div id="transaksi-backdrop" onclick="closeJendelaNavigasiBaru()" class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm opacity-0 transition-opacity duration-300 ease-in-out pointer-events-none"></div>
+
+    <!-- Jendela Menu 2x2 -->
+    <div id="jendela-navigasi-baru" class="absolute inset-x-0 top-24 bottom-0 bg-slate-50/95 backdrop-blur-md rounded-t-3xl translate-y-full transition-transform duration-300 ease-in-out p-5 shadow-2xl pointer-events-auto overflow-y-auto">
+        <div class="flex justify-between items-center border-b pb-3 mb-5">
+            <div>
+              <h3 class="font-extrabold text-slate-900 text-sm">Pilih Action / Tindakan</h3>
+              <p class="text-[10px] text-slate-400">Pilih menu transaksi cepat di bawah ini</p>
+            </div>
+            <span class="text-[10px] bg-blue-100 text-blue-700 font-bold px-2.5 py-1 rounded-xl">LNDR POS</span>
+        </div>
+        
+        <!-- GRID 2 KOLOM -->
+        <div class="grid grid-cols-2 gap-3.5">
+            
+            <!-- 1. Tambah Transaksi -->
+            <button onclick="handleMenuClick(bukaModalPOS)" class="flex flex-col items-center justify-center p-4 bg-white rounded-2xl border border-slate-200/80 shadow-sm active:scale-95 transition hover:border-blue-400 text-center gap-2 group">
+                <div class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-xl group-hover:bg-blue-600 transition">🛒</div>
+                <span class="font-extrabold text-slate-800 text-xs">Tambah Transaksi</span>
+            </button>
+
+            <!-- 2. Batalkan Transaksi -->
+            <button onclick="handleMenuClick(() => switchTab('order'))" class="flex flex-col items-center justify-center p-4 bg-white rounded-2xl border border-slate-200/80 shadow-sm active:scale-95 transition hover:border-rose-400 text-center gap-2 group">
+                <div class="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center text-xl group-hover:bg-rose-600 transition">❌</div>
+                <span class="font-extrabold text-slate-800 text-xs">Batalkan Transaksi</span>
+            </button>
+
+            <!-- 3. Catat Pengeluaran -->
+            <button onclick="handleMenuClick(openModalPengeluaran)" class="flex flex-col items-center justify-center p-4 bg-white rounded-2xl border border-slate-200/80 shadow-sm active:scale-95 transition hover:border-amber-400 text-center gap-2 group">
+                <div class="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-xl group-hover:bg-amber-600 transition">💸</div>
+                <span class="font-extrabold text-slate-800 text-xs">Catat Pengeluaran</span>
+            </button>
+
+            <!-- 4. Reward Pelanggan -->
+            <button onclick="handleMenuClick(() => { if(typeof openModalPilihPelanggan === 'function') openModalPilihPelanggan(); else switchTab('order'); })" class="flex flex-col items-center justify-center p-4 bg-white rounded-2xl border border-slate-200/80 shadow-sm active:scale-95 transition hover:border-emerald-400 text-center gap-2 group">
+                <div class="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-xl group-hover:bg-emerald-600 transition">🎁</div>
+                <span class="font-extrabold text-slate-800 text-xs">Reward Pelanggan</span>
+            </button>
+
+        </div>
+    </div>
+
+    <!-- Tombol Utama Biru (Meluncur) -->
+    <button id="btn-transaksi-animasi" onclick="mulaiAnimasiTransaksi()" class="absolute pointer-events-auto bg-blue-600 hover:bg-blue-700 text-white font-black shadow-2xl border-2 border-white flex items-center justify-center uppercase tracking-wider active:scale-[0.98] transition-all duration-300 ease-in-out z-50" 
+      style="bottom: 72px; left: 16px; right: 16px; height: 52px; border-radius: 16px; font-size: 14px; width: auto;">
+      <span id="teks-btn-transaksi">MENU TRANSAKSI</span>
+      <span id="ikon-btn-close" class="absolute opacity-0 text-xl font-bold transition-opacity duration-200">✕</span>
+    </button>
+
+  </div>
+
+  <!-- MODALS -->
+  <div id="modal-detail-laporan" onclick="closeOnBackdrop(event, 'modal-detail-laporan')" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+    <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-4 sm:p-5 space-y-3 max-h-[90vh] flex flex-col shadow-2xl" onclick="event.stopPropagation()">
+      <div class="flex justify-between items-center border-b pb-2 shrink-0">
+        <button onclick="closeModalWithHistory('modal-detail-laporan')" class="text-slate-700 font-bold text-lg">←</button>
+        <div class="flex items-center gap-1.5">
+          <img src="logo.png" alt="LNDR" class="w-5 h-5 object-contain">
+          <span class="font-bold text-slate-800 text-sm">LNDR</span>
+        </div>
+        <button onclick="closeModalWithHistory('modal-detail-laporan')" class="w-7 h-7 bg-slate-100 rounded-full font-bold text-slate-500 text-xs">✕</button>
+      </div>
+
+      <div id="list-report-modal-container" class="scroll-area flex-1 pr-1" style="min-height: 0;">
+        <p class="text-xs text-slate-400 text-center py-6">Memuat rincian laporan...</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-profile-pelanggan" onclick="closeOnBackdrop(event, 'modal-profile-pelanggan')" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[80] flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+    <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-4 sm:p-5 space-y-4 max-h-[90vh] flex flex-col shadow-2xl" onclick="event.stopPropagation()">
+      <div class="flex justify-between items-center border-b pb-2 shrink-0">
+        <button onclick="closeModalWithHistory('modal-profile-pelanggan')" class="text-slate-700 font-bold text-lg">←</button>
+        <span class="font-bold text-slate-800 text-sm">Profil Pelanggan</span>
+        <button onclick="closeModalWithHistory('modal-profile-pelanggan')" class="w-7 h-7 bg-slate-100 rounded-full font-bold text-slate-500 text-xs">✕</button>
+      </div>
+
+      <div id="list-profile-modal-container" class="scroll-area flex-1 pr-1" style="min-height: 0;">
+        <p class="text-xs text-slate-400 text-center py-6">Memuat profil pelanggan...</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-pengeluaran" onclick="closeOnBackdrop(event, 'modal-pengeluaran')" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+    <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-2xl" onclick="event.stopPropagation()">
+      <div class="flex justify-between items-center border-b pb-3">
+        <div>
+          <h3 class="font-black text-slate-900 text-base">Tambah Pengeluaran</h3>
+          <p class="text-[10px] text-slate-400">Catat biaya operasional toko/outlet</p>
+        </div>
+        <button onclick="closeModalPengeluaran()" class="w-8 h-8 bg-slate-100 rounded-full font-bold text-slate-500">✕</button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="font-bold text-slate-700">Keterangan / Keperluan</label>
+          <input id="input_keterangan_pengeluaran" type="text" placeholder="Contoh: Beli Deterjen, Listrik, Bensin, dll." class="w-full p-3 border border-slate-200 rounded-xl mt-1 outline-none font-bold focus:border-blue-500">
+        </div>
+        <div>
+          <label class="font-bold text-slate-700">Nominal Pengeluaran (Rp)</label>
+          <input id="input_nominal_pengeluaran" type="number" placeholder="Contoh: 50000" class="w-full p-3 border border-slate-200 rounded-xl mt-1 outline-none font-bold focus:border-blue-500">
+        </div>
+
+        <button onclick="simpanPengeluaranBaru()" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-black py-3.5 rounded-2xl shadow-md text-xs active:scale-[0.98] transition">
+          💾 SIMPAN PENGELUARAN
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-rincian-statistik" onclick="closeOnBackdrop(event, 'modal-rincian-statistik')" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+    <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 max-h-[85vh] flex flex-col shadow-2xl" onclick="event.stopPropagation()">
+      <div class="flex justify-between items-center border-b pb-3 shrink-0">
+        <div>
+          <h3 id="modal-stat-title" class="font-black text-slate-900 text-base">Rincian Orderan</h3>
+          <p id="modal-stat-subtitle" class="text-[10px] text-slate-400">Daftar transaksi terkait</p>
+        </div>
+        <button onclick="closeModalWithHistory('modal-rincian-statistik')" class="w-8 h-8 bg-slate-100 rounded-full font-bold text-slate-500">✕</button>
+      </div>
+
+      <div id="list-stat-modal-container" class="scroll-area space-y-2 flex-1 pr-1" style="min-height: 0;">
+        <p class="text-xs text-slate-400 text-center py-6">Memuat rincian...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL KELOLA LAYANAN -->
+  <div id="modal-kelola-layanan" onclick="closeOnBackdrop(event, 'modal-kelola-layanan')" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] hidden items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 max-h-[85vh] flex flex-col shadow-2xl" onclick="event.stopPropagation()">
+      <div class="flex justify-between items-center border-b pb-3 shrink-0">
+        <h3 class="font-black text-slate-900 text-base">Kelola Daftar Layanan</h3>
+        <button type="button" onclick="closeModalKelolaLayanan()" class="w-8 h-8 bg-slate-100 hover:bg-slate-200 rounded-full font-bold text-slate-500 flex items-center justify-center transition">✕</button>
+      </div>
+
+      <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2.5 text-xs shrink-0">
+        <p class="font-extrabold text-slate-700">➕ Tambah Layanan Baru</p>
+        <input id="new_nama_layanan" type="text" placeholder="Nama Layanan (Contoh: Cuci Kiloan Express)" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl outline-none font-bold">
+        <div class="grid grid-cols-2 gap-2">
+          <input id="new_harga_layanan" type="number" placeholder="Harga (Rp)" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl outline-none font-bold">
+          <select id="new_satuan_layanan" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl outline-none font-bold">
+            <option value="Kg">Kg</option>
+            <option value="Pcs">Pcs</option>
+            <option value="Meter">Meter</option>
+            <option value="Lembar">Lembar</option>
+          </select>
+        </div>
+        <input id="new_estimasi_hari" type="number" step="0.1" placeholder="Estimasi Selesai (Hari / misal: 1 atau 0.5)" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl outline-none font-bold">
+        <button type="button" onclick="tambahLayananBaru(event)" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-2.5 rounded-xl shadow-sm transition">Simpan Layanan Baru</button>
+      </div>
+
+      <div class="space-y-2 flex-1 min-h-0 flex flex-col">
+        <p class="text-xs font-bold text-slate-500 shrink-0">Daftar Layanan Saat Ini:</p>
+        <div id="list-kelola-layanan-container" class="scroll-area space-y-2 flex-1 pr-1" style="min-height: 0;">
+          <p class="text-xs text-slate-400 text-center py-4">Memuat data layanan...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DETAIL ORDER -->
+  <div id="modal-detail-order" onclick="closeOnBackdrop(event, 'modal-detail-order')" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[85] flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+    <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl flex flex-col max-h-[85vh] overflow-hidden shadow-2xl" onclick="event.stopPropagation()">
+      <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-white shrink-0">
+        <div>
+          <h3 class="font-black text-slate-900 text-base">Detail Order Pelanggan</h3>
+          <p id="detail-nota-id" class="text-[11px] text-slate-400 font-medium">Nota #0</p>
+        </div>
+        <button onclick="closeModalDetailOrder()" class="w-8 h-8 bg-slate-100 rounded-full font-bold text-slate-500">✕</button>
+      </div>
+
+      <div class="p-5 space-y-4 scroll-area flex-1" style="min-height: 0;">
+        <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between">
+          <div>
+            <p class="text-[10px] font-bold text-slate-400 uppercase">Pelanggan</p>
+            <h4 id="detail-nama-pelanggan" class="font-extrabold text-slate-800 text-sm mt-0.5">Nama</h4>
+            <p id="detail-hp-pelanggan" class="text-xs text-slate-500">08-</p>
+          </div>
+          <span class="text-2xl">👤</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 text-xs">
+          <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 col-span-2">
+            <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Daftar Layanan / Item</p>
+            <div id="detail-layanan-list-container" class="space-y-1"></div>
+          </div>
+          <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+            <p class="text-[10px] font-bold text-slate-400 uppercase">Aroma Parfum</p>
+            <p id="detail-parfum" class="font-bold text-slate-800 mt-0.5">Standard</p>
+          </div>
+          <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+            <p class="text-[10px] font-bold text-slate-400 uppercase">Status Pembayaran</p>
+            <p id="detail-status-bayar" class="font-bold text-emerald-600 mt-0.5">Belum Lunas</p>
+          </div>
+          <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+            <p class="text-[10px] font-bold text-slate-400 uppercase">Tanggal Masuk</p>
+            <p id="detail-tgl-masuk" class="font-bold text-slate-800 mt-0.5">-</p>
+          </div>
+          <div class="p-3 bg-amber-50 rounded-xl border border-amber-200">
+            <p class="text-[10px] font-bold text-amber-700 uppercase">Estimasi Selesai</p>
+            <p id="detail-tgl-selesai" class="font-extrabold text-amber-900 mt-0.5">-</p>
+          </div>
+        </div>
+
+        <div class="p-3 bg-amber-50/60 rounded-xl border border-amber-100 text-xs">
+          <p class="text-[10px] font-bold text-amber-800 uppercase">Catatan Order</p>
+          <p id="detail-catatan" class="text-amber-900 mt-0.5 italic">Tidak ada catatan</p>
+        </div>
+
+        <div class="space-y-2 pt-2">
+          <button id="btn-lanjut-proses" onclick="actionLanjutProses()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-3.5 rounded-2xl shadow-md text-xs">
+            ⚡ Lanjut Proses Order
+          </button>
+          <button onclick="kirimNotifikasiWA()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3 rounded-2xl shadow-md text-xs">
+            📲 Kirim WA Notifikasi Selesai
+          </button>
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="actionBatalkanOrder()" class="bg-rose-50 text-rose-600 border border-rose-200 font-bold py-3 rounded-xl text-xs">❌ Batalkan Order</button>
+            <button onclick="openModalEditOrder()" class="bg-indigo-50 text-indigo-600 border border-indigo-200 font-bold py-3 rounded-xl text-xs">✏️ Edit Layanan</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- FOOTER TERBISA KIRI (TOTAL) & KANAN (TOMBOL BAYAR NOW) -->
+      <div class="p-4 border-t border-slate-100 bg-white flex items-center justify-between shrink-0 w-full rounded-b-3xl gap-3">
+        <div class="flex flex-col shrink-0">
+          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Price</p>
+          <h2 id="detail-total-price" class="text-base font-black text-blue-600">Rp 0</h2>
+        </div>
+        <button onclick="actionBayarOrder()" type="button" class="bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-md transition-all shrink-0 max-w-[140px] whitespace-nowrap">
+          💵 BAYAR NOW
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="modal-edit-order" onclick="closeOnBackdrop(event, 'modal-edit-order')" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[90] flex items-center justify-center p-4 hidden">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-5 space-y-4 max-h-[85vh] scroll-area" onclick="event.stopPropagation()" style="min-height: 0;">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h4 class="font-extrabold text-slate-800 text-sm">Edit Data Order</h4>
+        <button onclick="closeModalEditOrder()" class="text-slate-400 font-bold">✕</button>
+      </div>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="font-bold text-slate-600">Aroma Parfum</label>
+          <select id="edit_parfum" class="w-full p-2.5 border border-slate-200 rounded-xl bg-white mt-1">
+            <option value="Standard">Standard / Original</option>
+            <option value="Lavender">Lavender</option>
+            <option value="Sakura">Sakura</option>
+            <option value="Lily">Lily</option>
+          </select>
+        </div>
+        <div>
+          <label class="font-bold text-slate-600">Catatan Order</label>
+          <input id="edit_catatan" type="text" class="w-full p-2.5 border border-slate-200 rounded-xl mt-1">
+        </div>
+        <button onclick="simpanEditOrderFinal()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-md mt-2">SIMPAN PERUBAHAN</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL POS TRANSAKSI -->
+  <div id="modalPOS" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl w-full max-w-lg p-6 relative shadow-xl max-h-[90vh] overflow-y-auto">
+      <button type="button" id="btnClosePOS" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 transition">
+        ✕
+      </button>
+
+      <h2 class="text-xl font-bold mb-4">Buat Order Transaksi</h2>
+
+      <!-- 1. Section Pelanggan -->
+      <div class="bg-gray-50 p-4 rounded-xl mb-4 flex items-center justify-between border border-gray-100">
+        <div>
+          <p class="text-xs text-gray-500 font-medium">Pelanggan</p>
+          <p id="selectedCustomerName" class="text-sm font-semibold text-gray-400 italic">Silahkan Pilih Customer Terlebih Dahulu.</p>
+        </div>
+        <button type="button" id="btnSearchCustomer" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition">
+          CARI
+        </button>
+      </div>
+
+      <!-- 2. Section Layanan / Keranjang -->
+      <div class="bg-gray-50 p-4 rounded-xl mb-4 border border-gray-100 relative z-[100]">
+        <div class="flex justify-between items-center mb-3 relative z-[101]">
+          <p class="text-xs text-gray-500 font-medium">Daftar Layanan (Keranjang)</p>
+
+          <!-- Tombol Cyan dipaksa berada di paling atas -->
+          <button 
+            type="button" 
+            id="btnAddService" 
+            onclick="bukaModalPilihLayanan()" 
+            class="relative z-[999999] pointer-events-auto cursor-pointer bg-cyan-100 hover:bg-cyan-200 active:bg-cyan-300 text-cyan-800 text-xs font-semibold px-3 py-1.5 rounded-lg transition select-none"
+            style="position: relative !important; z-index: 999999 !important; pointer-events: auto !important;"
+          >
+            + Tambah Layanan
+          </button>
+        </div>
+        
+        <div id="cartItemsContainer">
+          <p class="text-xs text-gray-400 text-center py-4 italic">Belum ada layanan yang ditambahkan.</p>
+        </div>
+      </div>
+
+      <!-- 3. Section Parfum & Catatan Order -->
+      <div class="space-y-3 mb-6">
+        <!-- Pilihan Parfum & Slot Menu Baru -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Aroma Parfum</label>
+            <select id="pos_parfum" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold outline-none focus:border-indigo-500">
+              <!-- Otomatis diisi oleh JavaScript secara dinamis -->
+            </select>
+          </div>
+          <!-- Slot kosong di samping parfum untuk menu berikutnya -->
+          <div id="slot-menu-tambahan-pos"></div>
+        </div>
+
+        <!-- Catatan Order dibuat 3x lebih tinggi (Textarea) -->
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Catatan Order</label>
+          <textarea id="pos_catatan" rows="3" placeholder="Contoh: Luntur, Jangan Terlalu Panas, Baju warna putih dipisah" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold outline-none focus:border-indigo-500 resize-none"></textarea>
+        </div>
+      </div>
+
+      <!-- Footer Modal -->
+      <div class="flex justify-between items-center pt-2 border-t border-gray-100">
+        <div>
+          <p class="text-[10px] text-gray-400 uppercase tracking-wider font-bold">TOTAL PRICE</p>
+          <p id="totalPricePOS" class="text-xl font-extrabold text-gray-800">Rp 0</p>
+        </div>
+        <button type="button" id="btnSubmitPOS" class="bg-red-500 hover:bg-red-600 text-white font-bold px-6 py-2.5 rounded-xl shadow-md transition">
+          PESAN
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODAL PILIH / TAMBAH PELANGGAN -->
+  <div id="modal-pelanggan" onclick="closeOnBackdrop(event, 'modal-pelanggan')" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] hidden items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 max-h-[85vh] flex flex-col" onclick="event.stopPropagation()">
+      <div class="flex justify-between items-center border-b pb-2 shrink-0">
+        <h4 class="font-extrabold text-slate-800 text-sm">Pilih Customer</h4>
+        <button type="button" onclick="closeModalPilihPelanggan()" class="text-slate-400 font-bold hover:text-slate-600 w-7 h-7 flex items-center justify-center rounded-full hover:bg-slate-100">✕</button>
+      </div>
+      <input id="search-pelanggan" onkeyup="filterPelangganList()" type="text" placeholder="Masukkan Nama atau No Hp" class="w-full p-3 border border-slate-300 rounded-xl text-xs outline-none focus:border-blue-500 shrink-0">
+      <div id="list-pelanggan-container" class="scroll-area space-y-2 flex-1 pr-1" style="min-height: 0;"><p class="text-xs text-slate-400 text-center py-4">Memuat pelanggan...</p></div>
+      
+      <button type="button" onclick="toggleFormCustomerBaru()" class="w-full bg-red-500 text-white font-bold text-xs py-3.5 rounded-xl shadow-md shrink-0">TAMBAH CUSTOMER BARU</button>
+      
+      <div id="form-customer-baru" class="space-y-2 pt-2 border-t hidden shrink-0">
+        <input id="new_nama_pelanggan" type="text" placeholder="Nama Pelanggan Baru" class="w-full p-2.5 border rounded-xl text-xs">
+        <input id="new_no_hp" type="tel" placeholder="No HP / WhatsApp" class="w-full p-2.5 border rounded-xl text-xs">
+        <button type="button" onclick="simpanCustomerBaru(event)" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2.5 rounded-xl shadow-md transition">Simpan Customer</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-layanan" onclick="closeOnBackdrop(event, 'modal-layanan')" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] hidden items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 max-h-[85vh] flex flex-col" onclick="event.stopPropagation()">
+      <div class="flex justify-between items-center border-b pb-2 shrink-0">
+        <h4 class="font-extrabold text-slate-800 text-sm">Pilih Layanan</h4>
+  
+        <div class="flex items-center gap-2">
+          <!-- Tombol Kelola Paket Layanan -->
+          <button type="button" id="btn-modal-tambah-layanan" onclick="openModalKelolaLayanan()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] px-2.5 py-1 rounded-lg transition shadow-sm flex items-center gap-1">
+            <span>⚙️</span> <span>Kelola Paket</span>
+          </button>
+
+          <button type="button" onclick="closeModalPilihLayanan()" class="text-slate-400 hover:text-slate-600 font-bold w-7 h-7 rounded-full flex items-center justify-center hover:bg-slate-100">✕</button>
+        </div>
+      </div>
+      
+      <input id="search-layanan" onkeyup="filterLayananList()" type="text" placeholder="Cari Layanan V2" class="w-full p-3 border border-slate-300 rounded-xl text-xs outline-none shrink-0">
+      <div id="list-layanan-container" class="scroll-area space-y-3 flex-1 pr-1" style="min-height: 0;"><p class="text-xs text-slate-400 text-center py-4">Memuat layanan...</p></div>
+    </div>
+  </div>
+
+  <div id="modal-qty" onclick="closeOnBackdrop(event, 'modal-qty')" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[70] flex items-center justify-center p-4 hidden">
+    <div class="bg-white w-full max-w-xs rounded-3xl p-5 space-y-4 text-center" onclick="event.stopPropagation()">
+      <p class="text-xs font-bold text-slate-700">Masukkan Jumlah Kuantitas<br><span class="text-[10px] text-slate-400 font-normal">(Gunakan tanda titik (.) untuk angka desimal)</span></p>
+      <input id="input-qty-value" type="number" step="0.1" value="1" class="w-full p-3 border border-slate-300 rounded-xl text-center text-base font-bold outline-none focus:border-blue-500">
+      <div class="space-y-2">
+        <button onclick="confirmQtyLayanan()" class="w-full bg-red-500 text-white font-bold text-xs py-3 rounded-xl shadow-md">TAMBAH KE KERANJANG</button>
+        <button onclick="closeModalQty()" class="w-full bg-indigo-300 text-indigo-900 font-bold text-xs py-3 rounded-xl">BATAL</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV BAR -->
+  <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-40 py-1 pb-safe shrink-0">
+    <div class="max-w-md mx-auto flex justify-around">
+      <button onclick="switchTab('home')" id="nav-home" class="nav-btn flex flex-col items-center p-2 text-blue-600 font-bold w-full"><span class="text-lg">🏠</span><span class="text-[10px] mt-0.5">Beranda</span></button>
+      <button onclick="switchTab('order')" id="nav-order" class="nav-btn flex flex-col items-center p-2 text-slate-400 font-medium w-full"><span class="text-lg">🛒</span><span class="text-[10px] mt-0.5">Order</span></button>
+      <button onclick="switchTab('report')" id="nav-report" class="nav-btn flex flex-col items-center p-2 text-slate-400 font-medium w-full"><span class="text-lg">📊</span><span class="text-[10px] mt-0.5">Report</span></button>
+      <button onclick="switchTab('setting')" id="nav-setting" class="nav-btn flex flex-col items-center p-2 text-slate-400 font-medium w-full"><span class="text-lg">⚙️</span><span class="text-[10px] mt-0.5">Pengaturan</span></button>
+    </div>
+  </nav>
+
+  <!-- MODAL METODE PEMBAYARAN -->
+  <div id="modal-pembayaran" onclick="closeOnBackdrop(event, 'modal-pembayaran')" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[95] flex items-center justify-center p-4 hidden">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl" onclick="event.stopPropagation()">
+      <div class="flex justify-between items-center border-b pb-2">
+        <div>
+          <h3 class="font-extrabold text-slate-900 text-sm">Metode Pembayaran</h3>
+          <p id="pembayaran-total-label" class="text-[10px] text-blue-600 font-bold mt-0.5">Total Bayar: Rp 0</p>
+        </div>
+        <button onclick="closeModalPembayaran()" class="w-7 h-7 bg-slate-100 hover:bg-slate-200 rounded-full font-bold text-slate-500 text-xs flex items-center justify-center">✕</button>
+      </div>
+
+      <div class="space-y-2 text-xs">
+        <p class="font-bold text-slate-600 text-[11px]">Pilih Metode Pembayaran:</p>
+        
+        <!-- 1. Tunai -->
+        <button onclick="prosesBayarFinal('Tunai')" class="w-full p-3 bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 rounded-2xl flex items-center justify-between font-bold text-slate-800 transition active:scale-[0.98]">
+          <span class="flex items-center gap-2">💵 Tunai (Cash)</span>
+          <span class="text-[10px] text-emerald-600">Pilih ➔</span>
+        </button>
+
+        <!-- 2. Token LNDR -->
+        <button onclick="prosesBayarFinal('Token LNDR')" class="w-full p-3 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 rounded-2xl flex items-center justify-between font-bold text-slate-800 transition active:scale-[0.98]">
+          <span class="flex items-center gap-2">🪙 Token LNDR</span>
+          <span class="text-[10px] text-blue-600">Pilih ➔</span>
+        </button>
+
+        <!-- 3. Transfer Bank -->
+        <button onclick="prosesBayarFinal('Transfer Bank')" class="w-full p-3 bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 rounded-2xl flex items-center justify-between font-bold text-slate-800 transition active:scale-[0.98]">
+          <span class="flex items-center gap-2">🏦 Transfer Bank</span>
+          <span class="text-[10px] text-indigo-600">Pilih ➔</span>
+        </button>
+      </div>
+
+      <!-- SECTION QRIS -->
+      <div class="border-t border-slate-100 pt-3 space-y-2 text-center">
+        <p class="font-bold text-slate-600 text-[11px] text-left">📱 QRIS Pembayaran</p>
+        <div id="qris-container" class="p-4 bg-slate-50 border border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center min-h-[110px]">
+          <p class="text-xs font-bold text-slate-400 italic">Silahkan upload QRIS anda</p>
+        </div>
+        <button onclick="prosesBayarFinal('QRIS')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-2.5 rounded-xl shadow-md text-xs active:scale-[0.98] transition">
+          ✅ Selesai Bayar via QRIS
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANGGIL SELURUH BERKAS JS SECARA BERURUTAN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/modal.js"></script>
+  <script src="js/custumer.js"></script>
+  <script src="js/setting.js"></script>
+  <script src="js/order.js"></script>
+  <script src="js/report.js"></script>
+  <script src="js/app.js"></script>
+
+<!-- MODAL KELOLA PARFUM -->
+  <div id="modal-kelola-parfum" onclick="closeOnBackdrop(event, 'modal-kelola-parfum')" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] hidden items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 max-h-[85vh] flex flex-col shadow-2xl" onclick="event.stopPropagation()">
+      <div class="flex justify-between items-center border-b pb-3 shrink-0">
+        <h3 class="font-black text-slate-900 text-base">🌸 Kelola Aroma Parfum</h3>
+        <button type="button" onclick="closeModalKelolaParfum()" class="w-8 h-8 bg-slate-100 hover:bg-slate-200 rounded-full font-bold text-slate-500 flex items-center justify-center transition">✕</button>
+      </div>
+
+      <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2.5 text-xs shrink-0">
+        <p class="font-extrabold text-slate-700">➕ Tambah Aroma Parfum Baru</p>
+        <div class="flex gap-2">
+          <input id="new_nama_parfum" type="text" placeholder="Contoh: Ocean Fresh, Bubblegum" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl outline-none font-bold text-xs">
+          <button type="button" onclick="tambahParfumBaru()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 rounded-xl text-xs shrink-0 shadow-sm transition">Tambah</button>
+        </div>
+      </div>
+
+      <div class="space-y-2 flex-1 min-h-0 flex flex-col">
+        <p class="text-xs font-bold text-slate-500 shrink-0">Daftar Aroma Saat Ini:</p>
+        <div id="list-kelola-parfum-container" class="scroll-area space-y-2 flex-1 pr-1" style="min-height: 0;">
+          <p class="text-xs text-slate-400 text-center py-4">Memuat data parfum...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/vconsole@latest/dist/vconsole.min.js"></script>
+  <script>
+    var vConsole = new VConsole();
+  </script>  
+</body>
+</html>
