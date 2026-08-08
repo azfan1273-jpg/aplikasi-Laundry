@@ -1,11 +1,10 @@
 // ==========================================
-// KONTROL DAFTAR ORDER & TRANSAKSI (VERSI FULL CLEAN)
+// FILE: js/order.js (CLEAN & DIRECT SCOPE FIX)
 // ==========================================
 
-let currentFilterTab = 'Antrian';
-
-function filterOrderTab(status) {
-  currentFilterTab = status;
+// 1. DEKLARASI GLOBAL LANGSUNG DI AWAL FILE
+window.filterOrderTab = function(status) {
+  window.currentFilterTab = status;
   
   const btns = document.querySelectorAll('.tab-order-btn');
   btns.forEach(btn => btn.classList.remove('active'));
@@ -14,8 +13,11 @@ function filterOrderTab(status) {
   if (activeBtn) activeBtn.classList.add('active');
 
   loadOrderDataList();
-}
+};
 
+window.currentFilterTab = 'Antrian';
+
+// 2. FUNGSI LOAD DATA ORDER
 async function loadOrderDataList() {
   const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
   if (!client) return;
@@ -28,7 +30,7 @@ async function loadOrderDataList() {
   try {
     let rawOrders = [];
 
-    // 1. Jika cache kosong, tarik fresh dari Supabase
+    // Tarik fresh dari Supabase atau ambil dari cache global
     if (window.globalTxCache && window.globalTxCache.length > 0) {
       rawOrders = window.globalTxCache;
     } else {
@@ -42,17 +44,19 @@ async function loadOrderDataList() {
       window.globalTxCache = rawOrders;
     }
 
-    // 2. Filter berdasarkan Tab Aktif
+    const currentTab = window.currentFilterTab || 'Antrian';
+
+    // Filter status tab
     let filteredOrders = rawOrders.filter(o => {
       const st = (o.status_laundry || o.status || 'Diterima').trim();
       
-      if (currentFilterTab === 'Antrian') {
+      if (currentTab === 'Antrian') {
         return st === 'Antrian' || st === 'Diterima' || st === 'Baru';
-      } else if (currentFilterTab === 'Proses') {
+      } else if (currentTab === 'Proses') {
         return st === 'Proses' || st === 'Cuci' || st === 'Setrika';
-      } else if (currentFilterTab === 'Selesai') {
+      } else if (currentTab === 'Selesai') {
         return st === 'Selesai' || st === 'Diambil';
-      } else if (currentFilterTab === 'Batal') {
+      } else if (currentTab === 'Batal') {
         return st === 'Batal' || st === 'Cancelled';
       }
       return true;
@@ -79,7 +83,6 @@ async function loadOrderDataList() {
       }).join('');
     }
 
-    // 3. Update Badge Total Pelanggan
     updateBadgeTotalPelanggan();
 
   } catch (err) {
@@ -90,7 +93,7 @@ async function loadOrderDataList() {
   }
 }
 
-// FUNGSI UPDATE BADGE TOTAL PELANGGAN
+// 3. FUNGSI BADGE TOTAL PELANGGAN
 async function updateBadgeTotalPelanggan() {
   const badgeEl = document.getElementById('badge-total-pelanggan');
   if (!badgeEl) return;
@@ -113,7 +116,7 @@ async function updateBadgeTotalPelanggan() {
   }
 }
 
-// MODAL DETAIL ORDER
+// 4. MODAL DETAIL ORDER
 let activeOrderDetail = null;
 
 async function openModalDetailOrder(orderId) {
@@ -352,7 +355,7 @@ async function actionBatalkanOrder() {
       
       closeModalDetailOrder();
       window.globalTxCache = null;
-      filterOrderTab('Batal');
+      window.filterOrderTab('Batal');
 
     } catch (err) {
       console.error('Error actionBatalkanOrder:', err);
@@ -365,8 +368,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadOrderDataList();
 });
 
-// Expose ke Scope Global
-window.filterOrderTab = filterOrderTab;
+// Expose fungsi ke scope global window
 window.loadOrderDataList = loadOrderDataList;
 window.updateBadgeTotalPelanggan = updateBadgeTotalPelanggan;
 window.openModalDetailOrder = openModalDetailOrder;
@@ -378,8 +380,3 @@ window.prosesBayarFinal = prosesBayarFinal;
 window.openModalEditOrder = openModalEditOrder;
 window.closeModalEditOrder = closeModalEditOrder;
 window.actionBatalkanOrder = actionBatalkanOrder;
-```[cite: 5]
-
----
-
-Coba simpan file **`js/order.js`**, lalu *refresh* websitenya[cite: 5]. Sekarang daftar order akan langsung muncul dengan lancar, total pelanggan terhitung otomatis, dan tidak akan *stuck* lagi[cite: 1, 5]!
