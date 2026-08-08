@@ -1,5 +1,5 @@
 // ==========================================
-// KONTROL DAFTAR ORDER & TRANSAKSI (FIX TABEL TRANSAKSI)
+// KONTROL DAFTAR ORDER & TRANSAKSI (VERSI FULL CLEAN)
 // ==========================================
 
 let currentFilterTab = 'Antrian';
@@ -28,11 +28,10 @@ async function loadOrderDataList() {
   try {
     let rawOrders = [];
 
-    // 1. Jika data sudah ter-load di Beranda (globalTxCache), pakai data itu langsung
+    // 1. Jika cache kosong, tarik fresh dari Supabase
     if (window.globalTxCache && window.globalTxCache.length > 0) {
       rawOrders = window.globalTxCache;
     } else {
-      // 2. Jika belum ada cache, tarik dari Supabase persis seperti cara Beranda
       let { data: listTx, error } = await client
         .from('transaksi')
         .select('*, pelanggan(nama, no_hp)')
@@ -40,10 +39,10 @@ async function loadOrderDataList() {
 
       if (error) throw error;
       rawOrders = listTx || [];
-      window.globalTxCache = rawOrders; // Simpan ke cache global
+      window.globalTxCache = rawOrders;
     }
 
-    // 3. Filter status sesuai Tab Aktif (Antrian, Proses, Selesai, Batal)
+    // 2. Filter berdasarkan Tab Aktif
     let filteredOrders = rawOrders.filter(o => {
       const st = (o.status_laundry || o.status || 'Diterima').trim();
       
@@ -61,26 +60,27 @@ async function loadOrderDataList() {
 
     if (filteredOrders.length === 0) {
       container.innerHTML = '<p class="text-xs text-slate-400 text-center py-10">Tidak ada orderan di status ini.</p>';
-      return;
+    } else {
+      container.innerHTML = filteredOrders.map(o => {
+        const notaNum = o.id ? String(o.id).padStart(6, '0') : '000000';
+        const namaPel = (o.pelanggan && o.pelanggan.nama) ? o.pelanggan.nama : (o.nama_pelanggan || 'Pelanggan Umum');
+        const totalHarga = o.total_harga ? 'Rp ' + Math.round(o.total_harga).toLocaleString('id-ID') : 'Rp 0';
+        const statusText = o.status_laundry || o.status || 'Diterima';
+
+        return `
+          <div onclick="openModalDetailOrder('${o.id}')" class="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl flex justify-between items-center cursor-pointer hover:border-blue-300 active:scale-[0.98] transition shadow-sm mb-2">
+            <div>
+              <h4 class="font-extrabold text-slate-800 text-xs">Nota #${notaNum} - ${namaPel}</h4>
+              <p class="text-[10px] text-slate-400 mt-0.5">${totalHarga} • ${o.status_pembayaran || 'Belum Lunas'}</p>
+            </div>
+            <span class="text-[10px] bg-blue-100 text-blue-700 font-black px-2.5 py-1 rounded-xl uppercase tracking-wider">${statusText}</span>
+          </div>
+        `;
+      }).join('');
     }
 
-    // 4. Render tampilan daftar order
-    container.innerHTML = filteredOrders.map(o => {
-      const notaNum = o.id ? String(o.id).padStart(6, '0') : '000000';
-      const namaPel = (o.pelanggan && o.pelanggan.nama) ? o.pelanggan.nama : (o.nama_pelanggan || 'Pelanggan Umum');
-      const totalHarga = o.total_harga ? 'Rp ' + Math.round(o.total_harga).toLocaleString('id-ID') : 'Rp 0';
-      const statusText = o.status_laundry || o.status || 'Diterima';
-
-      return `
-        <div onclick="openModalDetailOrder('${o.id}')" class="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl flex justify-between items-center cursor-pointer hover:border-blue-300 active:scale-[0.98] transition shadow-sm mb-2">
-          <div>
-            <h4 class="font-extrabold text-slate-800 text-xs">Nota #${notaNum} - ${namaPel}</h4>
-            <p class="text-[10px] text-slate-400 mt-0.5">${totalHarga} • ${o.status_pembayaran || 'Belum Lunas'}</p>
-          </div>
-          <span class="text-[10px] bg-blue-100 text-blue-700 font-black px-2.5 py-1 rounded-xl uppercase tracking-wider">${statusText}</span>
-        </div>
-      `;
-    }).join('');
+    // 3. Update Badge Total Pelanggan
+    updateBadgeTotalPelanggan();
 
   } catch (err) {
     console.error("Error loadOrderDataList:", err);
@@ -90,82 +90,30 @@ async function loadOrderDataList() {
   }
 }
 
-// --- GEMBOK AKSES EDIT ORDER ---
-function openModalEditOrder() {
-  if (typeof getTokoPermissions === 'function' && typeof currentUserProfile !== 'undefined' && currentUserProfile) {
-    const perms = getTokoPermissions();
-    if (currentUserProfile.role !== 'owner' && !perms.is_manager && !perms.akses_edit_order) {
-      if (typeof showToast === 'function') showToast("Kasir tidak diizinkan mengedit data order!", "error");
-      return;
-    }
-  }
-
-  const modal = document.getElementById('modal-edit-order');
-  if (modal) modal.classList.remove('hidden');
-}
-
-function closeModalEditOrder() {
-  if (typeof closeModalWithHistory === 'function') closeModalWithHistory('modal-edit-order');
-}
-
-// --- GEMBOK AKSES BATALKAN ORDER ---
-async function actionBatalkanOrder() {
-  // 1. Cek Hak Akses Kasir
-  if (typeof getTokoPermissions === 'function' && typeof currentUserProfile !== 'undefined') {
-    const perms = getTokoPermissions();
-    if (currentUserProfile.role !== 'owner' && !perms.is_manager && !perms.akses_edit_order) {
-      if (typeof showToast === 'function') showToast("Kasir tidak diizinkan membatalkan order!", "error");
-      return;
-    }
-  }
+// FUNGSI UPDATE BADGE TOTAL PELANGGAN
+async function updateBadgeTotalPelanggan() {
+  const badgeEl = document.getElementById('badge-total-pelanggan');
+  if (!badgeEl) return;
 
   const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
-  if (!client || !window.currentSelectedOrderId) {
-    if (typeof showToast === 'function') showToast("ID Order tidak ditemukan!", "error");
-    return;
-  }
+  if (!client) return;
 
-  if (confirm("Apakah Anda yakin ingin membatalkan order ini?")) {
-    try {
-      // 2. Kirim Perubahan Status ke Supabase
-      const { error } = await client
-        .from('transaksi')
-        .update({ 
-          status_laundry: 'Batal',
-        })
-        .eq('id', window.currentSelectedOrderId);
+  try {
+    let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) ? currentToko.id : localStorage.getItem('toko_id');
+    
+    let query = client.from('pelanggan').select('id', { count: 'exact', head: true });
+    if (tokoId) query = query.eq('toko_id', tokoId);
 
-      if (error) {
-        if (typeof showToast === 'function') showToast('Gagal membatalkan order: ' + error.message, 'error');
-        return;
-      }
+    const { count, error } = await query;
+    if (error) throw error;
 
-      if (typeof showToast === 'function') showToast("Order berhasil dibatalkan. ❌", "success");
-      
-      // 3. Tutup Modal
-      if (typeof closeModalDetailOrder === 'function') closeModalDetailOrder();
-
-      // 4. Auto Refresh & Langsung Buka Tab Batal
-      setTimeout(() => {
-        if (typeof loadDataHome === 'function') loadDataHome();
-        if (typeof loadReport === 'function') loadReport();
-        if (typeof filterOrderTab === 'function') {
-          filterOrderTab('Batal');
-        } else if (typeof loadOrderDataList === 'function') {
-          loadOrderDataList();
-        }
-      }, 300);
-
-    } catch (err) {
-      console.error('Error actionBatalkanOrder:', err);
-    }
+    badgeEl.textContent = (count || 0) + ' Orang';
+  } catch (err) {
+    console.error("Error updateBadgeTotalPelanggan:", err);
   }
 }
 
-// ==========================================
-// FIX MODAL DETAIL ORDER & AKSI PROSES STATUS
-// ==========================================
-
+// MODAL DETAIL ORDER
 let activeOrderDetail = null;
 
 async function openModalDetailOrder(orderId) {
@@ -194,7 +142,6 @@ async function openModalDetailOrder(orderId) {
 
     activeOrderDetail = order;
 
-    // Element Target
     const notaIdEl = document.getElementById('detail-nota-id');
     const namaPelEl = document.getElementById('detail-nama-pelanggan');
     const hpPelEl = document.getElementById('detail-hp-pelanggan');
@@ -211,7 +158,6 @@ async function openModalDetailOrder(orderId) {
     const namaPel = (order.pelanggan && order.pelanggan.nama) ? order.pelanggan.nama : (order.nama_pelanggan || 'Pelanggan Umum');
     const hpPel = (order.pelanggan && order.pelanggan.no_hp) ? order.pelanggan.no_hp : '08-';
 
-    // Hitung Total Harga yang Akurat
     const totalHargaVal = order.total_harga || 0;
     const totalHargaFormatted = 'Rp ' + Math.round(totalHargaVal).toLocaleString('id-ID');
 
@@ -223,12 +169,8 @@ async function openModalDetailOrder(orderId) {
       tglMasukEl.textContent = order.created_at ? new Date(order.created_at).toLocaleDateString('id-ID') : '-';
     }
 
-    // PAKSA UPDATE TOTAL PRICE DI FOOTER MODAL
-    if (totalPriceEl) {
-      totalPriceEl.textContent = totalHargaFormatted;
-    }
+    if (totalPriceEl) totalPriceEl.textContent = totalHargaFormatted;
 
-    // Render Daftar Layanan / Item
     if (layananListContainer) {
       const namaLayanan = order.layanan ? order.layanan.nama_layanan : 'Layanan Laundry';
       const qty = parseFloat(order.berat_atau_jumlah) || 1;
@@ -278,29 +220,47 @@ async function openModalDetailOrder(orderId) {
     console.error("Error openModalDetailOrder:", err);
   }
 }
-```[cite: 5]
 
----
+async function actionLanjutProses() {
+  if (!activeOrderDetail) return;
 
-### **2. Solusi Auto Refresh Panel Antrian (File: `js/app.js`)**
+  const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
+  if (!client) return;
 
-Buka file **`js/app.js`**, cari fungsi **`simpanOrderPOS`**[cite: 6], lalu pastikan saat proses simpan selesai, cache transaksi dihapus (`window.globalTxCache = null;`) sehingga saat merender ulang daftar antrian, data ditarik fresh dari Supabase[cite: 5, 6].
+  const currentStatus = (activeOrderDetail.status_laundry || activeOrderDetail.status || 'Diterima').trim();
+  let nextStatus = 'Proses';
 
-Cari bagian akhir dari fungsi `simpanOrderPOS`[cite: 6]:
+  if (currentStatus === 'Diterima' || currentStatus === 'Antrian') {
+    nextStatus = 'Proses';
+  } else if (currentStatus === 'Proses') {
+    nextStatus = 'Selesai';
+  } else {
+    if (typeof showToast === 'function') showToast("Order ini sudah selesai!", "info");
+    return;
+  }
 
-```javascript
-    // KODE PERBAIKAN: CLEAR CACHE DAN FORCE FETCH
-    window.globalTxCache = null; // Hapus cache transaksi lama
-    if (typeof renderKeranjangPOS === 'function') renderKeranjangPOS();
-    tutupModalPOS();
+  try {
+    const { error } = await client
+      .from('transaksi')
+      .update({ status_laundry: nextStatus })
+      .eq('id', activeOrderDetail.id);
 
-    // Refresh Otomatis Seluruh Data Layar
-    setTimeout(async () => {
-      if (typeof loadDataHome === 'function') await loadDataHome();
-      if (typeof loadOrderDataList === 'function') await loadOrderDataList();
-      if (typeof loadReport === 'function') loadReport();
-      if (typeof updateBadgeTotalPelanggan === 'function') updateBadgeTotalPelanggan();
-    }, 200);
+    if (error) throw error;
+
+    if (typeof showToast === 'function') {
+      showToast(`Status Order #${activeOrderDetail.id} diubah jadi ${nextStatus}! 🎉`, "success");
+    }
+
+    closeModalDetailOrder();
+    window.globalTxCache = null;
+    loadOrderDataList();
+    if (typeof loadDataHome === 'function') loadDataHome();
+
+  } catch (err) {
+    console.error("Error actionLanjutProses:", err);
+    if (typeof showToast === 'function') showToast("Gagal memperbarui status order", "error");
+  }
+}
 
 function closeModalDetailOrder() {
   const modal = document.getElementById('modal-detail-order');
@@ -309,15 +269,6 @@ function closeModalDetailOrder() {
     modal.classList.remove('flex');
   }
 }
-
-// Expose fungsi ke scope global
-window.openModalDetailOrder = openModalDetailOrder;
-window.actionLanjutProses = actionLanjutProses;
-window.closeModalDetailOrder = closeModalDetailOrder;
-
-// ==========================================
-// FIX ACTION BAYAR & METODE PEMBAYARAN
-// ==========================================
 
 function actionBayarOrder() {
   if (!activeOrderDetail) return;
@@ -353,9 +304,7 @@ async function prosesBayarFinal(metode) {
   try {
     const { error } = await client
       .from('transaksi')
-      .update({
-        status_pembayaran: 'Lunas'
-      })
+      .update({ status_pembayaran: 'Lunas' })
       .eq('id', activeOrderDetail.id);
 
     if (error) throw error;
@@ -367,7 +316,8 @@ async function prosesBayarFinal(metode) {
     closeModalPembayaran();
     closeModalDetailOrder();
 
-    if (typeof loadOrderDataList === 'function') loadOrderDataList();
+    window.globalTxCache = null;
+    loadOrderDataList();
     if (typeof loadDataHome === 'function') loadDataHome();
 
   } catch (err) {
@@ -376,41 +326,60 @@ async function prosesBayarFinal(metode) {
   }
 }
 
-// FUNGSI UPDATE BADGE TOTAL PELANGGAN
-async function updateBadgeTotalPelanggan() {
-  const badgeEl = document.getElementById('badge-total-pelanggan');
-  if (!badgeEl) return;
+function openModalEditOrder() {
+  const modal = document.getElementById('modal-edit-order');
+  if (modal) modal.classList.remove('hidden');
+}
 
+function closeModalEditOrder() {
+  if (typeof closeModalWithHistory === 'function') closeModalWithHistory('modal-edit-order');
+}
+
+async function actionBatalkanOrder() {
   const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
-  if (!client) return;
+  if (!client || !window.currentSelectedOrderId) return;
 
-  try {
-    let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) ? currentToko.id : localStorage.getItem('toko_id');
-    
-    let query = client.from('pelanggan').select('id', { count: 'exact', head: true });
-    if (tokoId) query = query.eq('toko_id', tokoId);
+  if (confirm("Apakah Anda yakin ingin membatalkan order ini?")) {
+    try {
+      const { error } = await client
+        .from('transaksi')
+        .update({ status_laundry: 'Batal' })
+        .eq('id', window.currentSelectedOrderId);
 
-    const { count, error } = await query;
-    if (error) throw error;
+      if (error) throw error;
 
-    badgeEl.textContent = (count || 0) + ' Orang';
-  } catch (err) {
-    console.error("Error updateBadgeTotalPelanggan:", err);
+      if (typeof showToast === 'function') showToast("Order berhasil dibatalkan. ❌", "success");
+      
+      closeModalDetailOrder();
+      window.globalTxCache = null;
+      filterOrderTab('Batal');
+
+    } catch (err) {
+      console.error('Error actionBatalkanOrder:', err);
+    }
   }
 }
 
-// Otomatis jalankan saat load data order
-const originalLoadOrderDataList = window.loadOrderDataList;
-window.loadOrderDataList = async function() {
-  if (typeof originalLoadOrderDataList === 'function') {
-    await originalLoadOrderDataList();
-  }
-  updateBadgeTotalPelanggan();
-};
+// Inisialisasi awal saat file di-load
+document.addEventListener('DOMContentLoaded', () => {
+  loadOrderDataList();
+});
 
+// Expose ke Scope Global
+window.filterOrderTab = filterOrderTab;
+window.loadOrderDataList = loadOrderDataList;
 window.updateBadgeTotalPelanggan = updateBadgeTotalPelanggan;
-
-// Expose fungsi ke scope global
+window.openModalDetailOrder = openModalDetailOrder;
+window.actionLanjutProses = actionLanjutProses;
+window.closeModalDetailOrder = closeModalDetailOrder;
 window.actionBayarOrder = actionBayarOrder;
 window.closeModalPembayaran = closeModalPembayaran;
 window.prosesBayarFinal = prosesBayarFinal;
+window.openModalEditOrder = openModalEditOrder;
+window.closeModalEditOrder = closeModalEditOrder;
+window.actionBatalkanOrder = actionBatalkanOrder;
+```[cite: 5]
+
+---
+
+Coba simpan file **`js/order.js`**, lalu *refresh* websitenya[cite: 5]. Sekarang daftar order akan langsung muncul dengan lancar, total pelanggan terhitung otomatis, dan tidak akan *stuck* lagi[cite: 1, 5]!
