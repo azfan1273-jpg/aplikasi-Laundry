@@ -410,8 +410,14 @@ async function simpanPerubahanLayanan(e, id) {
 }
 
 // 9. SIMPAN LAYANAN BARU
+// Variable gembok anti-double click
+let isSubmittingLayanan = false;
+
 async function prosesSimpanLayananBaru(e) {
   if (e && e.preventDefault) e.preventDefault();
+
+  // Jika sedang proses simpan, hentikan agar tidak ter-trigger ganda
+  if (isSubmittingLayanan) return;
 
   const modal = document.getElementById('modal-kelola-layanan') || document;
   const inputs = Array.from(modal.querySelectorAll('input'));
@@ -441,6 +447,9 @@ async function prosesSimpanLayananBaru(e) {
   if (!client) return;
 
   try {
+    // Kunci proses simpan
+    isSubmittingLayanan = true;
+
     const userRes = await client.auth.getUser();
     const userId = userRes?.data?.user?.id || null;
     let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) ? currentToko.id : localStorage.getItem('toko_id');
@@ -470,10 +479,13 @@ async function prosesSimpanLayananBaru(e) {
     if (estimasiInput) estimasiInput.value = '';
 
     if (typeof closeModalKelolaLayanan === 'function') closeModalKelolaLayanan();
-    renderLayananPOS();
+    if (typeof renderLayananPOS === 'function') renderLayananPOS();
 
   } catch (err) {
     console.error('Catch simpan layanan:', err);
+  } finally {
+    // Buka kembali gembok setelah selesai
+    isSubmittingLayanan = false;
   }
 }
 
