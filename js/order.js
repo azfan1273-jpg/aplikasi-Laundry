@@ -169,7 +169,6 @@ async function actionBatalkanOrder() {
 let activeOrderDetail = null;
 
 async function openModalDetailOrder(orderId) {
-  // Simpan ID Order ke variabel global
   window.currentSelectedOrderId = orderId;
 
   const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
@@ -182,7 +181,6 @@ async function openModalDetailOrder(orderId) {
   }
 
   try {
-    // 1. Tarik detail data dari tabel 'transaksi' beserta relasi pelanggan & layanan
     const { data: order, error } = await client
       .from('transaksi')
       .select('*, pelanggan(nama, no_hp), layanan(nama_layanan, harga, satuan, estimasi_hari)')
@@ -196,7 +194,7 @@ async function openModalDetailOrder(orderId) {
 
     activeOrderDetail = order;
 
-    // 2. Isikan data ke elemen UI Modal
+    // Element Target
     const notaIdEl = document.getElementById('detail-nota-id');
     const namaPelEl = document.getElementById('detail-nama-pelanggan');
     const hpPelEl = document.getElementById('detail-hp-pelanggan');
@@ -204,7 +202,6 @@ async function openModalDetailOrder(orderId) {
     const tglMasukEl = document.getElementById('detail-tgl-masuk');
     const totalPriceEl = document.getElementById('detail-total-price');
 
-    // Elemen Parfum, Estimasi, Catatan, & List Layanan
     const parfumEl = document.getElementById('detail-parfum');
     const tglSelesaiEl = document.getElementById('detail-tgl-selesai');
     const catatanEl = document.getElementById('detail-catatan');
@@ -213,48 +210,47 @@ async function openModalDetailOrder(orderId) {
     const notaNum = String(order.id).padStart(6, '0');
     const namaPel = (order.pelanggan && order.pelanggan.nama) ? order.pelanggan.nama : (order.nama_pelanggan || 'Pelanggan Umum');
     const hpPel = (order.pelanggan && order.pelanggan.no_hp) ? order.pelanggan.no_hp : '08-';
-    const totalHargaFormatted = 'Rp ' + Math.round(order.total_harga || 0).toLocaleString('id-ID');
+
+    // Hitung Total Harga yang Akurat
+    const totalHargaVal = order.total_harga || 0;
+    const totalHargaFormatted = 'Rp ' + Math.round(totalHargaVal).toLocaleString('id-ID');
 
     if (notaIdEl) notaIdEl.textContent = `Nota #${notaNum}`;
     if (namaPelEl) namaPelEl.textContent = namaPel;
     if (hpPelEl) hpPelEl.textContent = hpPel;
     if (statusBayarEl) statusBayarEl.textContent = order.status_pembayaran || 'Belum Lunas';
-    
-    // Format Tanggal Masuk
     if (tglMasukEl) {
       tglMasukEl.textContent = order.created_at ? new Date(order.created_at).toLocaleDateString('id-ID') : '-';
     }
 
-    // 3. RENDER DAFTAR LAYANAN / ITEM
+    // PAKSA UPDATE TOTAL PRICE DI FOOTER MODAL
+    if (totalPriceEl) {
+      totalPriceEl.textContent = totalHargaFormatted;
+    }
+
+    // Render Daftar Layanan / Item
     if (layananListContainer) {
       const namaLayanan = order.layanan ? order.layanan.nama_layanan : 'Layanan Laundry';
       const qty = parseFloat(order.berat_atau_jumlah) || 1;
       const satuan = order.layanan ? (order.layanan.satuan || 'Kg') : 'Kg';
-      const hargaSatuan = order.layanan ? (order.layanan.harga || 0) : 0;
-      const subtotal = order.total_harga || (hargaSatuan * qty);
+      const hargaSatuan = order.layanan ? (order.layanan.harga || 0) : (totalHargaVal / qty);
 
       layananListContainer.innerHTML = `
-        <div class="flex justify-between items-center p-2 bg-white rounded-xl border border-slate-200 text-xs shadow-sm">
+        <div class="flex justify-between items-center p-2.5 bg-white rounded-xl border border-slate-200 text-xs shadow-sm">
           <div>
             <p class="font-extrabold text-slate-800">${namaLayanan}</p>
-            <p class="text-[10px] text-slate-400 mt-0.5">${qty} ${satuan} × Rp ${hargaSatuan.toLocaleString('id-ID')}</p>
+            <p class="text-[10px] text-slate-400 mt-0.5">${qty} ${satuan} × Rp ${Math.round(hargaSatuan).toLocaleString('id-ID')}</p>
           </div>
-          <p class="font-black text-blue-600 text-xs">Rp ${Math.round(subtotal).toLocaleString('id-ID')}</p>
+          <p class="font-black text-blue-600 text-xs">${totalHargaFormatted}</p>
         </div>
       `;
     }
 
-    // 4. TAMPILKAN PARFUM
-    if (parfumEl) {
-      parfumEl.textContent = order.parfum || 'Standard / Original';
-    }
-
-    // 5. TAMPILKAN CATATAN ORDER
+    if (parfumEl) parfumEl.textContent = order.parfum || 'Standard / Original';
     if (catatanEl) {
       catatanEl.textContent = (order.catatan && order.catatan.trim() !== '') ? order.catatan : 'Tidak ada catatan';
     }
 
-    // 6. HITUNG DAN TAMPILKAN ESTIMASI SELESAI
     if (tglSelesaiEl) {
       if (order.created_at) {
         const tglMasuk = new Date(order.created_at);
@@ -266,7 +262,6 @@ async function openModalDetailOrder(orderId) {
       }
     }
 
-    // Update teks tombol proses sesuai status saat ini
     const btnProses = document.getElementById('btn-lanjut-proses');
     if (btnProses) {
       const st = (order.status_laundry || order.status || 'Diterima').trim();
@@ -283,6 +278,29 @@ async function openModalDetailOrder(orderId) {
     console.error("Error openModalDetailOrder:", err);
   }
 }
+```[cite: 5]
+
+---
+
+### **2. Solusi Auto Refresh Panel Antrian (File: `js/app.js`)**
+
+Buka file **`js/app.js`**, cari fungsi **`simpanOrderPOS`**[cite: 6], lalu pastikan saat proses simpan selesai, cache transaksi dihapus (`window.globalTxCache = null;`) sehingga saat merender ulang daftar antrian, data ditarik fresh dari Supabase[cite: 5, 6].
+
+Cari bagian akhir dari fungsi `simpanOrderPOS`[cite: 6]:
+
+```javascript
+    // KODE PERBAIKAN: CLEAR CACHE DAN FORCE FETCH
+    window.globalTxCache = null; // Hapus cache transaksi lama
+    if (typeof renderKeranjangPOS === 'function') renderKeranjangPOS();
+    tutupModalPOS();
+
+    // Refresh Otomatis Seluruh Data Layar
+    setTimeout(async () => {
+      if (typeof loadDataHome === 'function') await loadDataHome();
+      if (typeof loadOrderDataList === 'function') await loadOrderDataList();
+      if (typeof loadReport === 'function') loadReport();
+      if (typeof updateBadgeTotalPelanggan === 'function') updateBadgeTotalPelanggan();
+    }, 200);
 
 function closeModalDetailOrder() {
   const modal = document.getElementById('modal-detail-order');
