@@ -175,9 +175,9 @@ async function openModalDetailOrder(orderId) {
     if (totalPriceEl) totalPriceEl.textContent = totalHargaFormatted;
 
     if (layananListContainer) {
-      // Cek apakah ada rincian item dalam bentuk array / JSON di transaksi
       let itemsList = [];
 
+      // Membaca data dari kolom items
       if (order.items) {
         try {
           itemsList = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
@@ -186,7 +186,7 @@ async function openModalDetailOrder(orderId) {
         }
       }
 
-      // Jika ada banyak item dari keranjang
+      // Tampilkan seluruh item keranjang jika ada
       if (Array.isArray(itemsList) && itemsList.length > 0) {
         layananListContainer.innerHTML = itemsList.map(item => {
           const namaLayanan = item.nama_layanan || item.nama || 'Layanan Laundry';
@@ -206,7 +206,7 @@ async function openModalDetailOrder(orderId) {
           `;
         }).join('');
       } else {
-        // Fallback jika orderan lama yang cuma punya 1 layanan
+        // Fallback transaksi lama
         const namaLayanan = order.layanan ? order.layanan.nama_layanan : 'Layanan Laundry';
         const qty = parseFloat(order.berat_atau_jumlah) || 1;
         const satuan = order.layanan ? (order.layanan.satuan || 'Kg') : 'Kg';

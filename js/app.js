@@ -377,19 +377,21 @@ async function simpanOrderPOS() {
     const userId = userRes?.data?.user?.id || null;
     let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) ? currentToko.id : localStorage.getItem('toko_id');
 
-    // Payload murni sesuai kolom tabel 'transaksi' di Supabase kamu (KOMA SUDAH DIPERBAIKI)
+    // Convert array keranjang menjadi format JSON Teks
     const itemsJson = JSON.stringify(keranjang);
 
-const payload = {
-  pelanggan_id: pelangganId,
-  layanan_id: primaryItem ? primaryItem.id : null,
-  berat_atau_jumlah: totalQty,
-  total_harga: Math.round(totalHarga),
-  status_pembayaran: 'Belum Lunas',
-  parfum: document.getElementById('pos_parfum')?.value || 'Standard',
-  catatan: document.getElementById('pos_catatan')?.value?.trim() || '',
-  items: itemsJson
-};
+    // Payload murni dikirim ke Supabase
+    const payload = {
+      pelanggan_id: pelangganId,
+      layanan_id: primaryItem ? primaryItem.id : null,
+      berat_atau_jumlah: totalQty,
+      total_harga: Math.round(totalHarga),
+      status_pembayaran: 'Belum Lunas',
+      parfum: document.getElementById('pos_parfum')?.value || 'Standard',
+      catatan: document.getElementById('pos_catatan')?.value?.trim() || '',
+      items: itemsJson, // <--- Menyimpan array keranjang ke kolom items
+      kasir_id: userId // <--- Catat ID user/kasir yang memproses order
+    };
 
     if (userId) payload.user_id = userId;
     if (tokoId) payload.toko_id = tokoId;
