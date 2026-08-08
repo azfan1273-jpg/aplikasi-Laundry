@@ -1,6 +1,7 @@
 // ==========================================
-// STATE AKUN & PROFILE GLOBAL
+// FILE: js/auth.js (STATE AKUN & PROFILE GLOBAL)
 // ==========================================
+
 let currentUserProfile = null;
 let currentToko = null;
 let isRegisterMode = false;
@@ -29,6 +30,9 @@ async function checkUserSession() {
   }
 }
 
+// ==========================================
+// LOAD PROFIL USER DAN DATA TOKO
+// ==========================================
 async function loadUserProfile(authUser) {
   try {
     const { data: profile, error: profErr } = await supabaseClient
@@ -72,18 +76,24 @@ async function loadUserProfile(authUser) {
     const emailVal = authUser.email || profile.email || 'Akun Kasir';
     const topbarEmail = document.getElementById('topbar-user-email');
     const settingEmail = document.getElementById('setting-user-email');
-    const modalHeaderEmail = document.getElementById('modal-header-user-email'); // Jika ada elemen subtitle di modal
     const topbarToko = document.getElementById('topbar-nama-toko');
 
-    if (topbarEmail) topbarEmail.innerText = authUser.email || '';
-    if (settingEmail) settingEmail.innerText = authUser.email || '';
+    if (topbarEmail) topbarEmail.innerText = emailVal;
+    if (settingEmail) settingEmail.innerText = emailVal;
     if (topbarToko && currentToko) topbarToko.innerText = currentToko.nama_toko || 'LNDR';
 
     showAuthScreen(false);
+    
+    // Terapkan izin UI seketika
     applyUserPermissionsUI();
+
+    // Load status sakelar izin kasir jika berada di mode Owner
     if (typeof loadPermissionsToForm === 'function') {
       loadPermissionsToForm();
     }
+
+    // Pasang listener realtime izin akses toko
+    initRealtimeTokoPermissions();
 
     // Load data dashboard
     if (typeof loadDataHome === 'function') loadDataHome();
@@ -338,7 +348,6 @@ function applyUserPermissionsUI() {
 
   if (!isOwner) {
     // --- MODE KASIR ---
-    // Sembunyikan Kelola Akun / Tambah Kasir
     if (ownerSectionKasir) ownerSectionKasir.style.display = 'none';
     if (menuKelolaAkun) menuKelolaAkun.style.display = 'none';
 
@@ -353,7 +362,6 @@ function applyUserPermissionsUI() {
 
   } else {
     // --- MODE OWNER ---
-    // Tampilkan Semua Menu
     if (ownerSectionLayanan) ownerSectionLayanan.style.display = 'flex';
     if (ownerSectionKasir) ownerSectionKasir.style.display = 'flex';
     if (menuKelolaAkun) menuKelolaAkun.style.display = 'flex';
@@ -409,12 +417,6 @@ async function triggerManualRefresh() {
   }
 }
 
-// EXECUTED AUTOMATICALLY WHEN PAGE LOADS
-document.addEventListener('DOMContentLoaded', () => {
-    checkUserSession();
-    updateAccountModalEmail();
-});
-
 // ==========================================
 // AUTO-FILL EMAIL DI HEADER MODAL JENDELA AKUN
 // ==========================================
@@ -422,28 +424,20 @@ async function updateAccountModalEmail() {
   const accountModalEmail = document.getElementById('account-modal-email');
   if (!accountModalEmail) return;
 
-  // 1. Cek dari localStorage dulu
   let email = localStorage.getItem('user_email');
 
-  // 2. Jika tidak ada di localStorage, ambil dari session Supabase
   if (!email && typeof supabaseClient !== 'undefined') {
     const { data } = await supabaseClient.auth.getUser();
     if (data && data.user) {
       email = data.user.email;
-      localStorage.setItem('user_email', email); // Simpan ke localStorage
+      localStorage.setItem('user_email', email);
     }
   }
 
-  // 3. Pasang email ke elemen HTML modal
   if (email) {
     accountModalEmail.textContent = email;
   }
 }
-
-// Jalankan otomatis saat halaman selesai dimuat
-document.addEventListener('DOMContentLoaded', () => {
-  updateAccountModalEmail();
-});
 
 // ==========================================
 // FUNGSI SHOW / HIDE PASSWORD
@@ -456,29 +450,27 @@ function toggleShowPassword() {
 
   if (passInput.type === 'password') {
     passInput.type = 'text';
-    if (eyeIcon) eyeIcon.textContent = '🙈'; // Ikon saat password terlihat
+    if (eyeIcon) eyeIcon.textContent = '🙈';
   } else {
     passInput.type = 'password';
-    if (eyeIcon) eyeIcon.textContent = '👁️'; // Ikon saat password tersembunyi
+    if (eyeIcon) eyeIcon.textContent = '👁️';
   }
 }
 
-// daftarkan fungsi ke scope global agar bisa dipanggil dari HTML
-window.toggleShowPassword = toggleShowPassword;
-
 // ==========================================
-// REALTIME LISTENER IZIN AKSES TOKO (KASIR)
+// REALTIME LISTENER IZIN AKSES TOKO (KHUSUS KASIR)
 // ==========================================
 function initRealtimeTokoPermissions() {
   if (typeof supabaseClient === 'undefined' || !supabaseClient) return;
 
-  const tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) 
+  let tokoId = (typeof currentToko !== 'undefined' && currentToko?.id) 
                ? currentToko.id 
+               : (typeof currentUserProfile !== 'undefined' && currentUserProfile?.toko_id)
+               ? currentUserProfile.toko_id
                : localStorage.getItem('toko_id');
 
   if (!tokoId) return;
 
-  // Dengarkan perubahan data tabel 'toko' secara realtime
   supabaseClient
     .channel('realtime_toko_permissions')
     .on(
@@ -490,19 +482,17 @@ function initRealtimeTokoPermissions() {
         filter: `id=eq.${tokoId}`
       },
       (payload) => {
-        console.log('⚡ PERUBAHAN IZIN AKSES REALTIME DITERIMA:', payload.new);
-        
-        // Update data toko aktif secara instan
         if (payload.new) {
           currentToko = payload.new;
-          
-          // Terapkan perubahan UI akses secara langsung
-          if (typeof applyUserPermissionsUI === 'function') {
-            applyUserPermissionsUI();
-          }
 
-          if (typeof showToast === 'function') {
-            showToast('Izin akses toko telah diperbarui oleh Owner! ⚡', 'info');
+          // HANYA UPDATE UI DAN TAMPILKAN TOAST JIKA PENGGUNA ADALAH KASIR
+          if (currentUserProfile && currentUserProfile.role === 'kasir') {
+            if (typeof applyUserPermissionsUI === 'function') {
+              applyUserPermissionsUI();
+            }
+            if (typeof showToast === 'function') {
+              showToast('Izin akses toko telah diperbarui oleh Owner! ⚡', 'info');
+            }
           }
         }
       }
@@ -510,11 +500,14 @@ function initRealtimeTokoPermissions() {
     .subscribe();
 }
 
-// Jalankan listener saat pengguna selesai memuat profil
-const originalLoadUserProfile = loadUserProfile;
-if (typeof originalLoadUserProfile === 'function') {
-  loadUserProfile = async function(authUser) {
-    await originalLoadUserProfile(authUser);
-    initRealtimeTokoPermissions(); // Pasang pemicu realtime
-  };
-}
+// Registrasi fungsi ke window scope
+window.toggleShowPassword = toggleShowPassword;
+window.initRealtimeTokoPermissions = initRealtimeTokoPermissions;
+window.getTokoPermissions = getTokoPermissions;
+window.applyUserPermissionsUI = applyUserPermissionsUI;
+
+// Inisialisasi Otomatis
+document.addEventListener('DOMContentLoaded', () => {
+  checkUserSession();
+  updateAccountModalEmail();
+});
