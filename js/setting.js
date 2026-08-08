@@ -1019,6 +1019,34 @@ async function updateTokoPermissions(keyPermission, isChecked) {
   }
 }
 
+// ==========================================
+// BUKA & TUTUP MODAL KELOLA LAYANAN
+// ==========================================
+function openModalKelolaLayanan() {
+  const modal = document.getElementById('modal-kelola-layanan');
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    
+    // Refresh daftar layanan saat modal dibuka
+    if (typeof renderKelolaLayananList === 'function') {
+      renderKelolaLayananList();
+    }
+  }
+}
+
+function closeModalKelolaLayanan() {
+  const modal = document.getElementById('modal-kelola-layanan');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+}
+
+// WAJIB: Daftarkan ke window scope
+window.openModalKelolaLayanan = openModalKelolaLayanan;
+window.closeModalKelolaLayanan = closeModalKelolaLayanan;
+
 window.loadPermissionsToForm = loadPermissionsToForm;
 window.updateTokoPermissions = updateTokoPermissions;
 
