@@ -184,11 +184,11 @@
         </div>
       </div>
 
-    <div class="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-sm space-y-2 flex-1 flex flex-col min-h-0 overflow-hidden max-h-[220px]">
-      <div class="flex justify-between items-center border-b pb-1.5 border-slate-100 shrink-0">
-        <h3 class="font-extrabold text-slate-900 text-xs">📌 Masuk Hari Ini</h3>
-        <span id="count-masuk" class="text-[10px] bg-blue-50 text-blue-600 font-bold px-2 py-0.5 rounded-lg">0 Order</span>
-      </div>
+      <div class="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-sm space-y-2 flex-1 flex flex-col min-h-0 overflow-hidden max-h-[220px]">
+        <div class="flex justify-between items-center border-b pb-1.5 border-slate-100 shrink-0">
+          <h3 class="font-extrabold text-slate-900 text-xs">📌 Masuk Hari Ini</h3>
+          <span id="count-masuk" class="text-[10px] bg-blue-50 text-blue-600 font-bold px-2 py-0.5 rounded-lg">0 Order</span>
+        </div>
 
         <div id="list-home" class="scroll-area space-y-2 pr-1 flex-1 overflow-y-auto max-h-[170px]">
           <p class="text-xs text-slate-400 text-center py-6">Memuat orderan hari ini...</p>
@@ -765,7 +765,7 @@
         </div>
       </div>
 
-      <!-- FOOTER TERBISA KIRI (TOTAL) & KANAN (TOMBOL BAYAR NOW) -->
+      <!-- FOOTER TOTAL & TOMBOL BAYAR -->
       <div class="p-4 border-t border-slate-100 bg-white flex items-center justify-between shrink-0 w-full rounded-b-3xl gap-3">
         <div class="flex flex-col shrink-0">
           <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Price</p>
@@ -825,17 +825,16 @@
       </div>
 
       <!-- 2. Section Layanan / Keranjang -->
-      <div class="bg-gray-50 p-4 rounded-xl mb-4 border border-gray-100 relative z-[100]">
-        <div class="flex justify-between items-center mb-3 relative z-[101]">
+      <div class="bg-gray-50 p-4 rounded-xl mb-4 border border-gray-100">
+        <div class="flex justify-between items-center mb-3">
           <p class="text-xs text-gray-500 font-medium">Daftar Layanan (Keranjang)</p>
 
-          <!-- Tombol Cyan dipaksa berada di paling atas -->
+          <!-- Tombol Cyan dengan Penyesuaian z-index & Pointer Events -->
           <button 
             type="button" 
             id="btnAddService" 
             onclick="bukaModalPilihLayanan()" 
-            class="relative z-[999999] pointer-events-auto cursor-pointer bg-cyan-100 hover:bg-cyan-200 active:bg-cyan-300 text-cyan-800 text-xs font-semibold px-3 py-1.5 rounded-lg transition select-none"
-            style="position: relative !important; z-index: 999999 !important; pointer-events: auto !important;"
+            class="relative z-[999] pointer-events-auto cursor-pointer bg-cyan-100 hover:bg-cyan-200 active:bg-cyan-300 text-cyan-800 text-xs font-semibold px-3 py-1.5 rounded-lg transition select-none"
           >
             + Tambah Layanan
           </button>
@@ -848,19 +847,15 @@
 
       <!-- 3. Section Parfum & Catatan Order -->
       <div class="space-y-3 mb-6">
-        <!-- Pilihan Parfum & Slot Menu Baru -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label class="block text-xs font-semibold text-gray-600 mb-1">Aroma Parfum</label>
             <select id="pos_parfum" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold outline-none focus:border-indigo-500">
-              <!-- Otomatis diisi oleh JavaScript secara dinamis -->
             </select>
           </div>
-          <!-- Slot kosong di samping parfum untuk menu berikutnya -->
           <div id="slot-menu-tambahan-pos"></div>
         </div>
 
-        <!-- Catatan Order dibuat 3x lebih tinggi (Textarea) -->
         <div>
           <label class="block text-xs font-semibold text-gray-600 mb-1">Catatan Order</label>
           <textarea id="pos_catatan" rows="3" placeholder="Contoh: Luntur, Jangan Terlalu Panas, Baju warna putih dipisah" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold outline-none focus:border-indigo-500 resize-none"></textarea>
@@ -905,13 +900,11 @@
     <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 max-h-[85vh] flex flex-col" onclick="event.stopPropagation()">
       <div class="flex justify-between items-center border-b pb-2 shrink-0">
         <h4 class="font-extrabold text-slate-800 text-sm">Pilih Layanan</h4>
-  
+        
         <div class="flex items-center gap-2">
-          <!-- Tombol Kelola Paket Layanan -->
-          <button type="button" id="btn-modal-tambah-layanan" onclick="openModalKelolaLayanan()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] px-2.5 py-1 rounded-lg transition shadow-sm flex items-center gap-1">
-            <span>⚙️</span> <span>Kelola Paket</span>
+          <button type="button" onclick="openModalKelolaLayanan()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] px-2.5 py-1 rounded-lg transition shadow-sm">
+            + Tambah Layanan
           </button>
-
           <button type="button" onclick="closeModalPilihLayanan()" class="text-slate-400 hover:text-slate-600 font-bold w-7 h-7 rounded-full flex items-center justify-center hover:bg-slate-100">✕</button>
         </div>
       </div>
@@ -956,19 +949,16 @@
       <div class="space-y-2 text-xs">
         <p class="font-bold text-slate-600 text-[11px]">Pilih Metode Pembayaran:</p>
         
-        <!-- 1. Tunai -->
         <button onclick="prosesBayarFinal('Tunai')" class="w-full p-3 bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 rounded-2xl flex items-center justify-between font-bold text-slate-800 transition active:scale-[0.98]">
           <span class="flex items-center gap-2">💵 Tunai (Cash)</span>
           <span class="text-[10px] text-emerald-600">Pilih ➔</span>
         </button>
 
-        <!-- 2. Token LNDR -->
         <button onclick="prosesBayarFinal('Token LNDR')" class="w-full p-3 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 rounded-2xl flex items-center justify-between font-bold text-slate-800 transition active:scale-[0.98]">
           <span class="flex items-center gap-2">🪙 Token LNDR</span>
           <span class="text-[10px] text-blue-600">Pilih ➔</span>
         </button>
 
-        <!-- 3. Transfer Bank -->
         <button onclick="prosesBayarFinal('Transfer Bank')" class="w-full p-3 bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 rounded-2xl flex items-center justify-between font-bold text-slate-800 transition active:scale-[0.98]">
           <span class="flex items-center gap-2">🏦 Transfer Bank</span>
           <span class="text-[10px] text-indigo-600">Pilih ➔</span>
@@ -988,19 +978,7 @@
     </div>
   </div>
 
-  <!-- PANGGIL SELURUH BERKAS JS SECARA BERURUTAN -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/supabase.js"></script>
-  <script src="js/utils.js"></script>
-  <script src="js/auth.js"></script>
-  <script src="js/modal.js"></script>
-  <script src="js/custumer.js"></script>
-  <script src="js/setting.js"></script>
-  <script src="js/order.js"></script>
-  <script src="js/report.js"></script>
-  <script src="js/app.js"></script>
-
-<!-- MODAL KELOLA PARFUM -->
+  <!-- MODAL KELOLA PARFUM -->
   <div id="modal-kelola-parfum" onclick="closeOnBackdrop(event, 'modal-kelola-parfum')" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] hidden items-end sm:items-center justify-center p-0 sm:p-4">
     <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 max-h-[85vh] flex flex-col shadow-2xl" onclick="event.stopPropagation()">
       <div class="flex justify-between items-center border-b pb-3 shrink-0">
@@ -1024,6 +1002,17 @@
       </div>
     </div>
   </div>
+
+  <!-- BERKAS JS UTAMA -->
+  <script src="js/supabase.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/modal.js"></script>
+  <script src="js/custumer.js"></script>
+  <script src="js/setting.js"></script>
+  <script src="js/order.js"></script>
+  <script src="js/report.js"></script>
+  <script src="js/app.js"></script>
 
   <script src="https://unpkg.com/vconsole@latest/dist/vconsole.min.js"></script>
   <script>
