@@ -897,17 +897,18 @@
   </div>
 
   <div id="modal-layanan" onclick="closeOnBackdrop(event, 'modal-layanan')" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] hidden items-end sm:items-center justify-center p-0 sm:p-4">
-    <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 max-h-[85vh] flex flex-col" onclick="event.stopPropagation()">
-      <div class="flex justify-between items-center border-b pb-2 shrink-0">
-        <h4 class="font-extrabold text-slate-800 text-sm">Pilih Layanan</h4>
-        
-        <div class="flex items-center gap-2">
-          <button type="button" onclick="openModalKelolaLayanan()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] px-2.5 py-1 rounded-lg transition shadow-sm">
-            + Tambah Layanan
-          </button>
-          <button type="button" onclick="closeModalPilihLayanan()" class="text-slate-400 hover:text-slate-600 font-bold w-7 h-7 rounded-full flex items-center justify-center hover:bg-slate-100">✕</button>
-        </div>
+  <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 max-h-[85vh] flex flex-col" onclick="event.stopPropagation()">
+    <div class="flex justify-between items-center border-b pb-2 shrink-0">
+      <h4 class="font-extrabold text-slate-800 text-sm">Pilih Layanan</h4>
+      
+      <div class="flex items-center gap-1.5">
+        <!-- ICON ELEGANT: Kelola Master Layanan -->
+        <button type="button" onclick="openModalKelolaLayanan()" title="Kelola / Tambah Jenis Layanan Baru" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 flex items-center justify-center text-sm font-bold transition border border-slate-200 active:scale-95">
+          ⚙️
+        </button>
+        <button type="button" onclick="closeModalPilihLayanan()" class="text-slate-400 hover:text-slate-600 font-bold w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 transition">✕</button>
       </div>
+    </div>
       
       <input id="search-layanan" onkeyup="filterLayananList()" type="text" placeholder="Cari Layanan V2" class="w-full p-3 border border-slate-300 rounded-xl text-xs outline-none shrink-0">
       <div id="list-layanan-container" class="scroll-area space-y-3 flex-1 pr-1" style="min-height: 0;"><p class="text-xs text-slate-400 text-center py-4">Memuat layanan...</p></div>
