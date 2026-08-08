@@ -177,6 +177,10 @@ function closeModalKelolaLayanan() {
   }
 }
 
+// WAJIB: Daftarkan ke scope Window
+window.openModalKelolaLayanan = openModalKelolaLayanan;
+window.closeModalKelolaLayanan = closeModalKelolaLayanan;
+
 // 6. RENDER LIST KELOLA LAYANAN DENGAN TOMBOL HAPUS
 async function renderKelolaLayananList() {
   const container = document.getElementById('list-kelola-layanan-container');
@@ -931,10 +935,10 @@ function hapusParfum(index) {
   if (typeof showToast === 'function') showToast('Aroma parfum berhasil dihapus', 'success');
 }
 
-// Inisialisasi Otomatis
+// Inisialisasi Otomatis saat DOM Siap
 document.addEventListener('DOMContentLoaded', () => {
-  renderParfumOptionsPOS();
-  paksaHitungTotalPriceDOM();
+  if (typeof renderParfumOptionsPOS === 'function') renderParfumOptionsPOS();
+  if (typeof paksaHitungTotalPriceDOM === 'function') paksaHitungTotalPriceDOM();
 });
 
 // REGISTRASI GLOBAL SCOPE WINDOW
