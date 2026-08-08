@@ -308,9 +308,12 @@ function bukaModalEditLayanan(id) {
   if (!modalEdit) {
     modalEdit = document.createElement('div');
     modalEdit.id = 'modal-edit-layanan';
-    modalEdit.className = 'fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100000] flex items-center justify-center p-4 hidden';
+    modalEdit.className = 'fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden';
     document.body.appendChild(modalEdit);
   }
+
+  // PAKSA Z-INDEX PALING DEPAN (LEBIH TINGGI DARI MODAL PILIH LAYANAN)
+  modalEdit.style.zIndex = '9999999';
 
   modalEdit.innerHTML = `
     <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl space-y-4 border border-slate-100">
