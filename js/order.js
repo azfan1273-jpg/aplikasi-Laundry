@@ -182,10 +182,10 @@ async function openModalDetailOrder(orderId) {
   }
 
   try {
-    // Tarik detail data dari tabel 'transaksi' beserta relasi pelanggan
+    // 1. Tarik detail data dari tabel 'transaksi' beserta relasi pelanggan & layanan
     const { data: order, error } = await client
       .from('transaksi')
-      .select('*, pelanggan(nama, no_hp)')
+      .select('*, pelanggan(nama, no_hp), layanan(nama_layanan, harga, satuan, estimasi_hari)')
       .eq('id', orderId)
       .maybeSingle();
 
@@ -196,7 +196,7 @@ async function openModalDetailOrder(orderId) {
 
     activeOrderDetail = order;
 
-    // Isikan data ke elemen UI Modal
+    // 2. Isikan data ke elemen UI Modal
     const notaIdEl = document.getElementById('detail-nota-id');
     const namaPelEl = document.getElementById('detail-nama-pelanggan');
     const hpPelEl = document.getElementById('detail-hp-pelanggan');
@@ -204,10 +204,11 @@ async function openModalDetailOrder(orderId) {
     const tglMasukEl = document.getElementById('detail-tgl-masuk');
     const totalPriceEl = document.getElementById('detail-total-price');
 
-    // Elemen Parfum, Estimasi Selesai, dan Catatan
+    // Elemen Parfum, Estimasi, Catatan, & List Layanan
     const parfumEl = document.getElementById('detail-parfum');
     const tglSelesaiEl = document.getElementById('detail-tgl-selesai');
     const catatanEl = document.getElementById('detail-catatan');
+    const layananListContainer = document.getElementById('detail-layanan-list-container');
 
     const notaNum = String(order.id).padStart(6, '0');
     const namaPel = (order.pelanggan && order.pelanggan.nama) ? order.pelanggan.nama : (order.nama_pelanggan || 'Pelanggan Umum');
@@ -224,21 +225,40 @@ async function openModalDetailOrder(orderId) {
       tglMasukEl.textContent = order.created_at ? new Date(order.created_at).toLocaleDateString('id-ID') : '-';
     }
 
-    // 1. TAMPILKAN PARFUM
-    if (parfumEl) {
-      parfumEl.textContent = order.parfum || 'Standard';
+    // 3. RENDER DAFTAR LAYANAN / ITEM
+    if (layananListContainer) {
+      const namaLayanan = order.layanan ? order.layanan.nama_layanan : 'Layanan Laundry';
+      const qty = parseFloat(order.berat_atau_jumlah) || 1;
+      const satuan = order.layanan ? (order.layanan.satuan || 'Kg') : 'Kg';
+      const hargaSatuan = order.layanan ? (order.layanan.harga || 0) : 0;
+      const subtotal = order.total_harga || (hargaSatuan * qty);
+
+      layananListContainer.innerHTML = `
+        <div class="flex justify-between items-center p-2 bg-white rounded-xl border border-slate-200 text-xs shadow-sm">
+          <div>
+            <p class="font-extrabold text-slate-800">${namaLayanan}</p>
+            <p class="text-[10px] text-slate-400 mt-0.5">${qty} ${satuan} × Rp ${hargaSatuan.toLocaleString('id-ID')}</p>
+          </div>
+          <p class="font-black text-blue-600 text-xs">Rp ${Math.round(subtotal).toLocaleString('id-ID')}</p>
+        </div>
+      `;
     }
 
-    // 2. TAMPILKAN CATATAN ORDER
+    // 4. TAMPILKAN PARFUM
+    if (parfumEl) {
+      parfumEl.textContent = order.parfum || 'Standard / Original';
+    }
+
+    // 5. TAMPILKAN CATATAN ORDER
     if (catatanEl) {
       catatanEl.textContent = (order.catatan && order.catatan.trim() !== '') ? order.catatan : 'Tidak ada catatan';
     }
 
-    // 3. HITUNG DAN TAMPILKAN ESTIMASI SELESAI (Default 1 Hari jika tidak diset)
+    // 6. HITUNG DAN TAMPILKAN ESTIMASI SELESAI
     if (tglSelesaiEl) {
       if (order.created_at) {
         const tglMasuk = new Date(order.created_at);
-        const estimasiHari = parseFloat(order.estimasi_hari) || 1;
+        const estimasiHari = order.layanan ? (parseFloat(order.layanan.estimasi_hari) || 1) : 1;
         tglMasuk.setDate(tglMasuk.getDate() + estimasiHari);
         tglSelesaiEl.textContent = tglMasuk.toLocaleDateString('id-ID');
       } else {
@@ -261,49 +281,6 @@ async function openModalDetailOrder(orderId) {
 
   } catch (err) {
     console.error("Error openModalDetailOrder:", err);
-  }
-}
-
-// FIX ERROR: FUNGSI LANJUT PROSES ORDER
-async function actionLanjutProses() {
-  if (!activeOrderDetail) return;
-
-  const client = typeof supabaseClient !== 'undefined' ? supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
-  if (!client) return;
-
-  const currentStatus = (activeOrderDetail.status_laundry || activeOrderDetail.status || 'Diterima').trim();
-  let nextStatus = 'Proses';
-
-  if (currentStatus === 'Diterima' || currentStatus === 'Antrian') {
-    nextStatus = 'Proses';
-  } else if (currentStatus === 'Proses') {
-    nextStatus = 'Selesai';
-  } else {
-    if (typeof showToast === 'function') showToast("Order ini sudah selesai!", "info");
-    return;
-  }
-
-  try {
-    const { error } = await client
-      .from('transaksi')
-      .update({ status_laundry: nextStatus })
-      .eq('id', activeOrderDetail.id);
-
-    if (error) throw error;
-
-    if (typeof showToast === 'function') {
-      showToast(`Status Order #${activeOrderDetail.id} diubah jadi ${nextStatus}! 🎉`, "success");
-    }
-
-    closeModalDetailOrder();
-    
-    // Refresh daftar order & data beranda
-    if (typeof loadOrderDataList === 'function') loadOrderDataList();
-    if (typeof loadDataHome === 'function') loadDataHome();
-
-  } catch (err) {
-    console.error("Error actionLanjutProses:", err);
-    if (typeof showToast === 'function') showToast("Gagal memperbarui status order", "error");
   }
 }
 
